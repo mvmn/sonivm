@@ -8,13 +8,11 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Mixer;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
@@ -32,6 +30,7 @@ import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.audio.PlaybackEvent;
 import x.mvmn.sonivm.audio.PlaybackEventListener;
+import x.mvmn.sonivm.ui.model.AudioDeviceOption;
 
 @SpringBootApplication
 @Component
@@ -46,7 +45,7 @@ public class SonivmLauncher implements PlaybackEventListener {
 	private volatile boolean paused;
 	private final JFrame mainWindow;
 	private final JButton btnOpen;
-	private final JComboBox<String> cbxAudioDeviceSelector;
+	private final JComboBox<AudioDeviceOption> cbxAudioDeviceSelector;
 
 	public static void main(String[] args) throws Exception {
 		System.setProperty("java.awt.headless", "false");
@@ -60,17 +59,16 @@ public class SonivmLauncher implements PlaybackEventListener {
 		volumeSlider = new JSlider(JSlider.VERTICAL, 0, 100, 100);
 		volumeSlider.addChangeListener(actEvent -> audioService.setVolumePercentage(volumeSlider.getValue()));
 
-		SortedSet<String> audioDevices = Stream
-				.concat(Stream.of("-- Default --"), Stream.of(AudioSystem.getMixerInfo()).map(Mixer.Info::getName))
-				.collect(Collectors.toCollection(TreeSet::new));
-		cbxAudioDeviceSelector = new JComboBox<String>(audioDevices.toArray(new String[audioDevices.size()]));
+		List<AudioDeviceOption> audioDevices = Stream
+				.concat(Stream.of(AudioDeviceOption.builder().audioDeviceInfo(null).build()),
+						Stream.of(AudioSystem.getMixerInfo())
+								.map(mixerInfo -> AudioDeviceOption.builder().audioDeviceInfo(mixerInfo).build()))
+				.collect(Collectors.toList());
+		cbxAudioDeviceSelector = new JComboBox<AudioDeviceOption>(audioDevices.toArray(new AudioDeviceOption[audioDevices.size()]));
 		cbxAudioDeviceSelector.setSelectedIndex(0);
 		cbxAudioDeviceSelector.addActionListener(actEvent -> {
-			String audioDeviceName = cbxAudioDeviceSelector.getSelectedItem().toString();
-			if ("-- Default --".equals(audioDeviceName)) {
-				audioDeviceName = null;
-			}
-			audioService.setAudioDevice(audioDeviceName);
+			AudioDeviceOption audioDevice = (AudioDeviceOption) cbxAudioDeviceSelector.getSelectedItem();
+			audioService.setAudioDevice(audioDevice.getAudioDeviceInfo() != null ? audioDevice.getAudioDeviceInfo().getName() : null);
 		});
 
 		btnOpen = new JButton("Open...");
@@ -89,6 +87,7 @@ public class SonivmLauncher implements PlaybackEventListener {
 		mainWindow.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
+				audioService.stop();
 				audioService.shutdown();
 			}
 		});

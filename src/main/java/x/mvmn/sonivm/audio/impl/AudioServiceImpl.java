@@ -73,56 +73,65 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 	@PostConstruct
 	public void startPlaybackThread() {
-		new Thread(this).start();
+		Thread playbackThread = new Thread(this);
+		playbackThread.setDaemon(true);
+		playbackThread.start();
 	}
 
 	@Override
 	public void run() {
-		while (!this.shutdownRequested) {
-			AudioServiceTask task = taskQueue.poll();
-			if (task != null) {
-				try {
-					handleTask(task);
-				} catch (Exception e) {
-					handleTaskException(e);
-				}
-			} else {
-				try {
-					if (State.PLAYING == state) {
-						int readBytes = -1;
-						byte[] buffer = playbackBuffer;
-						readBytes = currentPcmStream.read(buffer);
-						if (readBytes < 1) {
-							LOGGER.info("End of track");
-							doStop();
-							executeListenerActions(PlaybackEvent.builder().type(PlaybackEvent.Type.FINISH).build());
-						} else {
-							if (LOGGER.isLoggable(Level.FINEST)) {
-								LOGGER.finest("Writing bytes to source data line: " + readBytes);
-							}
-							currentSourceDataLine.write(buffer, 0, readBytes);
-							long dataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
-							long delta = dataLineMillisecondsPosition - this.previousDataLineMillisecondsPosition;
-							if (delta > 100) { // Every 1/10th of a second (or at least not more frequent)
-								long currentPlayPositionMillis = playbackStartPositionMillisec
-										+ (dataLineMillisecondsPosition - startingDataLineMillisecondsPosition);
-								executeListenerActions(PlaybackEvent.builder()
-										.type(PlaybackEvent.Type.PROGRESS)
-										.playbackPositionMilliseconds(currentPlayPositionMillis)
-										.build());
-								this.previousDataLineMillisecondsPosition = dataLineMillisecondsPosition;
-							}
-						}
-					} else {
-						Thread.yield();
-						Thread.sleep(100l);
+		try {
+			while (!this.shutdownRequested) {
+				AudioServiceTask task = taskQueue.poll();
+				if (task != null) {
+					try {
+						handleTask(task);
+					} catch (InterruptedException interruptException) {
+						throw interruptException;
+					} catch (Exception e) {
+						handleTaskException(e);
 					}
-				} catch (InterruptedException interruptException) {
-					Thread.interrupted();
-				} catch (Exception e) {
-					handlePlaybackException(e);
+				} else {
+					try {
+						if (State.PLAYING == state) {
+							int readBytes = -1;
+							byte[] buffer = playbackBuffer;
+							readBytes = currentPcmStream.read(buffer);
+							if (readBytes < 1) {
+								LOGGER.info("End of track");
+								doStop();
+								executeListenerActions(PlaybackEvent.builder().type(PlaybackEvent.Type.FINISH).build());
+							} else {
+								if (LOGGER.isLoggable(Level.FINEST)) {
+									LOGGER.finest("Writing bytes to source data line: " + readBytes);
+								}
+								currentSourceDataLine.write(buffer, 0, readBytes);
+								long dataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
+								long delta = dataLineMillisecondsPosition - this.previousDataLineMillisecondsPosition;
+								if (delta > 100) { // Every 1/10th of a second (or at least not more frequent)
+									long currentPlayPositionMillis = playbackStartPositionMillisec
+											+ (dataLineMillisecondsPosition - startingDataLineMillisecondsPosition);
+									executeListenerActions(PlaybackEvent.builder()
+											.type(PlaybackEvent.Type.PROGRESS)
+											.playbackPositionMilliseconds(currentPlayPositionMillis)
+											.build());
+									this.previousDataLineMillisecondsPosition = dataLineMillisecondsPosition;
+								}
+							}
+						} else {
+							Thread.yield();
+							Thread.sleep(100l);
+						}
+					} catch (InterruptedException interruptException) {
+						throw interruptException;
+					} catch (Exception e) {
+						handlePlaybackException(e);
+					}
 				}
 			}
+		} catch (InterruptedException interruptException) {
+			Thread.interrupted();
+			this.shutdownRequested = true;
 		}
 		LOGGER.info("Playback thread shutting down. Shutdown requested flag state: " + shutdownRequested);
 		playbackEventListenerExecutor.shutdown();
