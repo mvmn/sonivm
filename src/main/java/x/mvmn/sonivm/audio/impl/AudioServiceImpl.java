@@ -173,10 +173,10 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						currentSourceDataLine.start();
 						this.currentSourceDataLine = currentSourceDataLine;
 						this.playbackBuffer = new byte[Math.max(128, currentPcmStream.getFormat().getFrameSize()) * (int) 256];
-						this.state = State.PLAYING;
 						this.playbackStartPositionMillisec = 0;
 						this.startingDataLineMillisecondsPosition = 0;
 						this.previousDataLineMillisecondsPosition = 0;
+						this.state = State.PLAYING;
 						executeListenerActions(PlaybackEvent.builder().type(PlaybackEvent.Type.START).audioMetadata(fileMetadata).build());
 					} else {
 						executeListenerActions(
@@ -194,7 +194,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				}
 			break;
 			case STOP:
-				if (State.PLAYING == this.state) {
+				if (State.STOPPED != this.state) {
 					doStop();
 				}
 			break;

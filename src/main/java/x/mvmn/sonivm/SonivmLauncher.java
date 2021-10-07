@@ -2,6 +2,7 @@ package x.mvmn.sonivm;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
@@ -11,6 +12,7 @@ import java.io.File;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JPanel;
 import javax.swing.JSlider;
 import javax.swing.SwingUtilities;
 
@@ -148,9 +150,12 @@ public class SonivmLauncher implements PlaybackEventListener {
 					slider = null;
 				}
 				SwingUtilities.invokeLater(() -> {
+					System.out.println("Remove all and add new");
 					mainWindow.getContentPane().removeAll();
-					mainWindow.getContentPane().add(btnStop, BorderLayout.CENTER);
-					mainWindow.getContentPane().add(btnPlayPause, BorderLayout.SOUTH);
+					JPanel btnPanel = new JPanel(new GridLayout(2, 1));
+					btnPanel.add(btnPlayPause);
+					btnPanel.add(btnStop);
+					mainWindow.getContentPane().add(btnPanel, BorderLayout.SOUTH);
 					if (slider != null) {
 						mainWindow.getContentPane().add(slider, BorderLayout.NORTH);
 					}
