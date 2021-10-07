@@ -67,7 +67,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private volatile long playbackStartPositionMillisec;
 
 	private volatile int volumePercent = 100;
-	private volatile boolean seekInProgress = false;
+	private volatile Integer requestedSeekPosition = null;
 
 	@Autowired(required = false)
 	private List<PlaybackEventListener> listeners;
@@ -107,7 +107,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 									LOGGER.finest("Writing bytes to source data line: " + readBytes);
 								}
 								currentSourceDataLine.write(buffer, 0, readBytes);
-								if (!seekInProgress) {
+								if (requestedSeekPosition == null) {
 									long dataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
 									long delta = dataLineMillisecondsPosition - this.previousDataLineMillisecondsPosition;
 									if (delta > 100) { // Every 1/10th of a second (or at least not more frequent)
@@ -220,13 +220,14 @@ public class AudioServiceImpl implements AudioService, Runnable {
 			break;
 			case SEEK:
 				if (State.PLAYING == this.state || State.PAUSED == this.state) {
-					if (this.currentStreamIsSeekable) {
-						this.currentFFAudioInputStream.seek(task.getNumericData(), TimeUnit.MILLISECONDS);
-						this.playbackStartPositionMillisec = task.getNumericData();
+					if (this.currentStreamIsSeekable && requestedSeekPosition != null) {
+						int seekPosition = requestedSeekPosition; // task.getNumericData()
+						this.currentFFAudioInputStream.seek(seekPosition, TimeUnit.MILLISECONDS);
+						this.playbackStartPositionMillisec = seekPosition;
 						this.startingDataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
 					}
 				}
-				seekInProgress = false;
+				requestedSeekPosition = null;
 			break;
 			case STOP:
 				if (State.STOPPED != this.state) {
@@ -340,7 +341,12 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 	@Override
 	public void seek(int milliseconds) {
-		seekInProgress = true;
+		// Throttle by setting requested seek position to single variable,
+		// so that multiple quickly made seek requests will all override it.
+		// The var will be reset on processing seek request,
+		// so for multiple requests in short time only first one will actually
+		// be executed - to avoid repeated seek to the same position.
+		requestedSeekPosition = milliseconds;
 		enqueueTask(Type.SEEK, milliseconds);
 	}
 
