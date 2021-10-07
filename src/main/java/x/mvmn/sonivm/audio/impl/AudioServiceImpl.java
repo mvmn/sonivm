@@ -43,7 +43,13 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 	private static final Logger LOGGER = Logger.getLogger(AudioServiceImpl.class.getCanonicalName());
 
+	private static enum State {
+		STOPPED, PLAYING, PAUSED;
+	}
+
 	private final Queue<AudioServiceTask> taskQueue = new ConcurrentLinkedQueue<>();
+	private final ExecutorService playbackEventListenerExecutor = Executors.newFixedThreadPool(1);
+
 	private volatile boolean shutdownRequested = false;
 	private volatile State state = State.STOPPED;
 
@@ -51,20 +57,19 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private volatile AudioInputStream currentPcmStream;
 	private volatile SourceDataLine currentSourceDataLine;
 	private volatile byte[] playbackBuffer;
+
 	private volatile Mixer.Info selectedAudioDevice;
+
 	private volatile boolean currentStreamIsSeekable;
+
 	private volatile long previousDataLineMillisecondsPosition;
 	private volatile long startingDataLineMillisecondsPosition;
 	private volatile long playbackStartPositionMillisec;
+
 	private volatile int volumePercent = 100;
-	private final ExecutorService playbackEventListenerExecutor = Executors.newFixedThreadPool(1);
 
 	@Autowired(required = false)
 	private List<PlaybackEventListener> listeners;
-
-	private static enum State {
-		STOPPED, PLAYING, PAUSED;
-	}
 
 	@PostConstruct
 	public void startPlaybackThread() {
