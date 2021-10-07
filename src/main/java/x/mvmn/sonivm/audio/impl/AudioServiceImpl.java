@@ -67,6 +67,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private volatile long playbackStartPositionMillisec;
 
 	private volatile int volumePercent = 100;
+	private volatile boolean seekInProgress = false;
 
 	@Autowired(required = false)
 	private List<PlaybackEventListener> listeners;
@@ -106,16 +107,18 @@ public class AudioServiceImpl implements AudioService, Runnable {
 									LOGGER.finest("Writing bytes to source data line: " + readBytes);
 								}
 								currentSourceDataLine.write(buffer, 0, readBytes);
-								long dataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
-								long delta = dataLineMillisecondsPosition - this.previousDataLineMillisecondsPosition;
-								if (delta > 100) { // Every 1/10th of a second (or at least not more frequent)
-									long currentPlayPositionMillis = playbackStartPositionMillisec
-											+ (dataLineMillisecondsPosition - startingDataLineMillisecondsPosition);
-									executeListenerActions(PlaybackEvent.builder()
-											.type(PlaybackEvent.Type.PROGRESS)
-											.playbackPositionMilliseconds(currentPlayPositionMillis)
-											.build());
-									this.previousDataLineMillisecondsPosition = dataLineMillisecondsPosition;
+								if (!seekInProgress) {
+									long dataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
+									long delta = dataLineMillisecondsPosition - this.previousDataLineMillisecondsPosition;
+									if (delta > 100) { // Every 1/10th of a second (or at least not more frequent)
+										long currentPlayPositionMillis = playbackStartPositionMillisec
+												+ (dataLineMillisecondsPosition - startingDataLineMillisecondsPosition);
+										executeListenerActions(PlaybackEvent.builder()
+												.type(PlaybackEvent.Type.PROGRESS)
+												.playbackPositionMilliseconds(currentPlayPositionMillis)
+												.build());
+										this.previousDataLineMillisecondsPosition = dataLineMillisecondsPosition;
+									}
 								}
 							}
 						} else {
@@ -223,6 +226,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						this.startingDataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
 					}
 				}
+				seekInProgress = false;
 			break;
 			case STOP:
 				if (State.STOPPED != this.state) {
@@ -296,7 +300,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				newValue = minimum;
 			}
 			if (LOGGER.isLoggable(Level.FINE)) {
-				LOGGER.info("Setting gain to: " + newValue);
+				LOGGER.fine("Setting gain to: " + newValue);
 			}
 			gainControl.setValue(newValue);
 		} else {
@@ -336,6 +340,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 	@Override
 	public void seek(int milliseconds) {
+		seekInProgress = true;
 		enqueueTask(Type.SEEK, milliseconds);
 	}
 

@@ -25,6 +25,7 @@ public class AppPreferencesServiceImpl implements AppPreferencesService {
 	private static final String KEY_LASTFMAPIKEY = "lastfmapikey";
 	private static final String KEY_LASTFMAPISECRET = "lastfmapisecret";
 	private static final String KEY_PERCENTAGE_TO_SCROBBLE_AT = "scrobbleatpercent";
+	private static final String KEY_LOOK_AND_FEEL = "lookandfeel";
 
 	private final Preferences prefs;
 	private final KeyAndNonce keyAndNonce;
@@ -37,6 +38,10 @@ public class AppPreferencesServiceImpl implements AppPreferencesService {
 			prefs.put(KEY_ENCPWD, encpwd);
 		}
 		this.keyAndNonce = KeyAndNonce.deserialize(encpwd);
+	}
+
+	protected Preferences getPreferences() {
+		return Preferences.userNodeForPackage(SonivmLauncher.class);
 	}
 
 	@Override
@@ -85,8 +90,14 @@ public class AppPreferencesServiceImpl implements AppPreferencesService {
 		prefs.put(KEY_LASTFMAPISECRET, value);
 	}
 
-	protected Preferences getPreferences() {
-		return Preferences.userNodeForPackage(SonivmLauncher.class);
+	@Override
+	public String getLookAndFeel() {
+		return prefs.get(KEY_LOOK_AND_FEEL, null);
+	}
+
+	@Override
+	public void setLookAndFeel(String value) {
+		prefs.put(KEY_LOOK_AND_FEEL, value);
 	}
 
 	@Override

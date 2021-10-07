@@ -8,36 +8,58 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.sound.sampled.AudioSystem;
 import javax.swing.JButton;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.stereotype.Component;
 
+import com.formdev.flatlaf.FlatDarculaLaf;
+import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatIntelliJLaf;
+import com.formdev.flatlaf.FlatLightLaf;
+
 import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.audio.PlaybackEvent;
 import x.mvmn.sonivm.audio.PlaybackEventListener;
+import x.mvmn.sonivm.prefs.AppPreferencesService;
+import x.mvmn.sonivm.ui.JMenuBarBuilder;
+import x.mvmn.sonivm.ui.JMenuBarBuilder.JMenuBuilder;
+import x.mvmn.sonivm.ui.SwingUtil;
 import x.mvmn.sonivm.ui.model.AudioDeviceOption;
 
 @SpringBootApplication
 @Component
 public class SonivmLauncher implements PlaybackEventListener {
 
+	private static final Logger LOGGER = Logger.getLogger(SonivmLauncher.class.getCanonicalName());
+
 	@Autowired
 	private AudioService audioService;
+
+	// @Autowired
+	private final AppPreferencesService appPreferencesService;
 
 	private volatile JSlider seekSlider;
 	private final JSlider volumeSlider;
@@ -49,10 +71,46 @@ public class SonivmLauncher implements PlaybackEventListener {
 
 	public static void main(String[] args) throws Exception {
 		System.setProperty("java.awt.headless", "false");
+		SwingUtilities.invokeAndWait(() -> {
+			try {
+				Stream.of(FlatLightLaf.class, FlatIntelliJLaf.class, FlatDarkLaf.class, FlatDarculaLaf.class)
+						.forEach(lafClass -> UIManager.installLookAndFeel(lafClass.getSimpleName(), lafClass.getCanonicalName()));
+			} catch (Exception e) {
+				LOGGER.log(Level.WARNING, "Failed to install FlatLAF look and feels", e);
+			}
+		});
 		SpringApplication.run(SonivmLauncher.class, args).getBean(SonivmLauncher.class);
 	}
 
-	public SonivmLauncher() {
+	public SonivmLauncher(final AppPreferencesService appPreferencesService) {
+		this.appPreferencesService = appPreferencesService;
+
+		String lookAndFeelName = null;
+		try {
+			lookAndFeelName = appPreferencesService.getLookAndFeel();
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to get look and feel name from preferences", e);
+		}
+
+		// Set Look&Feel before constructing any UI components
+		final String finalLnFName = lookAndFeelName;
+		try {
+			SwingUtilities.invokeAndWait(() -> {
+				try {
+					if (finalLnFName != null) {
+						SwingUtil.setLookAndFeel(finalLnFName);
+					}
+				} catch (Exception e) {
+					LOGGER.log(Level.SEVERE, "Failed to init UI and set look and feel to " + finalLnFName, e);
+				}
+			});
+		} catch (InvocationTargetException e) {
+			throw new RuntimeException(e);
+		} catch (InterruptedException e) {
+			Thread.interrupted();
+			throw new RuntimeException(e);
+		}
+
 		mainWindow = new JFrame();
 		mainWindow.getContentPane().setLayout(new BorderLayout());
 
@@ -91,9 +149,32 @@ public class SonivmLauncher implements PlaybackEventListener {
 				audioService.shutdown();
 			}
 		});
-		mainWindow.setMinimumSize(new Dimension(400, 300));
+
+		JMenuBuilder<JMenuBarBuilder> menuBuilder = new JMenuBarBuilder().menu("Options");
+		JMenuBuilder<JMenuBuilder<JMenuBarBuilder>> menuBuilderLnF = menuBuilder.subMenu("Look&Feel");
+		String currentLnF = SwingUtil.getLookAndFeelName(UIManager.getLookAndFeel());
+		List<JCheckBoxMenuItem> lnfOptions = new ArrayList<>();
+		Arrays.stream(UIManager.getInstalledLookAndFeels())
+				.map(LookAndFeelInfo::getName)
+				.forEach(lnf -> menuBuilderLnF.item(lnf).checkbox().checked(currentLnF.equals(lnf)).actr(e -> {
+					SwingUtil.setLookAndFeel(lnf);
+					lnfOptions.forEach(mi -> mi.setState(lnf.equals(mi.getText())));
+					new Thread(() -> saveLaFConfig(lnf)).start();
+				}).process(mi -> lnfOptions.add((JCheckBoxMenuItem) mi)).build());
+
+		mainWindow.setJMenuBar(menuBuilderLnF.build().build().build());
+
+		mainWindow.setMinimumSize(new Dimension(400, 200));
 		mainWindow.pack();
-		mainWindow.setVisible(true);
+		SwingUtil.moveToScreenCenter(mainWindow);
+
+		SwingUtilities.invokeLater(() -> {
+			try {
+				mainWindow.setVisible(true);
+			} catch (Exception e) {
+				LOGGER.log(Level.SEVERE, "Failed to init UI and set look and feel to " + finalLnFName, e);
+			}
+		});
 	}
 
 	private void doSeek() {
@@ -106,6 +187,14 @@ public class SonivmLauncher implements PlaybackEventListener {
 		mainWindow.invalidate();
 		mainWindow.revalidate();
 		mainWindow.repaint();
+	}
+
+	private void saveLaFConfig(String lookAndFeelPrefValue) {
+		try {
+			appPreferencesService.setLookAndFeel(lookAndFeelPrefValue);
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to save look and feel preference", e);
+		}
 	}
 
 	@Override
@@ -148,7 +237,7 @@ public class SonivmLauncher implements PlaybackEventListener {
 				if (audioInfo.isSeekable()) {
 					seekSlider = new JSlider(0, audioInfo.getDurationSeconds().intValue() * 10, 0);
 					seekSlider.addChangeListener(actEvent -> {
-						if (seekSliderIsDragged && !seekSlider.getValueIsAdjusting()) {
+						if (seekSliderIsDragged) {
 							doSeek();
 						}
 					});
@@ -165,7 +254,7 @@ public class SonivmLauncher implements PlaybackEventListener {
 
 						@Override
 						public void mouseClicked(MouseEvent e) {
-							doSeek();
+							// doSeek();
 						}
 					});
 					mainWindow.getContentPane().add(seekSlider, BorderLayout.NORTH);

@@ -20,8 +20,11 @@ public interface AppPreferencesService {
 
 	void setApiSecret(String value);
 
-	void setPercentageToScrobbleAt(int value);
-
 	int getPercentageToScrobbleAt(int defaultVal);
 
+	void setPercentageToScrobbleAt(int value);
+
+	String getLookAndFeel();
+
+	void setLookAndFeel(String value);
 }

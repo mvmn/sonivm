@@ -5,21 +5,31 @@ import java.util.function.Consumer;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
-public class ExceptionDisplayer implements Consumer<Throwable> {
+import lombok.Builder;
+import lombok.Data;
+
+public class ExceptionDisplayer implements Consumer<ExceptionDisplayer.ErrorData> {
 
 	public static ExceptionDisplayer INSTANCE = new ExceptionDisplayer();
 
+	@Data
+	@Builder
+	public static class ErrorData {
+		final String message;
+		final Throwable error;
+	}
+
 	@Override
-	public void accept(Throwable t) {
+	public void accept(ErrorData errorData) {
 		if (!SwingUtilities.isEventDispatchThread()) {
-			SwingUtilities.invokeLater(() -> show(t));
+			SwingUtilities.invokeLater(() -> show(errorData));
 		} else {
-			show(t);
+			show(errorData);
 		}
 	}
 
-	protected void show(Throwable t) {
-		JOptionPane.showMessageDialog(null, t.getClass().getCanonicalName() + " " + t.getMessage(), "Error occurred",
-				JOptionPane.ERROR_MESSAGE);
+	protected void show(ErrorData errorData) {
+		JOptionPane.showMessageDialog(null, errorData.getError().getClass().getCanonicalName() + " " + errorData.getError().getMessage(),
+				errorData.getMessage(), JOptionPane.ERROR_MESSAGE);
 	}
 }
