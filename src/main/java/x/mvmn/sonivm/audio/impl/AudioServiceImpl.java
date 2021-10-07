@@ -47,7 +47,9 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private volatile byte[] playbackBuffer;
 	private volatile Mixer.Info selectedAudioDevice;
 	private volatile boolean currentStreamIsSeekable;
-	private volatile long previousDataLineMicrosecondsPosition;
+	private volatile long previousDataLineMillisecondsPosition;
+	private volatile long startingDataLineMillisecondsPosition;
+	private volatile long playbackStartPositionMillisec;
 	private final ExecutorService playbackEventListenerExecutor = Executors.newFixedThreadPool(1);
 
 	@Autowired(required = false)
@@ -83,12 +85,16 @@ public class AudioServiceImpl implements AudioService, Runnable {
 							executeListenerActions(PlaybackEvent.builder().type(PlaybackEvent.Type.FINISH).build());
 						} else {
 							currentSourceDataLine.write(buffer, 0, readBytes);
-							long dataLineMicrosecondsPosition = currentSourceDataLine.getMicrosecondPosition();
-							long delta = dataLineMicrosecondsPosition - this.previousDataLineMicrosecondsPosition;
-							if (delta > 100000) {
-								executeListenerActions(
-										PlaybackEvent.builder().type(PlaybackEvent.Type.PROGRESS).playbackTimeDelta(delta).build());
-								this.previousDataLineMicrosecondsPosition = dataLineMicrosecondsPosition;
+							long dataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
+							long delta = dataLineMillisecondsPosition - this.previousDataLineMillisecondsPosition;
+							if (delta > 100) { // Every 1/10th of a second
+								long currentPlayPositionMillis = playbackStartPositionMillisec
+										+ (dataLineMillisecondsPosition - startingDataLineMillisecondsPosition);
+								executeListenerActions(PlaybackEvent.builder()
+										.type(PlaybackEvent.Type.PROGRESS)
+										.playbackPositionMilliseconds(currentPlayPositionMillis)
+										.build());
+								this.previousDataLineMillisecondsPosition = dataLineMillisecondsPosition;
 							}
 						}
 					} else {
@@ -168,7 +174,9 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						this.currentSourceDataLine = currentSourceDataLine;
 						this.playbackBuffer = new byte[Math.max(128, currentPcmStream.getFormat().getFrameSize()) * (int) 256];
 						this.state = State.PLAYING;
-						this.previousDataLineMicrosecondsPosition = 0;
+						this.playbackStartPositionMillisec = 0;
+						this.startingDataLineMillisecondsPosition = 0;
+						this.previousDataLineMillisecondsPosition = 0;
 						executeListenerActions(PlaybackEvent.builder().type(PlaybackEvent.Type.START).audioMetadata(fileMetadata).build());
 					} else {
 						executeListenerActions(
@@ -177,9 +185,11 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				}
 			break;
 			case SEEK:
-				if (State.PLAYING == this.state) {
+				if (State.PLAYING == this.state || State.PAUSED == this.state) {
 					if (currentStreamIsSeekable) {
 						currentFFAudioInputStream.seek(task.getNumericData(), TimeUnit.MILLISECONDS);
+						this.playbackStartPositionMillisec = task.getNumericData();
+						this.startingDataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
 					}
 				}
 			break;
@@ -210,7 +220,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		this.currentPcmStream.close();
 		this.currentFFAudioInputStream.close();
 		this.playbackBuffer = null;
-		this.previousDataLineMicrosecondsPosition = 0L;
+		this.previousDataLineMillisecondsPosition = 0L;
 		this.state = State.STOPPED;
 	}
 

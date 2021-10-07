@@ -16,7 +16,7 @@ public class PlaybackEvent {
 
 	private final Type type;
 	private final AudioFileInfo audioMetadata;
-	private final Long playbackTimeDelta;
+	private final Long playbackPositionMilliseconds;
 	private final String error;
 	private final ErrorType errorType;
 }

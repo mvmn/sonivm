@@ -1,10 +1,11 @@
 package x.mvmn.sonivm;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.io.File;
 
 import javax.swing.JButton;
@@ -31,17 +32,22 @@ public class SonivmLauncher implements PlaybackEventListener {
 	private AudioService audioService;
 
 	private volatile JSlider slider;
-	private volatile int sliderInitialPosition;
-	private volatile long playTimeSum;
 	private volatile boolean sliderIsDragged;
+	private volatile boolean paused;
+	private final JFrame mainWindow;
+	private final JButton btnOpen;
 
 	public static void main(String[] args) throws Exception {
 		System.setProperty("java.awt.headless", "false");
-		SpringApplication.run(SonivmLauncher.class, args).getBean(SonivmLauncher.class).openFile();
+		SpringApplication.run(SonivmLauncher.class, args).getBean(SonivmLauncher.class);
 	}
 
-	public void openFile() {
-		SwingUtilities.invokeLater(() -> {
+	public SonivmLauncher() {
+		mainWindow = new JFrame();
+		mainWindow.getContentPane().setLayout(new BorderLayout());
+
+		btnOpen = new JButton("Open...");
+		btnOpen.addActionListener(actEvent -> {
 			JFileChooser jfc = new JFileChooser();
 			if (JFileChooser.APPROVE_OPTION == jfc.showOpenDialog(null)) {
 				File file = jfc.getSelectedFile();
@@ -50,12 +56,30 @@ public class SonivmLauncher implements PlaybackEventListener {
 				audioService.shutdown();
 			}
 		});
+
+		mainWindow.getContentPane().add(btnOpen, BorderLayout.CENTER);
+		mainWindow.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		mainWindow.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				audioService.shutdown();
+			}
+		});
+		mainWindow.setMinimumSize(new Dimension(400, 300));
+		mainWindow.pack();
+		mainWindow.setVisible(true);
 	}
 
 	private void doSeek() {
 		audioService.seek(slider.getValue() * 100);
-		sliderInitialPosition = slider.getValue();
-		playTimeSum = 0;
+	}
+
+	private void uiUpdateOnStop() {
+		mainWindow.getContentPane().removeAll();
+		mainWindow.getContentPane().add(btnOpen, BorderLayout.CENTER);
+		mainWindow.invalidate();
+		mainWindow.revalidate();
+		mainWindow.repaint();
 	}
 
 	@Override
@@ -66,11 +90,11 @@ public class SonivmLauncher implements PlaybackEventListener {
 			break;
 			case FINISH:
 				System.out.println("Playback complete");
+				SwingUtilities.invokeLater(this::uiUpdateOnStop);
 			break;
 			case PROGRESS:
-				Long delta = event.getPlaybackTimeDelta();
-				playTimeSum += delta;
-				int sliderNewPosition = (int) (sliderInitialPosition + playTimeSum / 100000);
+				Long delta = event.getPlaybackPositionMilliseconds();
+				int sliderNewPosition = (int) (delta / 100);
 				SwingUtilities.invokeLater(() -> {
 					if (!sliderIsDragged) {
 						slider.getModel().setValue(sliderNewPosition);
@@ -79,21 +103,25 @@ public class SonivmLauncher implements PlaybackEventListener {
 			break;
 			case START: {
 				AudioFileInfo audioInfo = event.getAudioMetadata();
-				JFrame wnd = new JFrame();
 				JButton btnStop = new JButton("Stop");
 				btnStop.addActionListener(actEvent -> {
 					audioService.stop();
-					audioService.shutdown();
-					wnd.setVisible(false);
-					wnd.dispose();
+					uiUpdateOnStop();
 				});
 
-				wnd.getContentPane().setLayout(new BorderLayout());
-				wnd.getContentPane().add(btnStop, BorderLayout.CENTER);
+				JButton btnPlayPause = new JButton("Pause");
+				btnPlayPause.addActionListener(actEvent -> {
+					if (paused) {
+						this.audioService.resume();
+					} else {
+						this.audioService.pause();
+					}
+					paused = !paused;
+					btnPlayPause.setText(paused ? "Play" : "Pause");
+				});
+
 				if (audioInfo.isSeekable()) {
 					slider = new JSlider(0, audioInfo.getDurationSeconds().intValue() * 10, 0);
-					sliderInitialPosition = 0;
-					playTimeSum = 0;
 					slider.addChangeListener(actEvent -> {
 						if (sliderIsDragged && !slider.getValueIsAdjusting()) {
 							doSeek();
@@ -115,37 +143,21 @@ public class SonivmLauncher implements PlaybackEventListener {
 							doSeek();
 						}
 					});
-					wnd.getContentPane().add(slider, BorderLayout.NORTH);
+					mainWindow.getContentPane().add(slider, BorderLayout.NORTH);
+				} else {
+					slider = null;
 				}
-				wnd.pack();
-				wnd.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-				wnd.setVisible(true);
-				wnd.addWindowListener(new WindowListener() {
-
-					@Override
-					public void windowClosing(WindowEvent e) {
-						audioService.shutdown();
+				SwingUtilities.invokeLater(() -> {
+					mainWindow.getContentPane().removeAll();
+					mainWindow.getContentPane().add(btnStop, BorderLayout.CENTER);
+					mainWindow.getContentPane().add(btnPlayPause, BorderLayout.SOUTH);
+					if (slider != null) {
+						mainWindow.getContentPane().add(slider, BorderLayout.NORTH);
 					}
-
-					@Override
-					public void windowOpened(WindowEvent e) {}
-
-					@Override
-					public void windowIconified(WindowEvent e) {}
-
-					@Override
-					public void windowDeiconified(WindowEvent e) {}
-
-					@Override
-					public void windowDeactivated(WindowEvent e) {}
-
-					@Override
-					public void windowClosed(WindowEvent e) {}
-
-					@Override
-					public void windowActivated(WindowEvent e) {}
+					mainWindow.invalidate();
+					mainWindow.revalidate();
+					mainWindow.repaint();
 				});
-
 			}
 			break;
 		}
