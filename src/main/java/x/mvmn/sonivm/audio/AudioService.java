@@ -20,4 +20,6 @@ public interface AudioService {
 	void seek(int milliseconds);
 
 	void shutdown();
+
+	void setVolumePercentage(int volumePercent);
 }

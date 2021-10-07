@@ -8,8 +8,15 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Mixer;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -33,11 +40,13 @@ public class SonivmLauncher implements PlaybackEventListener {
 	@Autowired
 	private AudioService audioService;
 
-	private volatile JSlider slider;
-	private volatile boolean sliderIsDragged;
+	private volatile JSlider seekSlider;
+	private final JSlider volumeSlider;
+	private volatile boolean seekSliderIsDragged;
 	private volatile boolean paused;
 	private final JFrame mainWindow;
 	private final JButton btnOpen;
+	private final JComboBox<String> cbxAudioDeviceSelector;
 
 	public static void main(String[] args) throws Exception {
 		System.setProperty("java.awt.headless", "false");
@@ -47,6 +56,22 @@ public class SonivmLauncher implements PlaybackEventListener {
 	public SonivmLauncher() {
 		mainWindow = new JFrame();
 		mainWindow.getContentPane().setLayout(new BorderLayout());
+
+		volumeSlider = new JSlider(JSlider.VERTICAL, 0, 100, 100);
+		volumeSlider.addChangeListener(actEvent -> audioService.setVolumePercentage(volumeSlider.getValue()));
+
+		SortedSet<String> audioDevices = Stream
+				.concat(Stream.of("-- Default --"), Stream.of(AudioSystem.getMixerInfo()).map(Mixer.Info::getName))
+				.collect(Collectors.toCollection(TreeSet::new));
+		cbxAudioDeviceSelector = new JComboBox<String>(audioDevices.toArray(new String[audioDevices.size()]));
+		cbxAudioDeviceSelector.setSelectedIndex(0);
+		cbxAudioDeviceSelector.addActionListener(actEvent -> {
+			String audioDeviceName = cbxAudioDeviceSelector.getSelectedItem().toString();
+			if ("-- Default --".equals(audioDeviceName)) {
+				audioDeviceName = null;
+			}
+			audioService.setAudioDevice(audioDeviceName);
+		});
 
 		btnOpen = new JButton("Open...");
 		btnOpen.addActionListener(actEvent -> {
@@ -73,7 +98,7 @@ public class SonivmLauncher implements PlaybackEventListener {
 	}
 
 	private void doSeek() {
-		audioService.seek(slider.getValue() * 100);
+		audioService.seek(seekSlider.getValue() * 100);
 	}
 
 	private void uiUpdateOnStop() {
@@ -91,19 +116,18 @@ public class SonivmLauncher implements PlaybackEventListener {
 				System.err.println(event.getErrorType() + ": " + event.getError());
 			break;
 			case FINISH:
-				System.out.println("Playback complete");
 				SwingUtilities.invokeLater(this::uiUpdateOnStop);
 			break;
 			case PROGRESS:
 				Long delta = event.getPlaybackPositionMilliseconds();
 				int sliderNewPosition = (int) (delta / 100);
 				SwingUtilities.invokeLater(() -> {
-					if (!sliderIsDragged) {
-						slider.getModel().setValue(sliderNewPosition);
+					if (!seekSliderIsDragged) {
+						seekSlider.getModel().setValue(sliderNewPosition);
 					}
 				});
 			break;
-			case START: {
+			case START:
 				AudioFileInfo audioInfo = event.getAudioMetadata();
 				JButton btnStop = new JButton("Stop");
 				btnStop.addActionListener(actEvent -> {
@@ -123,21 +147,21 @@ public class SonivmLauncher implements PlaybackEventListener {
 				});
 
 				if (audioInfo.isSeekable()) {
-					slider = new JSlider(0, audioInfo.getDurationSeconds().intValue() * 10, 0);
-					slider.addChangeListener(actEvent -> {
-						if (sliderIsDragged && !slider.getValueIsAdjusting()) {
+					seekSlider = new JSlider(0, audioInfo.getDurationSeconds().intValue() * 10, 0);
+					seekSlider.addChangeListener(actEvent -> {
+						if (seekSliderIsDragged && !seekSlider.getValueIsAdjusting()) {
 							doSeek();
 						}
 					});
-					slider.addMouseListener(new MouseAdapter() {
+					seekSlider.addMouseListener(new MouseAdapter() {
 						@Override
 						public void mousePressed(MouseEvent e) {
-							sliderIsDragged = true;
+							seekSliderIsDragged = true;
 						}
 
 						@Override
 						public void mouseReleased(MouseEvent e) {
-							sliderIsDragged = false;
+							seekSliderIsDragged = false;
 						}
 
 						@Override
@@ -145,25 +169,31 @@ public class SonivmLauncher implements PlaybackEventListener {
 							doSeek();
 						}
 					});
-					mainWindow.getContentPane().add(slider, BorderLayout.NORTH);
+					mainWindow.getContentPane().add(seekSlider, BorderLayout.NORTH);
 				} else {
-					slider = null;
+					seekSlider = null;
 				}
 				SwingUtilities.invokeLater(() -> {
-					System.out.println("Remove all and add new");
 					mainWindow.getContentPane().removeAll();
 					JPanel btnPanel = new JPanel(new GridLayout(2, 1));
 					btnPanel.add(btnPlayPause);
 					btnPanel.add(btnStop);
+					mainWindow.getContentPane().add(this.cbxAudioDeviceSelector, BorderLayout.NORTH);
 					mainWindow.getContentPane().add(btnPanel, BorderLayout.SOUTH);
-					if (slider != null) {
-						mainWindow.getContentPane().add(slider, BorderLayout.NORTH);
+					if (seekSlider != null) {
+						mainWindow.getContentPane().add(seekSlider, BorderLayout.CENTER);
 					}
+					mainWindow.getContentPane().add(volumeSlider, BorderLayout.EAST);
 					mainWindow.invalidate();
 					mainWindow.revalidate();
 					mainWindow.repaint();
 				});
-			}
+			break;
+			case DATALINE_CHANGE:
+			// Control[] controls = event.getDataLineControls();
+			// for (Control dataLineControl : controls) {
+			// System.out.println(dataLineControl.getType() + ": " + dataLineControl);
+			// }
 			break;
 		}
 	}

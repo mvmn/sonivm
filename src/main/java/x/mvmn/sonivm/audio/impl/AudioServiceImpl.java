@@ -9,6 +9,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -17,6 +19,8 @@ import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.DataLine;
+import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.Mixer.Info;
 import javax.sound.sampled.SourceDataLine;
@@ -37,8 +41,10 @@ import x.mvmn.sonivm.audio.impl.AudioServiceTask.Type;
 @Service
 public class AudioServiceImpl implements AudioService, Runnable {
 
-	private volatile boolean shutdownRequested = false;
+	private static final Logger LOGGER = Logger.getLogger(AudioServiceImpl.class.getCanonicalName());
+
 	private final Queue<AudioServiceTask> taskQueue = new ConcurrentLinkedQueue<>();
+	private volatile boolean shutdownRequested = false;
 	private volatile State state = State.STOPPED;
 
 	private volatile FFAudioInputStream currentFFAudioInputStream;
@@ -50,6 +56,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private volatile long previousDataLineMillisecondsPosition;
 	private volatile long startingDataLineMillisecondsPosition;
 	private volatile long playbackStartPositionMillisec;
+	private volatile int volumePercent = 100;
 	private final ExecutorService playbackEventListenerExecutor = Executors.newFixedThreadPool(1);
 
 	@Autowired(required = false)
@@ -66,7 +73,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 	@Override
 	public void run() {
-		while (!shutdownRequested) {
+		while (!this.shutdownRequested) {
 			AudioServiceTask task = taskQueue.poll();
 			if (task != null) {
 				try {
@@ -81,14 +88,17 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						byte[] buffer = playbackBuffer;
 						readBytes = currentPcmStream.read(buffer);
 						if (readBytes < 1) {
+							LOGGER.info("End of track");
 							doStop();
 							executeListenerActions(PlaybackEvent.builder().type(PlaybackEvent.Type.FINISH).build());
 						} else {
-							System.out.println("Write bytes: " + readBytes);
+							if (LOGGER.isLoggable(Level.FINEST)) {
+								LOGGER.finest("Writing bytes to source data line: " + readBytes);
+							}
 							currentSourceDataLine.write(buffer, 0, readBytes);
 							long dataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
 							long delta = dataLineMillisecondsPosition - this.previousDataLineMillisecondsPosition;
-							if (delta > 100) { // Every 1/10th of a second
+							if (delta > 100) { // Every 1/10th of a second (or at least not more frequent)
 								long currentPlayPositionMillis = playbackStartPositionMillisec
 										+ (dataLineMillisecondsPosition - startingDataLineMillisecondsPosition);
 								executeListenerActions(PlaybackEvent.builder()
@@ -109,7 +119,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				}
 			}
 		}
-		System.out.println("Shutdown req " + shutdownRequested);
+		LOGGER.info("Playback thread shutting down. Shutdown requested flag state: " + shutdownRequested);
 		playbackEventListenerExecutor.shutdown();
 		if (State.STOPPED != this.state) {
 			try {
@@ -121,8 +131,13 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	}
 
 	private void handleTask(AudioServiceTask task) throws Exception {
-		System.out.println("Got task " + task);
+		LOGGER.fine("Got task " + task);
 		switch (task.getType()) {
+			case UPDATE_VOLUME:
+				if (State.STOPPED != this.state) {
+					doUpdateVolume();
+				}
+			break;
 			case PAUSE:
 				handlePauseRequest();
 			break;
@@ -163,19 +178,22 @@ public class AudioServiceImpl implements AudioService, Runnable {
 								.build();
 
 						SourceDataLine currentSourceDataLine;
-						if (selectedAudioDevice != null) {
-							currentSourceDataLine = AudioSystem.getSourceDataLine(currentPcmStream.getFormat(), selectedAudioDevice);
-						} else {
-							currentSourceDataLine = AudioSystem.getSourceDataLine(currentPcmStream.getFormat());
-						}
+						currentSourceDataLine = selectedAudioDevice != null
+								? AudioSystem.getSourceDataLine(currentPcmStream.getFormat(), selectedAudioDevice)
+								: AudioSystem.getSourceDataLine(currentPcmStream.getFormat());
 						currentSourceDataLine.open(currentPcmStream.getFormat());
 						currentSourceDataLine.start();
 						this.currentSourceDataLine = currentSourceDataLine;
+						doUpdateVolume();
 						this.playbackBuffer = new byte[Math.max(128, currentPcmStream.getFormat().getFrameSize()) * 64];
 						this.playbackStartPositionMillisec = 0;
 						this.startingDataLineMillisecondsPosition = 0;
 						this.previousDataLineMillisecondsPosition = 0;
 						this.state = State.PLAYING;
+						executeListenerActions(PlaybackEvent.builder()
+								.type(PlaybackEvent.Type.DATALINE_CHANGE)
+								.dataLineControls(currentSourceDataLine.getControls())
+								.build());
 						executeListenerActions(PlaybackEvent.builder().type(PlaybackEvent.Type.START).audioMetadata(fileMetadata).build());
 					} else {
 						executeListenerActions(
@@ -185,8 +203,8 @@ public class AudioServiceImpl implements AudioService, Runnable {
 			break;
 			case SEEK:
 				if (State.PLAYING == this.state || State.PAUSED == this.state) {
-					if (currentStreamIsSeekable) {
-						currentFFAudioInputStream.seek(task.getNumericData(), TimeUnit.MILLISECONDS);
+					if (this.currentStreamIsSeekable) {
+						this.currentFFAudioInputStream.seek(task.getNumericData(), TimeUnit.MILLISECONDS);
 						this.playbackStartPositionMillisec = task.getNumericData();
 						this.startingDataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
 					}
@@ -198,16 +216,35 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				}
 			break;
 			case SET_AUDIODEVICE:
-				Mixer.Info mixerInfo = getMixerInfoByName(task.getData());
-				if (mixerInfo != null) {
-					selectedAudioDevice = mixerInfo;
-					if (State.PLAYING == this.state) {
-						SourceDataLine newSourceDataLine = AudioSystem.getSourceDataLine(currentPcmStream.getFormat(), selectedAudioDevice);
-						currentSourceDataLine.close();
-						currentSourceDataLine = newSourceDataLine;
-						currentSourceDataLine.open(currentPcmStream.getFormat());
-						currentSourceDataLine.start();
+				String audioDeviceName = task.getData();
+				Mixer.Info mixerInfo = null;
+				if (audioDeviceName != null) {
+					mixerInfo = getMixerInfoByName(audioDeviceName);
+					if (mixerInfo == null) {
+						executeListenerActions(PlaybackEvent.builder()
+								.type(PlaybackEvent.Type.ERROR)
+								.errorType(ErrorType.AUDIODEVICE_ERROR)
+								.error("Did not find audio device " + audioDeviceName)
+								.build());
+						break;
 					}
+				}
+				LOGGER.fine("Switching audio device to " + audioDeviceName);
+				selectedAudioDevice = mixerInfo;
+				if (State.PLAYING == this.state) {
+					LOGGER.fine("On-the-fly switching audio device to " + audioDeviceName);
+					SourceDataLine newSourceDataLine = mixerInfo != null
+							? AudioSystem.getSourceDataLine(currentPcmStream.getFormat(), selectedAudioDevice)
+							: AudioSystem.getSourceDataLine(currentPcmStream.getFormat());
+					newSourceDataLine.open(currentPcmStream.getFormat());
+					newSourceDataLine.start();
+					this.currentSourceDataLine.close();
+					this.currentSourceDataLine = newSourceDataLine;
+					doUpdateVolume();
+					executeListenerActions(PlaybackEvent.builder()
+							.type(PlaybackEvent.Type.DATALINE_CHANGE)
+							.dataLineControls(newSourceDataLine.getControls())
+							.build());
 				}
 			break;
 		}
@@ -220,13 +257,37 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	}
 
 	private void doStop() throws Exception {
-		System.out.println("doStop");
+		LOGGER.fine("Performing doStop()");
 		this.currentSourceDataLine.close();
 		this.currentPcmStream.close();
 		this.currentFFAudioInputStream.close();
 		this.playbackBuffer = null;
 		this.previousDataLineMillisecondsPosition = 0L;
 		this.state = State.STOPPED;
+	}
+
+	private void doUpdateVolume() {
+		DataLine dataLine = this.currentSourceDataLine;
+		if (dataLine.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+			FloatControl gainControl = (FloatControl) dataLine.getControl(FloatControl.Type.MASTER_GAIN);
+			float minimum = gainControl.getMinimum();
+			float newValue;
+			if (volumePercent > 0) {
+				if (volumePercent == 100) {
+					newValue = 0.0f;
+				} else {
+					newValue = minimum - minimum * volumePercent / 100;
+				}
+			} else {
+				newValue = minimum;
+			}
+			if (LOGGER.isLoggable(Level.FINE)) {
+				LOGGER.info("Setting gain to: " + newValue);
+			}
+			gainControl.setValue(newValue);
+		} else {
+			LOGGER.info("Gain control not supported - skipping set volume");
+		}
 	}
 
 	@Override
@@ -286,7 +347,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	}
 
 	private void handlePlaybackException(Exception e) {
-		e.printStackTrace();
+		LOGGER.log(Level.SEVERE, "Playback error", e);
 		executeListenerActions(PlaybackEvent.builder()
 				.type(PlaybackEvent.Type.ERROR)
 				.errorType(ErrorType.PLAYBACK_ERROR)
@@ -313,6 +374,17 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	}
 
 	private void handleEventListenerException(Exception e) {
-		e.printStackTrace();
+		LOGGER.log(Level.SEVERE, "Playback event listener error", e);
+	}
+
+	@Override
+	public void setVolumePercentage(int volumePercent) {
+		if (volumePercent > 100) {
+			volumePercent = 100;
+		} else if (volumePercent < 0) {
+			volumePercent = 0;
+		}
+		this.volumePercent = volumePercent;
+		enqueueTask(Type.UPDATE_VOLUME);
 	}
 }
