@@ -84,6 +84,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 							doStop();
 							executeListenerActions(PlaybackEvent.builder().type(PlaybackEvent.Type.FINISH).build());
 						} else {
+							System.out.println("Write bytes: " + readBytes);
 							currentSourceDataLine.write(buffer, 0, readBytes);
 							long dataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
 							long delta = dataLineMillisecondsPosition - this.previousDataLineMillisecondsPosition;
@@ -110,7 +111,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		}
 		System.out.println("Shutdown req " + shutdownRequested);
 		playbackEventListenerExecutor.shutdown();
-		if (State.PLAYING == this.state) {
+		if (State.STOPPED != this.state) {
 			try {
 				doStop();
 			} catch (Exception e) {
@@ -123,9 +124,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		System.out.println("Got task " + task);
 		switch (task.getType()) {
 			case PAUSE:
-				if (State.PLAYING == this.state) {
-					this.state = State.PAUSED;
-				}
+				handlePauseRequest();
 			break;
 			case PLAY:
 				if (State.PAUSED == this.state) {
@@ -172,7 +171,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						currentSourceDataLine.open(currentPcmStream.getFormat());
 						currentSourceDataLine.start();
 						this.currentSourceDataLine = currentSourceDataLine;
-						this.playbackBuffer = new byte[Math.max(128, currentPcmStream.getFormat().getFrameSize()) * (int) 256];
+						this.playbackBuffer = new byte[Math.max(128, currentPcmStream.getFormat().getFrameSize()) * 64];
 						this.playbackStartPositionMillisec = 0;
 						this.startingDataLineMillisecondsPosition = 0;
 						this.previousDataLineMillisecondsPosition = 0;
@@ -211,6 +210,12 @@ public class AudioServiceImpl implements AudioService, Runnable {
 					}
 				}
 			break;
+		}
+	}
+
+	protected void handlePauseRequest() {
+		if (State.PLAYING == this.state) {
+			this.state = State.PAUSED;
 		}
 	}
 
