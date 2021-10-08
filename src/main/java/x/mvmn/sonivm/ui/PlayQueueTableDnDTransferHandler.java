@@ -79,7 +79,6 @@ public class PlayQueueTableDnDTransferHandler extends TransferHandler {
 				int startRow = Integer.parseInt(idxRangeStrs[0]);
 				int endRow = Integer.parseInt(idxRangeStrs[1]);
 				int rowCount = endRow - startRow + 1;
-				System.out.println(insertPosition);
 				if (insertPosition > endRow || insertPosition < startRow) {
 					List<PlaybackQueueEntry> selectedRowValues = new ArrayList<>(rowCount);
 					for (int i = startRow; i <= endRow; i++) {
