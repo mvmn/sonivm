@@ -70,10 +70,11 @@ public class SonivmMainWindow extends JFrame {
 				scrollTblPlayQueue);
 
 		tblPlayQueue.setDragEnabled(true);
-		tblPlayQueue.setDropMode(DropMode.INSERT_ROWS);
+		tblPlayQueue.setDropMode(DropMode.USE_SELECTION);
+		tblPlayQueue.setTransferHandler(new PlayQueueTableDnDTransferHandler(tblPlayQueue, playbackQueueTableModel));
 
 		DropTarget dropTarget = new PlaybackQueueDropTarget(controller, tblPlayQueue);
-		tblPlayQueue.setDropTarget(dropTarget);
+		// tblPlayQueue.setDropTarget(dropTarget);
 		scrollTblPlayQueue.setDropTarget(dropTarget);
 
 		this.getContentPane().setLayout(new BorderLayout());

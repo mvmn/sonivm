@@ -1,6 +1,7 @@
 package x.mvmn.sonivm.impl;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.ui.SonivmController;
+import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
 
 @Component
@@ -72,7 +74,7 @@ public class SonivumControllerImpl implements SonivmController {
 	public void onDropFilesToQueue(int queuePosition, List<File> files) {
 		for (File track : files) {
 			if (!track.exists()) {
-				return;
+				continue;
 			}
 			if (track.isDirectory()) {
 				onDropFilesToQueue(queuePosition,
@@ -81,18 +83,21 @@ public class SonivumControllerImpl implements SonivmController {
 								.filter(file -> file.isDirectory() || (file.getName().indexOf(".") > 0 && supportedExtensions
 										.contains(file.getName().substring(file.getName().lastIndexOf(".") + 1).toLowerCase())))
 								.collect(Collectors.toList()));
-				return;
+				continue;
 			}
 			if (track.getName().toLowerCase().endsWith(".cue")) {
 				// parse CUE
-				return;
+				continue;
 			}
 
-			Object[] rowData = new Object[] { null, "", track.getName(), "", "", "", "", "" };
+			List<PlaybackQueueEntry> newEntries = Arrays
+					.asList(PlaybackQueueEntry.builder().targetFile(track).title(track.getName()).build());
 			if (queuePosition >= 0) {
-				playbackQueueTableModel.insertRow(queuePosition, rowData);
+				playbackQueueTableModel.addRows(queuePosition, newEntries);
+				playbackQueueTableModel
+						.addRows(Arrays.asList(PlaybackQueueEntry.builder().targetFile(track).title(track.getName()).build()));
 			} else {
-				playbackQueueTableModel.addRow(rowData);
+				playbackQueueTableModel.addRows(newEntries);
 			}
 		}
 	}

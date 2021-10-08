@@ -312,4 +312,23 @@ public class SwingUtil {
 		c.setBorder(BorderFactory.createTitledBorder(title));
 		return c;
 	}
+
+	public static void runOnEDT(Runnable task, boolean blockUntilDone) {
+		if (SwingUtilities.isEventDispatchThread()) {
+			task.run();
+		} else {
+			if (!blockUntilDone) {
+				SwingUtilities.invokeLater(task);
+			} else {
+				try {
+					SwingUtilities.invokeAndWait(task);
+				} catch (InvocationTargetException e) {
+					throw new RuntimeException(e);
+				} catch (InterruptedException e) {
+					Thread.interrupted();
+					throw new RuntimeException(e);
+				}
+			}
+		}
+	}
 }
