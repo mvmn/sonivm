@@ -22,4 +22,10 @@ public interface AudioService {
 	void shutdown();
 
 	void setVolumePercentage(int volumePercent);
+
+	void addPlaybackEventListener(PlaybackEventListener playbackEventListener);
+
+	void removePlaybackEventListener(PlaybackEventListener playbackEventListener);
+
+	void removeAllPlaybackEventListeners();
 }

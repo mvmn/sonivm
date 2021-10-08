@@ -4,11 +4,13 @@ import java.awt.event.ActionListener;
 import java.util.function.Consumer;
 
 import javax.swing.Action;
+import javax.swing.ButtonGroup;
 import javax.swing.Icon;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JSeparator;
 
 import lombok.RequiredArgsConstructor;
@@ -93,11 +95,20 @@ public class JMenuBarBuilder implements MenuBuilder<JMenuBar> {
 		private Icon icon;
 		private Integer mnemonic;
 		private boolean asCheckbox;
+		private boolean asRadioButton;
 		private boolean checked = false;
 		private Consumer<JMenuItem> process;
+		private ButtonGroup group;
 
 		public JMenuItemBuilder<T> checkbox() {
 			asCheckbox = true;
+			asRadioButton = false;
+			return this;
+		}
+
+		public JMenuItemBuilder<T> radioButton() {
+			asCheckbox = false;
+			asRadioButton = true;
 			return this;
 		}
 
@@ -106,7 +117,17 @@ public class JMenuBarBuilder implements MenuBuilder<JMenuBar> {
 			if (asCheckbox) {
 				JCheckBoxMenuItem cbmi = new JCheckBoxMenuItem();
 				cbmi.setState(checked);
+				if (group != null) {
+					group.add(cbmi);
+				}
 				mi = cbmi;
+			} else if (asRadioButton) {
+				JRadioButtonMenuItem rbmi = new JRadioButtonMenuItem();
+				rbmi.setSelected(checked);
+				if (group != null) {
+					group.add(rbmi);
+				}
+				mi = rbmi;
 			} else {
 				mi = new JMenuItem();
 			}

@@ -6,6 +6,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -25,7 +26,6 @@ import javax.sound.sampled.Mixer;
 import javax.sound.sampled.Mixer.Info;
 import javax.sound.sampled.SourceDataLine;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.tagtraum.ffsampledsp.FFAudioFileReader;
@@ -69,8 +69,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private volatile int volumePercent = 100;
 	private volatile Integer requestedSeekPosition = null;
 
-	@Autowired(required = false)
-	private List<PlaybackEventListener> listeners;
+	private List<PlaybackEventListener> listeners = new CopyOnWriteArrayList<>();
 
 	@PostConstruct
 	public void startPlaybackThread() {
@@ -145,6 +144,21 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				handleTaskException(e);
 			}
 		}
+	}
+
+	@Override
+	public void addPlaybackEventListener(PlaybackEventListener playbackEventListener) {
+		this.listeners.add(playbackEventListener);
+	}
+
+	@Override
+	public void removePlaybackEventListener(PlaybackEventListener playbackEventListener) {
+		this.listeners.remove(playbackEventListener);
+	}
+
+	@Override
+	public void removeAllPlaybackEventListeners() {
+		this.listeners.clear();
 	}
 
 	private void handleTask(AudioServiceTask task) throws Exception {
@@ -326,7 +340,8 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 	@Override
 	public void pause() {
-		enqueueTask(Type.PAUSE);
+		handlePauseRequest();
+		// enqueueTask(Type.PAUSE);
 	}
 
 	@Override

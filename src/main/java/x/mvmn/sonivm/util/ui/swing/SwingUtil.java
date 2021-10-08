@@ -1,5 +1,6 @@
-package x.mvmn.sonivm.ui;
+package x.mvmn.sonivm.util.ui.swing;
 
+import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Frame;
@@ -8,11 +9,15 @@ import java.awt.LayoutManager;
 import java.awt.Toolkit;
 import java.awt.Window;
 import java.beans.PropertyChangeEvent;
+import java.lang.reflect.InvocationTargetException;
 import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
@@ -28,10 +33,13 @@ import javax.swing.event.DocumentListener;
 import javax.swing.text.JTextComponent;
 import javax.swing.text.NumberFormatter;
 
+import x.mvmn.sonivm.ui.ExceptionDisplayer;
 import x.mvmn.sonivm.ui.ExceptionDisplayer.ErrorData;
 import x.mvmn.sonivm.util.UnsafeOperation;
 
 public class SwingUtil {
+
+	private static final Logger LOGGER = Logger.getLogger(SwingUtil.class.getCanonicalName());
 
 	public static void performSafely(final UnsafeOperation operation) {
 		new Thread(() -> {
@@ -139,20 +147,62 @@ public class SwingUtil {
 		SwingUtilities.updateComponentTreeUI(window);
 	}
 
-	public static void setLookAndFeel(String lookAndFeelName) {
+	public static void setLookAndFeel(String lookAndFeelName, boolean blockUntilDone) {
 		Arrays.stream(UIManager.getInstalledLookAndFeels())
 				.filter(lnf -> lnf.getName().equals(lookAndFeelName))
 				.findAny()
 				.ifPresent(lnf -> {
-					try {
-						if (!UIManager.getLookAndFeel().getName().equals(lnf.getName())) {
-							UIManager.setLookAndFeel(lnf.getClassName());
-							updateComponentTreeUIForAllWindows();
+					Runnable setLnF = () -> {
+						try {
+							if (!UIManager.getLookAndFeel().getName().equals(lnf.getName())) {
+								UIManager.setLookAndFeel(lnf.getClassName());
+								updateComponentTreeUIForAllWindows();
+							}
+						} catch (Exception error) {
+							showError("Error setting look&feel to " + lookAndFeelName, error);
 						}
-					} catch (Exception error) {
-						showError("Error setting look&feel to " + lookAndFeelName, error);
+					};
+					if (SwingUtilities.isEventDispatchThread()) {
+						setLnF.run();
+					} else {
+						if (blockUntilDone) {
+							try {
+								SwingUtilities.invokeAndWait(setLnF);
+							} catch (InvocationTargetException e) {
+								showError("Error setting look&feel to " + lookAndFeelName, e);
+							} catch (InterruptedException e) {
+								Thread.interrupted();
+								throw new RuntimeException(e);
+							}
+						} else {
+							SwingUtilities.invokeLater(setLnF);
+						}
 					}
 				});
+	}
+
+	public static void installLookAndFeels(boolean blockUntilDone, Class<?>... lookAndFeels) {
+		try {
+			Runnable install = () -> {
+				Stream.of(lookAndFeels).forEach(lafClass -> {
+					try {
+						UIManager.installLookAndFeel(lafClass.getSimpleName(), lafClass.getCanonicalName());
+					} catch (Exception e) {
+						LOGGER.log(Level.WARNING, "Failed to install look and feel " + lafClass.getCanonicalName(), e);
+					}
+				});
+			};
+			if (blockUntilDone) {
+				SwingUtilities.invokeAndWait(install);
+			} else {
+				SwingUtilities.invokeLater(install);
+			}
+		} catch (InterruptedException e) {
+			Thread.interrupted();
+			throw new RuntimeException(e);
+		} catch (InvocationTargetException e) {
+			LOGGER.log(Level.WARNING, "Failed to install look and feels", e);
+		}
 	}
 
 	public static <T extends JTextComponent> T bind(T textComponent, Consumer<DocumentEvent> listener) {
@@ -220,7 +270,32 @@ public class SwingUtil {
 			return this;
 		}
 
-		public JPanel panel() {
+		public PanelBuilder addNorth(Component cmp) {
+			this.panel.add(cmp, BorderLayout.NORTH);
+			return this;
+		}
+
+		public PanelBuilder addSouth(Component cmp) {
+			this.panel.add(cmp, BorderLayout.SOUTH);
+			return this;
+		}
+
+		public PanelBuilder addEast(Component cmp) {
+			this.panel.add(cmp, BorderLayout.EAST);
+			return this;
+		}
+
+		public PanelBuilder addWest(Component cmp) {
+			this.panel.add(cmp, BorderLayout.WEST);
+			return this;
+		}
+
+		public PanelBuilder addCenter(Component cmp) {
+			this.panel.add(cmp, BorderLayout.CENTER);
+			return this;
+		}
+
+		public JPanel build() {
 			return panel;
 		}
 	}
