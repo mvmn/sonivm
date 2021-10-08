@@ -86,6 +86,10 @@ public class SonivmMainWindow extends JFrame {
 		this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 	}
 
+	public JTable getPlayQueueTable() {
+		return tblPlayQueue;
+	}
+
 	public void allowSeek(int maxSliderValue) {
 		this.seekSlider.setMaximum(maxSliderValue);
 		this.seekSlider.setEnabled(true);

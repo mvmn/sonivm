@@ -20,6 +20,7 @@ import javax.swing.JSlider;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
+import javax.swing.table.TableColumnModel;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
@@ -64,6 +65,8 @@ public class SonivmLauncher implements PlaybackEventListener {
 		System.setProperty("java.awt.headless", "false");
 		// Enable macOS native menu bar usage
 		System.setProperty("apple.laf.useScreenMenuBar", "true");
+		// Make sure macOS closes all Swing windows on app quit
+		System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS");
 		// Install FlatLaF look&feels
 		SwingUtil.installLookAndFeels(true, FlatLightLaf.class, FlatIntelliJLaf.class, FlatDarkLaf.class, FlatDarculaLaf.class);
 		// Run the app
@@ -80,25 +83,37 @@ public class SonivmLauncher implements PlaybackEventListener {
 
 		mainWindow = new SonivmMainWindow("Sonivm v" + appVersion, sonivmController, playbackQueueTableModel);
 
+		try {
+			int[] playQueueColumnWidths = appPreferencesService.getPlayQueueColumnWidths();
+			if (playQueueColumnWidths != null) {
+				SwingUtil.runOnEDT(() -> {
+					TableColumnModel columnModel = mainWindow.getPlayQueueTable().getColumnModel();
+					for (int i = 0; i < columnModel.getColumnCount() && i < playQueueColumnWidths.length; i++) {
+						columnModel.getColumn(i).setPreferredWidth(playQueueColumnWidths[i]);
+					}
+				}, true);
+			}
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to read+apply column width for playback queue table", e);
+		}
+
 		volumeSlider = new JSlider(JSlider.VERTICAL, 0, 100, 100);
 		volumeSlider.addChangeListener(actEvent -> audioService.setVolumePercentage(volumeSlider.getValue()));
-		//
-		// btnOpen = new JButton("Open...");
-		// btnOpen.addActionListener(actEvent -> {
-		// JFileChooser jfc = new JFileChooser();
-		// if (JFileChooser.APPROVE_OPTION == jfc.showOpenDialog(null)) {
-		// File file = jfc.getSelectedFile();
-		// audioService.play(file);
-		// } else {
-		// audioService.shutdown();
-		// }
-		// });
 
 		mainWindow.addWindowListener(new WindowAdapter() {
 			@Override
-			public void windowClosing(WindowEvent e) {
-				audioService.stop();
-				audioService.shutdown();
+			public void windowClosing(WindowEvent wndEvent) {
+				try {
+					TableColumnModel columnModel = mainWindow.getPlayQueueTable().getColumnModel();
+					int[] columnWidths = new int[columnModel.getColumnCount()];
+					for (int i = 0; i < columnModel.getColumnCount(); i++) {
+						columnWidths[i] = columnModel.getColumn(i).getWidth();
+					}
+					appPreferencesService.setPlayQueueColumnWidths(columnWidths);
+				} catch (Exception e) {
+					LOGGER.log(Level.WARNING, "Failed to store column width for playback queue table", e);
+				}
+				sonivmController.onWindowClose();
 			}
 		});
 

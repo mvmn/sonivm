@@ -27,4 +27,8 @@ public interface AppPreferencesService {
 	String getLookAndFeel();
 
 	void setLookAndFeel(String value);
+
+	int[] getPlayQueueColumnWidths();
+
+	void setPlayQueueColumnWidths(int[] widths);
 }

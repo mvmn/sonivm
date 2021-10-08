@@ -4,6 +4,9 @@ import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
 import java.util.logging.Logger;
 import java.util.prefs.Preferences;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 
@@ -26,6 +29,7 @@ public class AppPreferencesServiceImpl implements AppPreferencesService {
 	private static final String KEY_LASTFMAPISECRET = "lastfmapisecret";
 	private static final String KEY_PERCENTAGE_TO_SCROBBLE_AT = "scrobbleatpercent";
 	private static final String KEY_LOOK_AND_FEEL = "lookandfeel";
+	private static final String KEY_PLAYQUEUE_COLUMN_WIDTHS = "playqueuecolumnwidths";
 
 	private final Preferences prefs;
 	private final KeyAndNonce keyAndNonce;
@@ -115,5 +119,20 @@ public class AppPreferencesServiceImpl implements AppPreferencesService {
 			LOGGER.warning("Number format exception for preference " + KEY_PERCENTAGE_TO_SCROBBLE_AT + " value " + value);
 		}
 		return result;
+	}
+
+	@Override
+	public int[] getPlayQueueColumnWidths() {
+		String value = prefs.get(KEY_PLAYQUEUE_COLUMN_WIDTHS, null);
+		if (value == null) {
+			return null;
+		} else {
+			return Stream.of(value.split(",")).mapToInt(Integer::parseInt).toArray();
+		}
+	}
+
+	@Override
+	public void setPlayQueueColumnWidths(int[] widths) {
+		prefs.put(KEY_PLAYQUEUE_COLUMN_WIDTHS, IntStream.of(widths).mapToObj(String::valueOf).collect(Collectors.joining(",")));
 	}
 }
