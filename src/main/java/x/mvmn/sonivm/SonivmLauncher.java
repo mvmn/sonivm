@@ -132,7 +132,8 @@ public class SonivmLauncher implements Runnable {
 				.radioButton()
 				.checked(ad.getAudioDeviceInfo() == null)
 				.group(rbGroupAudioDevices)
-				.actr(actEvent -> ad.selected()));
+				.actr(actEvent -> ad.selected())
+				.build());
 		menuBuilderAudioDevice.build();
 
 		return menuBuilder.build().build();
