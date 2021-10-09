@@ -350,7 +350,6 @@ public class SwingUtil {
 						slider.setValue(ui.valueForXPosition(e.getX()));
 					break;
 				}
-				System.out.println("Moved");
 			}
 		});
 	}

@@ -1,7 +1,6 @@
 package x.mvmn.sonivm.impl;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -123,6 +122,7 @@ public class SonivumControllerImpl implements SonivmController {
 		playbackQueueTableModel.setCurrentQueuePosition(-1);
 		updateStaus("Stopped");
 		updatePlayingState(false);
+		mainWindow.disallowSeek();
 	}
 
 	@Override
@@ -159,17 +159,11 @@ public class SonivumControllerImpl implements SonivmController {
 	public boolean onDropQueueRowsInsideQueue(int insertPosition, int firstRow, int lastRow) {
 		int rowCount = lastRow - firstRow + 1;
 		if (insertPosition > lastRow || insertPosition < firstRow) {
-			List<PlaybackQueueEntry> selectedRowValues = new ArrayList<>(rowCount);
-			for (int i = firstRow; i <= lastRow; i++) {
-				selectedRowValues.add(playbackQueueTableModel.getRowValue(i));
-			}
+			playbackQueueTableModel.moveRows(insertPosition, firstRow, lastRow);
 
 			if (lastRow < insertPosition) {
 				insertPosition -= rowCount;
 			}
-
-			playbackQueueTableModel.deleteRows(firstRow, lastRow + 1);
-			playbackQueueTableModel.addRows(insertPosition, selectedRowValues);
 
 			mainWindow.getPlayQueueTable().getSelectionModel().setSelectionInterval(insertPosition, insertPosition + rowCount - 1);
 
@@ -238,12 +232,7 @@ public class SonivumControllerImpl implements SonivmController {
 
 	@Override
 	public void onDeleteRowsFromQueue(int firstRow, int lastRow) {
-		int currentQueuePosition = playbackQueueTableModel.getCurrentQueuePosition();
 		playbackQueueTableModel.deleteRows(firstRow, lastRow + 1);
-		if (currentQueuePosition > lastRow) {
-			currentQueuePosition -= (lastRow - firstRow + 1);
-			playbackQueueTableModel.setCurrentQueuePosition(currentQueuePosition);
-		}
 	}
 
 	private void updatePlayingState(boolean playing) {

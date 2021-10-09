@@ -22,6 +22,8 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 
 	private List<PlaybackQueueEntry> data = Collections.synchronizedList(new ArrayList<PlaybackQueueEntry>());
 
+	private static final Object QUEUE_POSITION_LOCK_OBJ = new Object();
+
 	// Columns
 	@Override
 	public int getColumnCount() {
@@ -58,13 +60,13 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 		int oldPosition = this.currentQueuePosition;
 		if (newPosition >= 0 && newPosition < rows) {
 			this.currentQueuePosition = newPosition;
-//			SwingUtil.runOnEDT(() -> fireTableCellUpdated(newPosition, 0), false);
+			// SwingUtil.runOnEDT(() -> fireTableCellUpdated(newPosition, 0), false);
 			SwingUtil.runOnEDT(() -> fireTableRowsUpdated(newPosition, newPosition), false);
 		} else {
 			this.currentQueuePosition = -1;
 		}
 		if (oldPosition >= 0 && oldPosition < rows) {
-//			SwingUtil.runOnEDT(() -> fireTableCellUpdated(oldPosition, 0), false);
+			// SwingUtil.runOnEDT(() -> fireTableCellUpdated(oldPosition, 0), false);
 			SwingUtil.runOnEDT(() -> fireTableRowsUpdated(oldPosition, oldPosition), false);
 		}
 	}
@@ -103,6 +105,52 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 		addRows(-1, newRows);
 	}
 
+	public void moveRows(int toIndex, int firstRow, int lastRow) {
+		int originalToIndex = toIndex;
+		int rowCount = lastRow - firstRow + 1;
+		List<PlaybackQueueEntry> selectedRowValues = new ArrayList<>(rowCount);
+		selectedRowValues.addAll(data.subList(firstRow, lastRow + 1));
+		for (int i = lastRow; i >= firstRow; i--) {
+			data.remove(i);
+		}
+		SwingUtil.runOnEDT(() -> this.fireTableRowsDeleted(firstRow, lastRow), true);
+		if (lastRow < toIndex) {
+			toIndex -= rowCount;
+		}
+		data.addAll(toIndex, selectedRowValues);
+		int finalToIndex = toIndex;
+		SwingUtil.runOnEDT(() -> this.fireTableRowsInserted(finalToIndex, finalToIndex + rowCount - 1), true);
+
+		// With regard to current queue position there are 6 cases, 3 of which need to be handled:
+		// 1 - Rows above queue position were moved to somewhere else above queue position - inconsequential.
+		// 2 - Rows below queue position were moved to somewhere else below queue position - inconsequential.
+		// 3 - Rows above queue position were moved below queue position - queue position must be reduced by number of rows moved.
+		// 4 - Rows below queue position were moved above queue position - queue position must be increased by number of rows moved.
+		// 5 - Rows that include queue position were moved somewhere above - queue position must be decreased by value of offset
+		// from original to new location of the moved rows.
+		// 6 - Rows that include queue position were moved somewhere below - queue position must be increased by move offset,
+		// but decreased by number of rows removed before it during move.
+		synchronized (QUEUE_POSITION_LOCK_OBJ) {
+			int currentQueuePosition = getCurrentQueuePosition();
+			if (currentQueuePosition >= firstRow && currentQueuePosition <= lastRow) {
+				if (currentQueuePosition > originalToIndex) {
+					currentQueuePosition += originalToIndex - firstRow;
+					setCurrentQueuePosition(currentQueuePosition);
+				} else {
+					//
+					currentQueuePosition += originalToIndex - firstRow - rowCount;
+					setCurrentQueuePosition(currentQueuePosition);
+				}
+			} else if (lastRow < currentQueuePosition && originalToIndex > currentQueuePosition) {
+				currentQueuePosition -= rowCount;
+				setCurrentQueuePosition(currentQueuePosition);
+			} else if (firstRow > currentQueuePosition && originalToIndex <= currentQueuePosition) {
+				currentQueuePosition += rowCount;
+				setCurrentQueuePosition(currentQueuePosition);
+			}
+		}
+	}
+
 	public void addRows(int atIndex, Collection<PlaybackQueueEntry> newRows) {
 		int dataSizeBeforeAdd = data.size();
 		if (atIndex < 0 || atIndex >= dataSizeBeforeAdd) {
@@ -112,6 +160,13 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 		} else {
 			int numberAdded = newRows.size();
 			data.addAll(atIndex, newRows);
+			synchronized (QUEUE_POSITION_LOCK_OBJ) {
+				int currentQueuePosition = getCurrentQueuePosition();
+				if (currentQueuePosition >= atIndex) {
+					currentQueuePosition += numberAdded;
+					setCurrentQueuePosition(currentQueuePosition);
+				}
+			}
 			SwingUtil.runOnEDT(() -> this.fireTableRowsInserted(atIndex, atIndex + numberAdded - 1), true);
 		}
 	}
@@ -137,7 +192,16 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 			}
 			int firstRow = fromIndex;
 			int lastRow = toIndex - 1;
-			SwingUtil.runOnEDT(() -> this.fireTableRowsDeleted(firstRow, lastRow - 1), true);
+			SwingUtil.runOnEDT(() -> this.fireTableRowsDeleted(firstRow, lastRow), true);
+		}
+		synchronized (QUEUE_POSITION_LOCK_OBJ) {
+			int currentQueuePosition = getCurrentQueuePosition();
+			if (currentQueuePosition > toIndex - 1) {
+				currentQueuePosition -= (toIndex - fromIndex);
+				setCurrentQueuePosition(currentQueuePosition);
+			} else if (currentQueuePosition >= fromIndex && currentQueuePosition < toIndex) {
+				setCurrentQueuePosition(-1);
+			}
 		}
 	}
 
