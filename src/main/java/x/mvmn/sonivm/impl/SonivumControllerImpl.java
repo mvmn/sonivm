@@ -5,19 +5,30 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.swing.table.TableColumnModel;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
+import x.mvmn.sonivm.audio.PlaybackEvent;
+import x.mvmn.sonivm.prefs.AppPreferencesService;
 import x.mvmn.sonivm.ui.SonivmController;
+import x.mvmn.sonivm.ui.SonivmMainWindow;
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
+import x.mvmn.sonivm.util.ui.swing.SwingUtil;
 
 @Component
 public class SonivumControllerImpl implements SonivmController {
+
+	private static final Logger LOGGER = Logger.getLogger(SonivumControllerImpl.class.getSimpleName());
 
 	private static final Set<String> supportedExtensions = Stream.of("flac", "ogg", "mp3", "m4a", "cue").collect(Collectors.toSet());
 
@@ -27,6 +38,12 @@ public class SonivumControllerImpl implements SonivmController {
 	@Autowired
 	private PlaybackQueueTableModel playbackQueueTableModel;
 
+	@Autowired
+	private SonivmMainWindow mainWindow;
+
+	@Autowired
+	private AppPreferencesService appPreferencesService;
+
 	@Override
 	public void onVolumeChange(int value) {
 		audioService.setVolumePercentage(value);
@@ -34,44 +51,82 @@ public class SonivumControllerImpl implements SonivmController {
 
 	@Override
 	public void onSeek(int value) {
-		audioService.seek(value);
+		audioService.seek(value * 100);
 	}
 
 	@Override
-	public void onPlay(File trackFile) {
-		audioService.play(trackFile);
-	}
-
-	@Override
-	public void onPause() {
-		audioService.pause();
+	public void onPlayPause() {
+		if (audioService.isPaused()) {
+			audioService.resume();
+			updateStaus("Playing");
+			updatePlayingState(true);
+		} else if (audioService.isStopped()) {
+			tryPlayFromStartOfQueue();
+		} else {
+			audioService.pause();
+			updateStaus("Paused");
+			updatePlayingState(false);
+		}
 	}
 
 	@Override
 	public void onStop() {
+		doStop();
+	}
+
+	@Override
+	public void onTrackSelect(int index) {
+		switchToTrack(index);
+	}
+
+	@Override
+	public void onNextTrack() {
+		int trackCount = playbackQueueTableModel.getRowCount();
+		int currentTrack = playbackQueueTableModel.getCurrentQueuePosition();
+		if (currentTrack >= trackCount - 1) {
+			doStop();
+		} else if (currentTrack < 0) {
+			tryPlayFromStartOfQueue();
+		} else {
+			switchToTrack(++currentTrack);
+		}
+	}
+
+	@Override
+	public void onPreviousTrack() {
+		int currentTrack = playbackQueueTableModel.getCurrentQueuePosition();
+		if (currentTrack > 0) {
+			switchToTrack(--currentTrack);
+		}
+	}
+
+	private void tryPlayFromStartOfQueue() {
+		if (playbackQueueTableModel.getRowCount() > 0) {
+			switchToTrack(0);
+		} else {
+			doStop();
+		}
+	}
+
+	private void switchToTrack(int trackQueuePosition) {
+		playbackQueueTableModel.setCurrentQueuePosition(trackQueuePosition);
+		File track = playbackQueueTableModel.getRowValue(trackQueuePosition).getTargetFile();
 		audioService.stop();
+		audioService.play(track);
+		updateStaus("Playing");
+		updatePlayingState(true);
 	}
 
-	@Override
-	public void onNextTrack(File trackFile) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void onPreviousTrack(File trackFile) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void onPlayTrack(File trackFile) {
-		// TODO Auto-generated method stub
-
+	private void doStop() {
+		audioService.stop();
+		playbackQueueTableModel.setCurrentQueuePosition(-1);
+		updateStaus("Stopped");
+		updatePlayingState(false);
 	}
 
 	@Override
 	public void onDropFilesToQueue(int queuePosition, List<File> files) {
+		// FIXME: move off EDT
 		for (File track : files) {
 			if (!track.exists()) {
 				continue;
@@ -86,7 +141,7 @@ public class SonivumControllerImpl implements SonivmController {
 				continue;
 			}
 			if (track.getName().toLowerCase().endsWith(".cue")) {
-				// parse CUE
+				// TODO: parse CUE
 				continue;
 			}
 
@@ -94,8 +149,6 @@ public class SonivumControllerImpl implements SonivmController {
 					.asList(PlaybackQueueEntry.builder().targetFile(track).title(track.getName()).build());
 			if (queuePosition >= 0) {
 				playbackQueueTableModel.addRows(queuePosition, newEntries);
-				playbackQueueTableModel
-						.addRows(Arrays.asList(PlaybackQueueEntry.builder().targetFile(track).title(track.getName()).build()));
 			} else {
 				playbackQueueTableModel.addRows(newEntries);
 			}
@@ -104,7 +157,63 @@ public class SonivumControllerImpl implements SonivmController {
 
 	@Override
 	public void onWindowClose() {
+		savePlayQueueColumnWidths();
+
 		audioService.stop();
 		audioService.shutdown();
+	}
+
+	private void savePlayQueueColumnWidths() {
+		try {
+			TableColumnModel columnModel = mainWindow.getPlayQueueTable().getColumnModel();
+			int[] columnWidths = new int[columnModel.getColumnCount()];
+			for (int i = 0; i < columnModel.getColumnCount(); i++) {
+				columnWidths[i] = columnModel.getColumn(i).getWidth();
+			}
+			appPreferencesService.setPlayQueueColumnWidths(columnWidths);
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to store column width for playback queue table", e);
+		}
+	}
+
+	@Override
+	public void handleEvent(PlaybackEvent event) {
+		switch (event.getType()) {
+			case ERROR:
+				LOGGER.log(Level.WARNING, "Playback error occurred: " + event.getErrorType() + " " + event.getError());
+			break;
+			case FINISH:
+				onNextTrack();
+			break;
+			case PROGRESS:
+				Long playbackPositionMillis = event.getPlaybackPositionMilliseconds();
+				int seekSliderNewPosition = (int) (playbackPositionMillis / 100);
+				SwingUtil.runOnEDT(() -> mainWindow.updateSeekSliderPosition(seekSliderNewPosition), false);
+			break;
+			case START:
+				AudioFileInfo audioInfo = event.getAudioMetadata();
+				SwingUtil.runOnEDT(() -> {
+					if (audioInfo.isSeekable()) {
+						mainWindow.allowSeek(audioInfo.getDurationSeconds().intValue() * 10);
+					} else {
+						mainWindow.disallowSeek();
+					}
+				}, false);
+			break;
+			case DATALINE_CHANGE:
+			// Control[] controls = event.getDataLineControls();
+			// for (Control dataLineControl : controls) {
+			// System.out.println(dataLineControl.getType() + ": " + dataLineControl);
+			// }
+			break;
+		}
+	}
+
+	private void updatePlayingState(boolean playing) {
+		SwingUtil.runOnEDT(() -> mainWindow.setPlayPauseButtonState(playing), false);
+	}
+
+	private void updateStaus(String value) {
+		SwingUtil.runOnEDT(() -> mainWindow.updateStatus(value), false);
 	}
 }

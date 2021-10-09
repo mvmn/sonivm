@@ -2,7 +2,12 @@ package x.mvmn.sonivm.ui;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
+import java.awt.Point;
 import java.awt.dnd.DropTarget;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.stream.Stream;
 
 import javax.swing.DropMode;
@@ -25,7 +30,6 @@ public class SonivmMainWindow extends JFrame {
 
 	private final JLabel lblStatus;
 	private final JTable tblPlayQueue;
-	// private final PlaybackQueueTableModel playbackQueueTableModel;
 	private final JTree treeTrackLibrary;
 	private final JButton btnPlayPause;
 	private final JButton btnStop;
@@ -38,7 +42,6 @@ public class SonivmMainWindow extends JFrame {
 	public SonivmMainWindow(String title, SonivmController controller, PlaybackQueueTableModel playbackQueueTableModel) {
 		super(title);
 
-		// this.playbackQueueTableModel = playbackQueueTableModel;
 		tblPlayQueue = new JTable(playbackQueueTableModel);
 		tblPlayQueue.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
 		tblPlayQueue.setCellSelectionEnabled(false);
@@ -62,7 +65,6 @@ public class SonivmMainWindow extends JFrame {
 		Stream.of(buttons).forEach(btn -> btn.setFocusable(false));
 
 		JPanel topPanel = SwingUtil.panel(BorderLayout::new).addEast(playbackButtonsPanel).addCenter(seekSlider).build();
-
 		JPanel bottomPanel = SwingUtil.panel(BorderLayout::new).addCenter(lblStatus).build();
 
 		JScrollPane scrollTblPlayQueue = new JScrollPane(tblPlayQueue);
@@ -84,6 +86,55 @@ public class SonivmMainWindow extends JFrame {
 		this.getContentPane().add(bottomPanel, BorderLayout.SOUTH);
 
 		this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+		registerActionsWithController(controller);
+
+		this.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent wndEvent) {
+				controller.onWindowClose();
+			}
+		});
+	}
+
+	private void registerActionsWithController(SonivmController controller) {
+		volumeSlider.addChangeListener(event -> controller.onVolumeChange(volumeSlider.getValue()));
+		seekSlider.addChangeListener(event -> {
+			if (seekSliderIsDragged) {
+				controller.onSeek(seekSlider.getValue());
+			}
+		});
+		seekSlider.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mousePressed(MouseEvent e) {
+				seekSliderIsDragged = true;
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				seekSliderIsDragged = false;
+			}
+
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				// controller.onSeek(seekSlider.getValue());
+			}
+		});
+
+		btnPlayPause.addActionListener(event -> controller.onPlayPause());
+		btnStop.addActionListener(event -> controller.onStop());
+		btnNextTrack.addActionListener(event -> controller.onNextTrack());
+		btnPreviousTrack.addActionListener(event -> controller.onPreviousTrack());
+
+		tblPlayQueue.addMouseListener(new MouseAdapter() {
+			public void mousePressed(MouseEvent mouseEvent) {
+				if (mouseEvent.getClickCount() == 2 && tblPlayQueue.getSelectedRow() != -1) {
+					Point point = mouseEvent.getPoint();
+					int row = tblPlayQueue.rowAtPoint(point);
+					controller.onTrackSelect(row);
+				}
+			}
+		});
 	}
 
 	public JTable getPlayQueueTable() {
@@ -104,5 +155,13 @@ public class SonivmMainWindow extends JFrame {
 		if (!seekSliderIsDragged) {
 			seekSlider.getModel().setValue(sliderNewPosition);
 		}
+	}
+
+	public void updateStatus(String status) {
+		this.lblStatus.setText(status);
+	}
+
+	public void setPlayPauseButtonState(boolean playing) {
+		btnPlayPause.setText(playing ? "||" : "->");
 	}
 }

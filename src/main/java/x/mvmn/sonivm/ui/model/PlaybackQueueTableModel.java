@@ -49,6 +49,10 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 		return currentQueuePosition;
 	}
 
+	public PlaybackQueueEntry getCurrentEntry() {
+		return currentQueuePosition >= 0 ? data.get(currentQueuePosition) : null;
+	}
+
 	public void setCurrentQueuePosition(int newPosition) {
 		int rows = this.getRowCount();
 		int oldPosition = this.currentQueuePosition;

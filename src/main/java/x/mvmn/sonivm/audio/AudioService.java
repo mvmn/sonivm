@@ -28,4 +28,10 @@ public interface AudioService {
 	void removePlaybackEventListener(PlaybackEventListener playbackEventListener);
 
 	void removeAllPlaybackEventListeners();
+
+	boolean isPaused();
+
+	boolean isPlaying();
+
+	boolean isStopped();
 }

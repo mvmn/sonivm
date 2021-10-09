@@ -3,25 +3,25 @@ package x.mvmn.sonivm.ui;
 import java.io.File;
 import java.util.List;
 
-public interface SonivmController {
+import x.mvmn.sonivm.audio.PlaybackEventListener;
 
-	public void onVolumeChange(int value);
+public interface SonivmController extends PlaybackEventListener {
 
-	public void onSeek(int value);
+	void onVolumeChange(int value);
 
-	public void onPlay(File trackFile);
+	void onSeek(int value);
 
-	public void onPause();
+	void onPlayPause();
 
-	public void onStop();
+	void onStop();
 
-	public void onNextTrack(File trackFile);
+	void onNextTrack();
 
-	public void onPreviousTrack(File trackFile);
+	void onPreviousTrack();
 
-	public void onPlayTrack(File trackFile);
+	void onDropFilesToQueue(int queuePosition, List<File> files);
 
-	public void onDropFilesToQueue(int queuePosition, List<File> files);
+	void onWindowClose();
 
-	public void onWindowClose();
+	void onTrackSelect(int queuePosition);
 }

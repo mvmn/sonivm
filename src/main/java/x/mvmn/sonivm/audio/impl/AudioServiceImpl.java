@@ -427,4 +427,19 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		this.volumePercent = volumePercent;
 		enqueueTask(Type.UPDATE_VOLUME);
 	}
+
+	@Override
+	public boolean isPaused() {
+		return State.PAUSED == this.state;
+	}
+
+	@Override
+	public boolean isPlaying() {
+		return State.PLAYING == this.state;
+	}
+
+	@Override
+	public boolean isStopped() {
+		return State.STOPPED == this.state;
+	}
 }
