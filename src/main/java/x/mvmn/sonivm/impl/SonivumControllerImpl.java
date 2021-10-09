@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -19,9 +21,11 @@ import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.audio.PlaybackEvent;
 import x.mvmn.sonivm.prefs.AppPreferencesService;
+import x.mvmn.sonivm.tag.TagRetrievalService;
 import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
+import x.mvmn.sonivm.ui.model.PlaybackQueueEntry.TrackMetadata;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
 import x.mvmn.sonivm.util.ui.swing.SwingUtil;
 
@@ -44,8 +48,13 @@ public class SonivumControllerImpl implements SonivmController {
 	@Autowired
 	private AppPreferencesService appPreferencesService;
 
+	@Autowired
+	private TagRetrievalService tagRetrievalService;
+
 	private volatile AudioFileInfo currentAudioFileInfo;
 	// private volatile PlaybackQueueEntry currentTrackInfo;
+
+	private final ExecutorService tagReadingTaskExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
 	@Override
 	public void onVolumeChange(int value) {
@@ -118,6 +127,7 @@ public class SonivumControllerImpl implements SonivmController {
 		audioService.play(track);
 		updateStaus("Playing");
 		updatePlayingState(true);
+		SwingUtil.runOnEDT(() -> mainWindow.scrollToTrack(trackQueuePosition), false);
 	}
 
 	private void doStop() {
@@ -153,8 +163,18 @@ public class SonivumControllerImpl implements SonivmController {
 				continue;
 			}
 
-			List<PlaybackQueueEntry> newEntries = Arrays
-					.asList(PlaybackQueueEntry.builder().targetFile(track).title(track.getName()).build());
+			PlaybackQueueEntry queueEntry = PlaybackQueueEntry.builder().targetFile(track).build();
+			tagReadingTaskExecutor.submit(() -> {
+				try {
+					TrackMetadata meta = tagRetrievalService.getAudioFileMetadata(track);
+					queueEntry.setTrackMetadata(meta);
+					playbackQueueTableModel.signalUpdateInTrackInfo(queueEntry);
+				} catch (Throwable t) {
+					LOGGER.log(Level.WARNING, "Failed to read tags for file " + track.getAbsolutePath(), t);
+				}
+			});
+
+			List<PlaybackQueueEntry> newEntries = Arrays.asList(queueEntry);
 			if (queuePosition >= 0) {
 				playbackQueueTableModel.addRows(queuePosition, newEntries);
 			} else {
@@ -187,6 +207,7 @@ public class SonivumControllerImpl implements SonivmController {
 
 		audioService.stop();
 		audioService.shutdown();
+		tagReadingTaskExecutor.shutdownNow();
 	}
 
 	private void savePlayQueueColumnWidths() {

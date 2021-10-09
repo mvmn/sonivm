@@ -212,4 +212,12 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	public void signalUpdateInRow(int rowIndex) {
 		SwingUtil.runOnEDT(() -> this.fireTableRowsUpdated(rowIndex, rowIndex), false);
 	}
+
+	public void signalUpdateInTrackInfo(PlaybackQueueEntry updatedEntry) {
+		// TODO: optimize
+		int row = data.indexOf(updatedEntry);
+		if (row >= 0) {
+			signalUpdateInRow(row);
+		}
+	}
 }

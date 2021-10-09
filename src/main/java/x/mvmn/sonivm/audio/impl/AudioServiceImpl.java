@@ -126,8 +126,8 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						}
 					} catch (InterruptedException interruptException) {
 						throw interruptException;
-					} catch (Exception e) {
-						handlePlaybackException(e);
+					} catch (Throwable t) {
+						handlePlaybackException(t);
 					}
 				}
 			}
@@ -401,17 +401,17 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		return Stream.of(AudioSystem.getMixerInfo()).filter(mixerInfo -> name.equalsIgnoreCase(mixerInfo.getName())).findAny().orElse(null);
 	}
 
-	private void handlePlaybackException(Exception e) {
-		LOGGER.log(Level.SEVERE, "Playback error", e);
+	private void handlePlaybackException(Throwable t) {
+		LOGGER.log(Level.SEVERE, "Playback error", t);
 		executeListenerActions(PlaybackEvent.builder()
 				.type(PlaybackEvent.Type.ERROR)
 				.errorType(ErrorType.PLAYBACK_ERROR)
-				.error(e.getClass().getSimpleName() + " " + e.getMessage())
+				.error(t.getClass().getSimpleName() + " " + t.getMessage())
 				.build());
 	}
 
-	private void handleTaskException(Exception e) {
-		handlePlaybackException(e);
+	private void handleTaskException(Throwable t) {
+		handlePlaybackException(t);
 	}
 
 	private void executeListenerActions(PlaybackEvent event) {
@@ -420,16 +420,16 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				playbackEventListenerExecutor.execute(() -> {
 					try {
 						playbackEventListener.handleEvent(event);
-					} catch (Exception e) {
-						handleEventListenerException(e);
+					} catch (Throwable t) {
+						handleEventListenerException(t);
 					}
 				});
 			}
 		}
 	}
 
-	private void handleEventListenerException(Exception e) {
-		LOGGER.log(Level.SEVERE, "Playback event listener error", e);
+	private void handleEventListenerException(Throwable t) {
+		LOGGER.log(Level.SEVERE, "Playback event listener error", t);
 	}
 
 	@Override

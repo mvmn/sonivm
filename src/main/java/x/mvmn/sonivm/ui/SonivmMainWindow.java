@@ -5,6 +5,7 @@ import java.awt.Component;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.dnd.DropTarget;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
@@ -78,6 +79,12 @@ public class SonivmMainWindow extends JFrame {
 				return result;
 			}
 		});
+		DefaultTableCellRenderer rightRendererForDuration = new DefaultTableCellRenderer();
+		rightRendererForDuration.setHorizontalAlignment(JLabel.RIGHT);
+		tblPlayQueue.getColumnModel().getColumn(5).setCellRenderer(rightRendererForDuration);
+		DefaultTableCellRenderer rightRendererForDate = new DefaultTableCellRenderer();
+		rightRendererForDate.setHorizontalAlignment(JLabel.RIGHT);
+		tblPlayQueue.getColumnModel().getColumn(6).setCellRenderer(rightRendererForDate);
 
 		treeTrackLibrary = new JTree();
 
@@ -211,7 +218,6 @@ public class SonivmMainWindow extends JFrame {
 			private static final long serialVersionUID = 8828376654199394308L;
 
 			public void actionPerformed(ActionEvent e) {
-				System.out.println("enter");
 				int selectedRow = tblPlayQueue.getSelectedRow();
 				if (selectedRow >= 0 && selectedRow < tblPlayQueue.getRowCount()) {
 					controller.onTrackSelect(selectedRow);
@@ -270,5 +276,9 @@ public class SonivmMainWindow extends JFrame {
 
 	public void updateNowPlaying(PlaybackQueueEntry trackInfo) {
 		this.lblNowPlaying.setText("Now playing: " + trackInfo.toDisplayStr());
+	}
+
+	public void scrollToTrack(int rowNumber) {
+		tblPlayQueue.scrollRectToVisible(new Rectangle(tblPlayQueue.getCellRect(rowNumber, 0, true)));
 	}
 }

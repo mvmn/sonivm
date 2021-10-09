@@ -9,21 +9,56 @@ import lombok.Data;
 @Builder
 public class PlaybackQueueEntry {
 	private File targetFile;
-	private Long trackNumber;
-	private String artist;
-	private String album;
-	private String title;
-	private Long duration;
-	private String date;
-	private String genre;
 
-	private boolean tagDataPopulated;
+	private volatile TrackMetadata trackMetadata;
+	private volatile Long duration;
+
+	@Data
+	@Builder
+	public static class TrackMetadata {
+		private String trackNumber;
+		private String artist;
+		private String album;
+		private String title;
+		private String date;
+		private String genre;
+		private Long duration;
+	}
+
+	public String getTrackNumber() {
+		return trackMetadata != null ? trackMetadata.getTrackNumber() : null;
+	}
+
+	public String getArtist() {
+		return trackMetadata != null ? trackMetadata.getArtist() : null;
+	}
+
+	public String getAlbum() {
+		return trackMetadata != null ? trackMetadata.getAlbum() : null;
+	}
+
+	public String getTitle() {
+		return trackMetadata != null ? trackMetadata.getTitle() : targetFile.getName();
+	}
+
+	public String getDate() {
+		return trackMetadata != null ? trackMetadata.getDate() : null;
+	}
+
+	public String getGenre() {
+		return trackMetadata != null ? trackMetadata.getGenre() : null;
+	}
+
+	public Long getDuration() {
+		return duration != null ? duration : (trackMetadata != null ? trackMetadata.getDuration() : null);
+	}
 
 	public String toDisplayStr() {
-		if (!tagDataPopulated) {
+		if (trackMetadata == null) {
 			return targetFile.getName();
 		} else {
-			return String.format("%0$s \"%1$s\" (%3$s) - %2$s", artist, album, title, date);
+			return String.format("%0$s \"%1$s\" (%3$s) - %2$s", trackMetadata.getArtist(), trackMetadata.getAlbum(),
+					trackMetadata.getTitle(), trackMetadata.getDate());
 		}
 	}
 }
