@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
+import javax.swing.BorderFactory;
 import javax.swing.DropMode;
 import javax.swing.InputMap;
 import javax.swing.JButton;
@@ -93,7 +94,10 @@ public class SonivmMainWindow extends JFrame {
 		Stream.of(buttons).forEach(btn -> btn.setFocusable(false));
 
 		JPanel topPanel = SwingUtil.panel(BorderLayout::new).addEast(playbackButtonsPanel).addCenter(seekSlider).build();
+		topPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 		JPanel bottomPanel = SwingUtil.panel(BorderLayout::new).addCenter(lblStatus).build();
+		bottomPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
+		volumeSlider.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 
 		JScrollPane scrollTblPlayQueue = new JScrollPane(tblPlayQueue);
 		JSplitPane spLibraryAndPlayQueue = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, false, new JScrollPane(treeTrackLibrary),
@@ -164,7 +168,7 @@ public class SonivmMainWindow extends JFrame {
 			}
 		});
 
-		int condition = JComponent.WHEN_IN_FOCUSED_WINDOW;
+		int condition = JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT;
 		InputMap inputMap = tblPlayQueue.getInputMap(condition);
 		ActionMap actionMap = tblPlayQueue.getActionMap();
 		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "Delete");
@@ -177,6 +181,26 @@ public class SonivmMainWindow extends JFrame {
 				if (selectedRows != null && selectedRows.length > 0) {
 					controller.onDeleteRowsFromQueue(selectedRows[0], selectedRows[selectedRows.length - 1]);
 				}
+			}
+		});
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "Select");
+		actionMap.put("Select", new AbstractAction() {
+			private static final long serialVersionUID = 8828376654199394308L;
+
+			public void actionPerformed(ActionEvent e) {
+				System.out.println("enter");
+				int selectedRow = tblPlayQueue.getSelectedRow();
+				if (selectedRow >= 0 && selectedRow < tblPlayQueue.getRowCount()) {
+					controller.onTrackSelect(selectedRow);
+				}
+			}
+		});
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "PlayPause");
+		actionMap.put("PlayPause", new AbstractAction() {
+			private static final long serialVersionUID = 8828376654199394308L;
+
+			public void actionPerformed(ActionEvent e) {
+				controller.onPlayPause();
 			}
 		});
 	}
