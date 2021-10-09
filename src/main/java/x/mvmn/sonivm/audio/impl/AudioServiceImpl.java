@@ -334,7 +334,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 			}
 			volumeControl.setValue(newValue);
 		} else {
-			LOGGER.info("Gain or volume control not supported - skipping set volume");
+			LOGGER.fine("Gain or volume control not supported - skipping set volume");
 		}
 	}
 

@@ -34,12 +34,17 @@ import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableCellRenderer;
 
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
+import x.mvmn.sonivm.util.TimeUnitUtil;
 import x.mvmn.sonivm.util.ui.swing.SwingUtil;
 
 public class SonivmMainWindow extends JFrame {
 	private static final long serialVersionUID = -3402450540379541023L;
 
 	private final JLabel lblStatus;
+	private final JLabel lblNowPlaying;
+	private final JLabel lblPlayTimeElapsed;
+	private final JLabel lblPlayTimeRemaining;
+	// private final JLabel lblPlayTimeTotal;
 	private final JTable tblPlayQueue;
 	private final JTree treeTrackLibrary;
 	private final JButton btnPlayPause;
@@ -80,6 +85,10 @@ public class SonivmMainWindow extends JFrame {
 		btnNextTrack = new JButton(">>");
 		btnPreviousTrack = new JButton("<<");
 		lblStatus = new JLabel("Stopped");
+		lblNowPlaying = new JLabel("Now playing:");
+		lblPlayTimeElapsed = new JLabel("00:00/00:00");
+		lblPlayTimeRemaining = new JLabel("-00:00/00:00");
+		// lblPlayTimeTotal = new JLabel("00:00");
 
 		seekSlider = new JSlider(0, 0);
 		seekSlider.setEnabled(false);
@@ -93,11 +102,23 @@ public class SonivmMainWindow extends JFrame {
 		Stream.of(buttons).forEach(playbackButtonsPanel::add);
 		Stream.of(buttons).forEach(btn -> btn.setFocusable(false));
 
-		JPanel topPanel = SwingUtil.panel(BorderLayout::new).addEast(playbackButtonsPanel).addCenter(seekSlider).build();
+		JPanel topPanel = SwingUtil.panel(BorderLayout::new)
+				.addEast(playbackButtonsPanel)
+				.addCenter(SwingUtil.panel(BorderLayout::new)
+						.addWest(lblPlayTimeElapsed)
+						.addCenter(seekSlider)
+						.addEast(lblPlayTimeRemaining)
+						.build())
+				.addNorth(lblNowPlaying)
+				.build();
 		topPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 		JPanel bottomPanel = SwingUtil.panel(BorderLayout::new).addCenter(lblStatus).build();
 		bottomPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 		volumeSlider.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
+		seekSlider.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
+		lblPlayTimeElapsed.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
+		lblPlayTimeRemaining.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 8));
+		lblNowPlaying.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
 
 		JScrollPane scrollTblPlayQueue = new JScrollPane(tblPlayQueue);
 		JSplitPane spLibraryAndPlayQueue = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, false, new JScrollPane(treeTrackLibrary),
@@ -112,7 +133,8 @@ public class SonivmMainWindow extends JFrame {
 		scrollTblPlayQueue.setDropTarget(dropTarget);
 
 		this.getContentPane().setLayout(new BorderLayout());
-		this.getContentPane().add(topPanel, BorderLayout.NORTH);
+		this.getContentPane()
+				.add(SwingUtil.panel(BorderLayout::new).addSouth(topPanel).addNorth(lblNowPlaying).build(), BorderLayout.NORTH);
 		this.getContentPane().add(spLibraryAndPlayQueue, BorderLayout.CENTER);
 		this.getContentPane().add(volumeSlider, BorderLayout.EAST);
 		this.getContentPane().add(bottomPanel, BorderLayout.SOUTH);
@@ -231,5 +253,17 @@ public class SonivmMainWindow extends JFrame {
 
 	public void setPlayPauseButtonState(boolean playing) {
 		btnPlayPause.setText(playing ? "||" : "->");
+	}
+
+	public void setTotalPlayTimeDisplay(long totalSeconds) {
+		// lblPlayTimeTotal.setText(TimeUnitUtil.prettyPrintFromSeconds(totalSeconds));
+	}
+
+	public void setCurrentPlayTimeDisplay(long playedSeconds, long totalSeconds) {
+		long remainingSeconds = totalSeconds - playedSeconds;
+		lblPlayTimeRemaining.setText(
+				"-" + TimeUnitUtil.prettyPrintFromSeconds(remainingSeconds) + "/" + TimeUnitUtil.prettyPrintFromSeconds(totalSeconds));
+		lblPlayTimeElapsed
+				.setText(TimeUnitUtil.prettyPrintFromSeconds(playedSeconds) + "/" + TimeUnitUtil.prettyPrintFromSeconds(totalSeconds));
 	}
 }

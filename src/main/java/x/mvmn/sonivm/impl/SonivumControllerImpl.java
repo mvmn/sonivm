@@ -44,6 +44,8 @@ public class SonivumControllerImpl implements SonivmController {
 	@Autowired
 	private AppPreferencesService appPreferencesService;
 
+	private volatile AudioFileInfo currentAudioFileInfo;
+
 	@Override
 	public void onVolumeChange(int value) {
 		audioService.setVolumePercentage(value);
@@ -119,10 +121,14 @@ public class SonivumControllerImpl implements SonivmController {
 
 	private void doStop() {
 		audioService.stop();
+		this.currentAudioFileInfo = null;
 		playbackQueueTableModel.setCurrentQueuePosition(-1);
 		updateStaus("Stopped");
 		updatePlayingState(false);
-		mainWindow.disallowSeek();
+		SwingUtil.runOnEDT(() -> {
+			mainWindow.disallowSeek();
+			mainWindow.setCurrentPlayTimeDisplay(0, 0);
+		}, false);
 	}
 
 	@Override
@@ -201,15 +207,23 @@ public class SonivumControllerImpl implements SonivmController {
 				LOGGER.log(Level.WARNING, "Playback error occurred: " + event.getErrorType() + " " + event.getError());
 			break;
 			case FINISH:
+				this.currentAudioFileInfo = null;
 				onNextTrack();
 			break;
 			case PROGRESS:
-				Long playbackPositionMillis = event.getPlaybackPositionMilliseconds();
-				int seekSliderNewPosition = (int) (playbackPositionMillis / 100);
-				SwingUtil.runOnEDT(() -> mainWindow.updateSeekSliderPosition(seekSliderNewPosition), false);
+				if (currentAudioFileInfo != null) {
+					Long playbackPositionMillis = event.getPlaybackPositionMilliseconds();
+					int seekSliderNewPosition = (int) (playbackPositionMillis / 100);
+					long totalDurationSeconds = currentAudioFileInfo.getDurationSeconds();
+					SwingUtil.runOnEDT(() -> {
+						mainWindow.updateSeekSliderPosition(seekSliderNewPosition);
+						mainWindow.setCurrentPlayTimeDisplay(playbackPositionMillis / 1000, totalDurationSeconds);
+					}, false);
+				}
 			break;
 			case START:
 				AudioFileInfo audioInfo = event.getAudioMetadata();
+				this.currentAudioFileInfo = audioInfo;
 				playbackQueueTableModel.getCurrentEntry().setDuration(audioInfo.getDurationSeconds());
 				int queuePos = playbackQueueTableModel.getCurrentQueuePosition();
 				playbackQueueTableModel.fireTableRowsUpdated(queuePos, queuePos);

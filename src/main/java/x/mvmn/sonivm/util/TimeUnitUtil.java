@@ -12,9 +12,7 @@ public class TimeUnitUtil {
 		if (hr > 0) {
 			result.append(String.format("%02d", hr)).append(":");
 		}
-		if (min > 0) {
-			result.append(String.format("%02d", min)).append(":");
-		}
+		result.append(String.format("%02d", min)).append(":");
 		result.append(String.format("%02d", sec));
 		return result.toString();
 	}
