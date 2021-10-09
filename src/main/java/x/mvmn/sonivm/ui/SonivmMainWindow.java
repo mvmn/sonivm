@@ -72,25 +72,6 @@ public class SonivmMainWindow extends JFrame {
 			}
 		});
 
-		// assume JTable is named "table"
-		int condition = JComponent.WHEN_IN_FOCUSED_WINDOW;
-		InputMap inputMap = tblPlayQueue.getInputMap(condition);
-		ActionMap actionMap = tblPlayQueue.getActionMap();
-
-		// DELETE is a String constant that for me was defined as "Delete"
-		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "Delete");
-		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), "Delete");
-		actionMap.put("Delete", new AbstractAction() {
-			private static final long serialVersionUID = 8828376654199394308L;
-
-			public void actionPerformed(ActionEvent e) {
-				int[] selectedRows = tblPlayQueue.getSelectedRows();
-				if (selectedRows != null && selectedRows.length > 0) {
-					controller.onDeleteRowsFromQueue(selectedRows[0], selectedRows[selectedRows.length - 1]);
-				}
-			}
-		});
-
 		treeTrackLibrary = new JTree();
 
 		btnPlayPause = new JButton("->");
@@ -179,6 +160,22 @@ public class SonivmMainWindow extends JFrame {
 					Point point = mouseEvent.getPoint();
 					int row = tblPlayQueue.rowAtPoint(point);
 					controller.onTrackSelect(row);
+				}
+			}
+		});
+
+		int condition = JComponent.WHEN_IN_FOCUSED_WINDOW;
+		InputMap inputMap = tblPlayQueue.getInputMap(condition);
+		ActionMap actionMap = tblPlayQueue.getActionMap();
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "Delete");
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), "Delete");
+		actionMap.put("Delete", new AbstractAction() {
+			private static final long serialVersionUID = 8828376654199394308L;
+
+			public void actionPerformed(ActionEvent e) {
+				int[] selectedRows = tblPlayQueue.getSelectedRows();
+				if (selectedRows != null && selectedRows.length > 0) {
+					controller.onDeleteRowsFromQueue(selectedRows[0], selectedRows[selectedRows.length - 1]);
 				}
 			}
 		});
