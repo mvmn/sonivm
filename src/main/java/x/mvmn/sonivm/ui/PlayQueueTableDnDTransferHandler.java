@@ -5,8 +5,8 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.dnd.DragSource;
+import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
@@ -17,23 +17,18 @@ import javax.swing.JComponent;
 import javax.swing.JTable;
 import javax.swing.TransferHandler;
 
-import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
-import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 public class PlayQueueTableDnDTransferHandler extends TransferHandler {
 	private static final long serialVersionUID = 3844629189801876896L;
 
 	private static final Logger LOGGER = Logger.getLogger(PlayQueueTableDnDTransferHandler.class.getName());
 
-	private static final DataFlavor localObjectFlavor = new DataFlavor(String.class, "Integer Row Index");
+	public static final DataFlavor DATA_FLAVOR_STRING_ROW_INDEXES_RANGE = new DataFlavor(String.class, "String Row Indexes Range");
 
 	private final JTable playbackQueueTable;
-	private final PlaybackQueueTableModel playbackQueueTableModel;
-
-	public PlayQueueTableDnDTransferHandler(JTable playbackQueueTable, PlaybackQueueTableModel playbackQueueTableModel) {
-		this.playbackQueueTable = playbackQueueTable;
-		this.playbackQueueTableModel = playbackQueueTableModel;
-	}
+	private final SonivmController controller;
 
 	@Override
 	public int getSourceActions(JComponent c) {
@@ -42,7 +37,8 @@ public class PlayQueueTableDnDTransferHandler extends TransferHandler {
 
 	@Override
 	public boolean canImport(TransferHandler.TransferSupport info) {
-		boolean result = info.getComponent() == playbackQueueTable && info.isDrop() && info.isDataFlavorSupported(localObjectFlavor)
+		boolean result = info.getComponent() == playbackQueueTable && info.isDrop()
+				&& info.isDataFlavorSupported(DATA_FLAVOR_STRING_ROW_INDEXES_RANGE)
 				|| info.isDataFlavorSupported(DataFlavor.javaFileListFlavor);
 		playbackQueueTable.setCursor(result ? DragSource.DefaultMoveDrop : DragSource.DefaultMoveNoDrop);
 		return result;
@@ -52,7 +48,8 @@ public class PlayQueueTableDnDTransferHandler extends TransferHandler {
 	protected Transferable createTransferable(JComponent component) {
 		if (component == playbackQueueTable) {
 			int[] selectedRows = playbackQueueTable.getSelectedRows();
-			return new DataHandler("" + selectedRows[0] + "-" + selectedRows[selectedRows.length - 1], localObjectFlavor.getMimeType());
+			return new DataHandler("" + selectedRows[0] + "-" + selectedRows[selectedRows.length - 1],
+					DATA_FLAVOR_STRING_ROW_INDEXES_RANGE.getMimeType());
 		} else {
 			return super.createTransferable(component);
 		}
@@ -71,38 +68,29 @@ public class PlayQueueTableDnDTransferHandler extends TransferHandler {
 		}
 		playbackQueueTable.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 
-		String[] idxRangeStrs;
-		if (info.getTransferable().isDataFlavorSupported(localObjectFlavor)) {
+		if (info.getTransferable().isDataFlavorSupported(DATA_FLAVOR_STRING_ROW_INDEXES_RANGE)) {
 			try {
-				idxRangeStrs = info.getTransferable().getTransferData(localObjectFlavor).toString().split("-");
+				String[] idxRangeStrs = info.getTransferable().getTransferData(DATA_FLAVOR_STRING_ROW_INDEXES_RANGE).toString().split("-");
 
 				int startRow = Integer.parseInt(idxRangeStrs[0]);
 				int endRow = Integer.parseInt(idxRangeStrs[1]);
-				int rowCount = endRow - startRow + 1;
-				if (insertPosition > endRow || insertPosition < startRow) {
-					List<PlaybackQueueEntry> selectedRowValues = new ArrayList<>(rowCount);
-					for (int i = startRow; i <= endRow; i++) {
-						selectedRowValues.add(playbackQueueTableModel.getRowValue(i));
-					}
-
-					if (endRow < insertPosition) {
-						insertPosition -= rowCount;
-					}
-
-					playbackQueueTableModel.deleteRows(startRow, endRow + 1);
-					playbackQueueTableModel.addRows(insertPosition, selectedRowValues);
-
-					playbackQueueTable.getSelectionModel().setSelectionInterval(insertPosition, insertPosition + rowCount - 1);
-
-					return true;
-				} else {
-					return false;
-				}
+				return controller.onDropQueueRowsInsideQueue(insertPosition, startRow, endRow);
 			} catch (UnsupportedFlavorException e) {
 				LOGGER.log(Level.WARNING, "UnsupportedFlavorException on playback queue table drag-n-drop. Flavors: "
 						+ Arrays.toString(info.getTransferable().getTransferDataFlavors()), e);
 			} catch (IOException e) {
 				LOGGER.log(Level.WARNING, "IO error on playback queue table drag-n-drop.", e);
+			}
+		} else if (info.getTransferable().isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+			try {
+				@SuppressWarnings("unchecked")
+				List<File> fileList = (List<File>) info.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+				controller.onDropFilesToQueue(insertPosition, fileList);
+			} catch (UnsupportedFlavorException e) {
+				LOGGER.log(Level.WARNING, "UnsupportedFlavorException on playback queue table files drag-n-drop. Flavors: "
+						+ Arrays.toString(info.getTransferable().getTransferDataFlavors()), e);
+			} catch (IOException e) {
+				LOGGER.log(Level.WARNING, "IO error on playback queue table files drag-n-drop.", e);
 			}
 		}
 		return false;

@@ -1,6 +1,7 @@
 package x.mvmn.sonivm.impl;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -132,12 +133,11 @@ public class SonivumControllerImpl implements SonivmController {
 				continue;
 			}
 			if (track.isDirectory()) {
-				onDropFilesToQueue(queuePosition,
-						Stream.of(track.listFiles())
-								.sorted(Comparator.comparing(File::getName))
-								.filter(file -> file.isDirectory() || (file.getName().indexOf(".") > 0 && supportedExtensions
-										.contains(file.getName().substring(file.getName().lastIndexOf(".") + 1).toLowerCase())))
-								.collect(Collectors.toList()));
+				onDropFilesToQueue(queuePosition, Stream.of(track.listFiles())
+						.sorted(queuePosition >= 0 ? Comparator.comparing(File::getName).reversed() : Comparator.comparing(File::getName))
+						.filter(file -> file.isDirectory() || (file.getName().indexOf(".") > 0 && supportedExtensions
+								.contains(file.getName().substring(file.getName().lastIndexOf(".") + 1).toLowerCase())))
+						.collect(Collectors.toList()));
 				continue;
 			}
 			if (track.getName().toLowerCase().endsWith(".cue")) {
@@ -152,6 +152,30 @@ public class SonivumControllerImpl implements SonivmController {
 			} else {
 				playbackQueueTableModel.addRows(newEntries);
 			}
+		}
+	}
+
+	@Override
+	public boolean onDropQueueRowsInsideQueue(int insertPosition, int startRow, int endRow) {
+		int rowCount = endRow - startRow + 1;
+		if (insertPosition > endRow || insertPosition < startRow) {
+			List<PlaybackQueueEntry> selectedRowValues = new ArrayList<>(rowCount);
+			for (int i = startRow; i <= endRow; i++) {
+				selectedRowValues.add(playbackQueueTableModel.getRowValue(i));
+			}
+
+			if (endRow < insertPosition) {
+				insertPosition -= rowCount;
+			}
+
+			playbackQueueTableModel.deleteRows(startRow, endRow + 1);
+			playbackQueueTableModel.addRows(insertPosition, selectedRowValues);
+
+			mainWindow.getPlayQueueTable().getSelectionModel().setSelectionInterval(insertPosition, insertPosition + rowCount - 1);
+
+			return true;
+		} else {
+			return false;
 		}
 	}
 
@@ -219,4 +243,5 @@ public class SonivumControllerImpl implements SonivmController {
 	private void updateStaus(String value) {
 		SwingUtil.runOnEDT(() -> mainWindow.updateStatus(value), false);
 	}
+
 }
