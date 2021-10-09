@@ -58,12 +58,14 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 		int oldPosition = this.currentQueuePosition;
 		if (newPosition >= 0 && newPosition < rows) {
 			this.currentQueuePosition = newPosition;
-			SwingUtil.runOnEDT(() -> fireTableCellUpdated(newPosition, 0), false);
+//			SwingUtil.runOnEDT(() -> fireTableCellUpdated(newPosition, 0), false);
+			SwingUtil.runOnEDT(() -> fireTableRowsUpdated(newPosition, newPosition), false);
 		} else {
 			this.currentQueuePosition = -1;
 		}
 		if (oldPosition >= 0 && oldPosition < rows) {
-			SwingUtil.runOnEDT(() -> fireTableCellUpdated(oldPosition, 0), false);
+//			SwingUtil.runOnEDT(() -> fireTableCellUpdated(oldPosition, 0), false);
+			SwingUtil.runOnEDT(() -> fireTableRowsUpdated(oldPosition, oldPosition), false);
 		}
 	}
 	//

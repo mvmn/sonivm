@@ -1,6 +1,8 @@
 package x.mvmn.sonivm.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.dnd.DropTarget;
@@ -21,6 +23,7 @@ import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTree;
 import javax.swing.ListSelectionModel;
+import javax.swing.table.DefaultTableCellRenderer;
 
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
 import x.mvmn.sonivm.util.ui.swing.SwingUtil;
@@ -46,6 +49,22 @@ public class SonivmMainWindow extends JFrame {
 		tblPlayQueue.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
 		tblPlayQueue.setCellSelectionEnabled(false);
 		tblPlayQueue.setRowSelectionAllowed(true);
+		tblPlayQueue.setDefaultRenderer(String.class, new DefaultTableCellRenderer() {
+			private static final long serialVersionUID = 8392498039681170058L;
+
+			@Override
+			public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row,
+					int column) {
+				Component result = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+				if (row == playbackQueueTableModel.getCurrentQueuePosition()) {
+					result.setFont(result.getFont().deriveFont(Font.BOLD));
+				}
+
+				return result;
+			}
+		});
+
 		treeTrackLibrary = new JTree();
 
 		btnPlayPause = new JButton("->");
