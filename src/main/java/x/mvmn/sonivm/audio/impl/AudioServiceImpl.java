@@ -318,8 +318,23 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				LOGGER.fine("Setting gain to: " + newValue);
 			}
 			gainControl.setValue(newValue);
+		} else if (dataLine.isControlSupported(FloatControl.Type.VOLUME)) {
+			FloatControl volumeControl = (FloatControl) dataLine.getControl(FloatControl.Type.VOLUME);
+			float max = volumeControl.getMaximum();
+			float min = volumeControl.getMinimum();
+			float newValue = max;
+			if (volumePercent > 0) {
+				if (volumePercent == 100) {
+					newValue = max;
+				} else {
+					newValue = min + (max - min) * volumePercent / 100;
+				}
+			} else {
+				newValue = min;
+			}
+			volumeControl.setValue(newValue);
 		} else {
-			LOGGER.info("Gain control not supported - skipping set volume");
+			LOGGER.info("Gain or volume control not supported - skipping set volume");
 		}
 	}
 

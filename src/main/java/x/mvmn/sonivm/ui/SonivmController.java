@@ -19,11 +19,13 @@ public interface SonivmController extends PlaybackEventListener {
 
 	void onPreviousTrack();
 
-	void onDropFilesToQueue(int queuePosition, List<File> files);
-
-	boolean onDropQueueRowsInsideQueue(int queuePosition, int rowStart, int rowEnd);
+	void onTrackSelect(int queuePosition);
 
 	void onWindowClose();
 
-	void onTrackSelect(int queuePosition);
+	void onDropFilesToQueue(int queuePosition, List<File> files);
+
+	boolean onDropQueueRowsInsideQueue(int queuePosition, int firstRow, int lastRow);
+
+	void onDeleteRowsFromQueue(int firstRow, int lastRow);
 }

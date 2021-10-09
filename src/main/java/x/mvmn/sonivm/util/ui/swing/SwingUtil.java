@@ -8,6 +8,8 @@ import java.awt.GridLayout;
 import java.awt.LayoutManager;
 import java.awt.Toolkit;
 import java.awt.Window;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.lang.reflect.InvocationTargetException;
 import java.text.NumberFormat;
@@ -24,12 +26,15 @@ import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JFormattedTextField;
 import javax.swing.JPanel;
+import javax.swing.JSlider;
 import javax.swing.LookAndFeel;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.plaf.basic.BasicSliderUI;
 import javax.swing.text.JTextComponent;
 import javax.swing.text.NumberFormatter;
 
@@ -330,5 +335,23 @@ public class SwingUtil {
 				}
 			}
 		}
+	}
+
+	public static void makeJSliderMoveToClickPoistion(JSlider slider) {
+		slider.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				BasicSliderUI ui = (BasicSliderUI) slider.getUI();
+				switch (slider.getOrientation()) {
+					case SwingConstants.VERTICAL:
+						slider.setValue(ui.valueForYPosition(e.getY()));
+					break;
+					case SwingConstants.HORIZONTAL:
+						slider.setValue(ui.valueForXPosition(e.getX()));
+					break;
+				}
+				System.out.println("Moved");
+			}
+		});
 	}
 }

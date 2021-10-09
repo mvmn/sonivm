@@ -6,14 +6,20 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.dnd.DropTarget;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.stream.Stream;
 
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
 import javax.swing.DropMode;
+import javax.swing.InputMap;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -22,6 +28,7 @@ import javax.swing.JSlider;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTree;
+import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableCellRenderer;
 
@@ -65,6 +72,25 @@ public class SonivmMainWindow extends JFrame {
 			}
 		});
 
+		// assume JTable is named "table"
+		int condition = JComponent.WHEN_IN_FOCUSED_WINDOW;
+		InputMap inputMap = tblPlayQueue.getInputMap(condition);
+		ActionMap actionMap = tblPlayQueue.getActionMap();
+
+		// DELETE is a String constant that for me was defined as "Delete"
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "Delete");
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), "Delete");
+		actionMap.put("Delete", new AbstractAction() {
+			private static final long serialVersionUID = 8828376654199394308L;
+
+			public void actionPerformed(ActionEvent e) {
+				int[] selectedRows = tblPlayQueue.getSelectedRows();
+				if (selectedRows != null && selectedRows.length > 0) {
+					controller.onDeleteRowsFromQueue(selectedRows[0], selectedRows[selectedRows.length - 1]);
+				}
+			}
+		});
+
 		treeTrackLibrary = new JTree();
 
 		btnPlayPause = new JButton("->");
@@ -75,8 +101,10 @@ public class SonivmMainWindow extends JFrame {
 
 		seekSlider = new JSlider(0, 0);
 		seekSlider.setEnabled(false);
+		SwingUtil.makeJSliderMoveToClickPoistion(seekSlider);
 
 		volumeSlider = new JSlider(JSlider.VERTICAL, 0, 100, 100);
+		SwingUtil.makeJSliderMoveToClickPoistion(volumeSlider);
 
 		JPanel playbackButtonsPanel = new JPanel(new GridLayout(1, 4));
 		JButton[] buttons = new JButton[] { btnPreviousTrack, btnPlayPause, btnStop, btnNextTrack };
