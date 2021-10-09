@@ -121,7 +121,7 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 		int finalToIndex = toIndex;
 		SwingUtil.runOnEDT(() -> this.fireTableRowsInserted(finalToIndex, finalToIndex + rowCount - 1), true);
 
-		// With regard to current queue position there are 6 cases, 3 of which need to be handled:
+		// With regard to current queue position there are 6 cases, 4 of which need to be handled:
 		// 1 - Rows above queue position were moved to somewhere else above queue position - inconsequential.
 		// 2 - Rows below queue position were moved to somewhere else below queue position - inconsequential.
 		// 3 - Rows above queue position were moved below queue position - queue position must be reduced by number of rows moved.
