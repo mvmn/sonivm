@@ -45,6 +45,7 @@ public class SonivumControllerImpl implements SonivmController {
 	private AppPreferencesService appPreferencesService;
 
 	private volatile AudioFileInfo currentAudioFileInfo;
+	// private volatile PlaybackQueueEntry currentTrackInfo;
 
 	@Override
 	public void onVolumeChange(int value) {
@@ -122,6 +123,7 @@ public class SonivumControllerImpl implements SonivmController {
 	private void doStop() {
 		audioService.stop();
 		this.currentAudioFileInfo = null;
+		// this.currentTrackInfo = null;
 		playbackQueueTableModel.setCurrentQueuePosition(-1);
 		updateStaus("Stopped");
 		updatePlayingState(false);
@@ -208,6 +210,7 @@ public class SonivumControllerImpl implements SonivmController {
 			break;
 			case FINISH:
 				this.currentAudioFileInfo = null;
+				// this.currentTrackInfo = null;
 				onNextTrack();
 			break;
 			case PROGRESS:
@@ -226,6 +229,8 @@ public class SonivumControllerImpl implements SonivmController {
 				this.currentAudioFileInfo = audioInfo;
 				playbackQueueTableModel.getCurrentEntry().setDuration(audioInfo.getDurationSeconds());
 				int queuePos = playbackQueueTableModel.getCurrentQueuePosition();
+				PlaybackQueueEntry trackInfo = playbackQueueTableModel.getRowValue(queuePos);
+				// this.currentTrackInfo = trackInfo;
 				playbackQueueTableModel.fireTableRowsUpdated(queuePos, queuePos);
 				SwingUtil.runOnEDT(() -> {
 					if (audioInfo.isSeekable()) {
@@ -233,6 +238,7 @@ public class SonivumControllerImpl implements SonivmController {
 					} else {
 						mainWindow.disallowSeek();
 					}
+					mainWindow.updateNowPlaying(trackInfo);
 				}, false);
 			break;
 			case DATALINE_CHANGE:

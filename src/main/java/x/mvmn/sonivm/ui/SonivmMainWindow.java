@@ -33,6 +33,7 @@ import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableCellRenderer;
 
+import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
 import x.mvmn.sonivm.util.TimeUnitUtil;
 import x.mvmn.sonivm.util.ui.swing.SwingUtil;
@@ -265,5 +266,9 @@ public class SonivmMainWindow extends JFrame {
 				"-" + TimeUnitUtil.prettyPrintFromSeconds(remainingSeconds) + "/" + TimeUnitUtil.prettyPrintFromSeconds(totalSeconds));
 		lblPlayTimeElapsed
 				.setText(TimeUnitUtil.prettyPrintFromSeconds(playedSeconds) + "/" + TimeUnitUtil.prettyPrintFromSeconds(totalSeconds));
+	}
+
+	public void updateNowPlaying(PlaybackQueueEntry trackInfo) {
+		this.lblNowPlaying.setText("Now playing: " + trackInfo.toDisplayStr());
 	}
 }
