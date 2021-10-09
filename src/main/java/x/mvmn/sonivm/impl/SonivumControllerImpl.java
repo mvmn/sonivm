@@ -192,6 +192,9 @@ public class SonivumControllerImpl implements SonivmController {
 			break;
 			case START:
 				AudioFileInfo audioInfo = event.getAudioMetadata();
+				playbackQueueTableModel.getCurrentEntry().setDuration(audioInfo.getDurationSeconds());
+				int queuePos = playbackQueueTableModel.getCurrentQueuePosition();
+				playbackQueueTableModel.fireTableRowsUpdated(queuePos, queuePos);
 				SwingUtil.runOnEDT(() -> {
 					if (audioInfo.isSeekable()) {
 						mainWindow.allowSeek(audioInfo.getDurationSeconds().intValue() * 10);

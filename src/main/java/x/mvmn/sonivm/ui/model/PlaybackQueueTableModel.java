@@ -74,7 +74,7 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 		switch (column) {
 			default:
 			case 0:
-				return (currentQueuePosition == row ? " >" : "") + (row + 1);
+				return (currentQueuePosition == row ? "> " : "") + (row + 1);
 			case 1:
 				return entry.getTrackNumber() != null ? String.valueOf(entry.getTrackNumber()) : "";
 			case 2:
