@@ -57,7 +57,7 @@ public class PlaybackQueueEntry {
 		if (trackMetadata == null) {
 			return targetFile.getName();
 		} else {
-			return String.format("%0$s \"%1$s\" (%3$s) - %2$s", trackMetadata.getArtist(), trackMetadata.getAlbum(),
+			return String.format("%1$s \"%2$s\" (%4$s) - %3$s", trackMetadata.getArtist(), trackMetadata.getAlbum(),
 					trackMetadata.getTitle(), trackMetadata.getDate());
 		}
 	}

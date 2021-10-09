@@ -126,7 +126,8 @@ public class SonivmMainWindow extends JFrame {
 		seekSlider.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
 		lblPlayTimeElapsed.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
 		lblPlayTimeRemaining.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 8));
-		lblNowPlaying.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+		lblNowPlaying.setBorder(BorderFactory.createEmptyBorder(4, 12, 4, 8));
+		lblNowPlaying.setFont(lblNowPlaying.getFont().deriveFont(Font.BOLD));
 
 		JScrollPane scrollTblPlayQueue = new JScrollPane(tblPlayQueue);
 		JSplitPane spLibraryAndPlayQueue = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, false, new JScrollPane(treeTrackLibrary),
@@ -275,7 +276,7 @@ public class SonivmMainWindow extends JFrame {
 	}
 
 	public void updateNowPlaying(PlaybackQueueEntry trackInfo) {
-		this.lblNowPlaying.setText("Now playing: " + trackInfo.toDisplayStr());
+		this.lblNowPlaying.setText("Now playing: " + (trackInfo != null ? trackInfo.toDisplayStr() : ""));
 	}
 
 	public void scrollToTrack(int rowNumber) {

@@ -140,6 +140,7 @@ public class SonivumControllerImpl implements SonivmController {
 		SwingUtil.runOnEDT(() -> {
 			mainWindow.disallowSeek();
 			mainWindow.setCurrentPlayTimeDisplay(0, 0);
+			mainWindow.updateNowPlaying(null);
 		}, false);
 	}
 

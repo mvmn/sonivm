@@ -1,5 +1,7 @@
 package x.mvmn.sonivm;
 
+import java.awt.Taskbar;
+import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
@@ -7,6 +9,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.imageio.ImageIO;
 import javax.sound.sampled.AudioSystem;
 import javax.swing.ButtonGroup;
 import javax.swing.JMenuBar;
@@ -59,10 +62,24 @@ public class SonivmLauncher implements Runnable {
 		System.setProperty("apple.laf.useScreenMenuBar", "true");
 		// Make sure macOS closes all Swing windows on app quit
 		System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS");
+
+		initTaskbarIcon();
+
 		// Install FlatLaF look&feels
 		SwingUtil.installLookAndFeels(true, FlatLightLaf.class, FlatIntelliJLaf.class, FlatDarkLaf.class, FlatDarculaLaf.class);
+
 		// Run the app
-		SpringApplication.run(SonivmLauncher.class, args).getBean(SonivmLauncher.class).run();
+		SonivmLauncher launcher = SpringApplication.run(SonivmLauncher.class, args).getBean(SonivmLauncher.class);
+		SwingUtil.runOnEDT(() -> launcher.run(), false);
+	}
+
+	private static void initTaskbarIcon() {
+		try {
+			BufferedImage image = ImageIO.read(SonivmLauncher.class.getResourceAsStream("/sonivm_logo.png"));
+			Taskbar.getTaskbar().setIconImage(image);
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to load and set main window and taskbar icon.", e);
+		}
 	}
 
 	public void run() {
