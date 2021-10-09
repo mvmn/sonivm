@@ -114,7 +114,6 @@ public class SonivmLauncher implements Runnable {
 		JMenuBuilder<JMenuBarBuilder> menuBuilder = new JMenuBarBuilder().menu("Options");
 		JMenuBuilder<JMenuBuilder<JMenuBarBuilder>> menuBuilderLnF = menuBuilder.subMenu("Look&Feel");
 		String currentLnF = SwingUtil.getLookAndFeelName(UIManager.getLookAndFeel());
-		// List<JCheckBoxMenuItem> lnfOptions = new ArrayList<>();
 		ButtonGroup rbGroupLookAndFeels = new ButtonGroup();
 		Arrays.stream(UIManager.getInstalledLookAndFeels())
 				.map(LookAndFeelInfo::getName)
@@ -123,7 +122,6 @@ public class SonivmLauncher implements Runnable {
 						.group(rbGroupLookAndFeels)
 						.checked(currentLnF.equals(lnf))
 						.actr(e -> onSetLookAndFeel(lnf))
-						// .process(mi -> lnfOptions.add((JCheckBoxMenuItem) mi))
 						.build());
 		menuBuilderLnF.build();
 		JMenuBuilder<JMenuBuilder<JMenuBarBuilder>> menuBuilderAudioDevice = menuBuilder.subMenu("AudioDevice");

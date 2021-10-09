@@ -94,8 +94,8 @@ public class SonivmMainWindow extends JFrame {
 		btnPreviousTrack = new JButton("<<");
 		lblStatus = new JLabel("Stopped");
 		lblNowPlaying = new JLabel("Now playing:");
-		lblPlayTimeElapsed = new JLabel("00:00/00:00");
-		lblPlayTimeRemaining = new JLabel("-00:00/00:00");
+		lblPlayTimeElapsed = new JLabel("00:00 / 00:00");
+		lblPlayTimeRemaining = new JLabel("-00:00 / 00:00");
 		// lblPlayTimeTotal = new JLabel("00:00");
 
 		seekSlider = new JSlider(0, 0);
@@ -270,9 +270,9 @@ public class SonivmMainWindow extends JFrame {
 	public void setCurrentPlayTimeDisplay(long playedSeconds, long totalSeconds) {
 		long remainingSeconds = totalSeconds - playedSeconds;
 		lblPlayTimeRemaining.setText(
-				"-" + TimeUnitUtil.prettyPrintFromSeconds(remainingSeconds) + "/" + TimeUnitUtil.prettyPrintFromSeconds(totalSeconds));
+				"-" + TimeUnitUtil.prettyPrintFromSeconds(remainingSeconds) + " / " + TimeUnitUtil.prettyPrintFromSeconds(totalSeconds));
 		lblPlayTimeElapsed
-				.setText(TimeUnitUtil.prettyPrintFromSeconds(playedSeconds) + "/" + TimeUnitUtil.prettyPrintFromSeconds(totalSeconds));
+				.setText(TimeUnitUtil.prettyPrintFromSeconds(playedSeconds) + " / " + TimeUnitUtil.prettyPrintFromSeconds(totalSeconds));
 	}
 
 	public void updateNowPlaying(PlaybackQueueEntry trackInfo) {

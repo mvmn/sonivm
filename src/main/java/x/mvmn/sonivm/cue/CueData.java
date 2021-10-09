@@ -22,6 +22,7 @@ public class CueData {
 	@Builder
 	public static class CueDataFileData {
 		private String file;
+		private String fileAudioType;
 		@Builder.Default
 		private List<CueDataTrackData> tracks = new ArrayList<>();
 	}

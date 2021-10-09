@@ -5,10 +5,13 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 
@@ -19,9 +22,9 @@ import x.mvmn.sonivm.cue.CueData.CueDataTrackData;
 import x.mvmn.sonivm.cue.CueData.CueDataTrackData.CueDataTrackDataBuilder;
 import x.mvmn.sonivm.cue.CueData.CueDataTrackIndex;
 
-public class CueParser {
+public class CueSheetParser {
 
-	private static final Logger LOGGER = Logger.getLogger(CueParser.class.getCanonicalName());
+	private static final Logger LOGGER = Logger.getLogger(CueSheetParser.class.getCanonicalName());
 
 	private static final Set<String> IGNORED_METADATA = Set.of("ISRC", "CATALOG", "FLAGS", "CDTEXTFILE");
 
@@ -51,6 +54,8 @@ public class CueParser {
 
 		List<CueDataTrackData> tracks = new ArrayList<>();
 		List<CueDataTrackIndex> trackIndexes = null;
+		Map<String, String> sheetRems = new HashMap<>();
+		Map<String, String> trackRems = new HashMap<>();
 
 		String[] lines = cueFileContents.split("[\r\n]+");
 		for (int i = 0; i < lines.length; i++) {
@@ -78,13 +83,23 @@ public class CueParser {
 			} else if ("FILE".equals(firstWord)) {
 				state = ParserState.FILE;
 				fileDataBuilder = CueDataFileData.builder();
+				List<String> params = toIndividualParams(reminder);
+				if (params.size() > 0) {
+					fileDataBuilder.file(params.get(0));
+					if (params.size() > 1) {
+						fileDataBuilder.fileAudioType(params.get(1));
+					}
+				} else {
+					LOGGER.fine("Missling parameter to a file meta of cue file " + fileName + " line " + i);
+				}
 			} else if ("TRACK".equals(firstWord)) {
 				if (ParserState.TRACK == state) {
 					// Complete current track
 					if (trackIndexes != null) {
 						trackBuilder.indexes(trackIndexes);
 					}
-					tracks.add(trackBuilder.build());
+					tracks.add(trackBuilder.rems(trackRems).build());
+					trackRems = new HashMap<>();
 				} else if (ParserState.TOPLEVEL == state) {
 					LOGGER.fine("Unexpected track meta on top-level of cue file " + fileName + " line " + i);
 					continue;
@@ -122,12 +137,41 @@ public class CueParser {
 					List<String> values = toIndividualParams(reminder);
 
 					if (values.size() > 1) {
-
+						int indexNumber = trackIndexes.size();
+						try {
+							indexNumber = Integer.parseInt(values.get(0));
+						} catch (NumberFormatException e) {
+							LOGGER.fine("Failed to parse index number as in in cue file " + fileName + " line " + i + ", value: "
+									+ values.get(0));
+						}
+						trackIndexes.add(CueDataTrackIndex.builder().indexNumber(indexNumber).indexValue(values.get(1)).build());
 					} else {
 						LOGGER.fine("Insufficient params to index in cue file " + fileName + " line " + i);
 					}
 				} else {
 					LOGGER.fine("Unexpected index meta outside of track in cue file " + fileName + " line " + i);
+					continue;
+				}
+			} else if ("REM".equals(firstWord)) {
+				List<String> values = toIndividualParams(reminder);
+				if (values.size() > 0) {
+					String key = values.get(0);
+					String value = "";
+					if (values.size() == 2) {
+						value = values.get(1);
+					} else if (values.size() > 2) {
+						value = values.subList(1, values.size()).stream().collect(Collectors.joining(" "));
+					}
+					if (ParserState.TRACK == state) {
+						trackRems.put(key, value);
+					} else if (ParserState.TOPLEVEL == state) {
+						sheetRems.put(key, value);
+					} else {
+						LOGGER.fine("Unexpected rem meta in file section in cue file " + fileName + " line " + i);
+						continue;
+					}
+				} else {
+					LOGGER.fine("Empty rem meta in cue file " + fileName + " line " + i);
 					continue;
 				}
 			} else {
@@ -136,12 +180,12 @@ public class CueParser {
 		}
 
 		if (trackBuilder != null) {
-			tracks.add(trackBuilder.build());
+			tracks.add(trackBuilder.rems(trackRems).build());
 		}
 
 		if (fileDataBuilder != null) {
 			fileDataBuilder.tracks(tracks);
-			cueDataBuilder.fileData(fileDataBuilder.build());
+			cueDataBuilder.fileData(fileDataBuilder.build()).rems(sheetRems);
 		}
 
 		return cueDataBuilder.build();
@@ -182,10 +226,5 @@ public class CueParser {
 
 			return result;
 		}
-	}
-
-	public static void main(String args[]) {
-		System.out.println(CueParser.parseCueFile(new File(
-				"/Users/mvmn/Music/__My CDs/Therion - The Miskolc Experience - CD1 [FLAC]/01 - The Miskolc Experience - CD1.cue")));
 	}
 }
