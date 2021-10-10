@@ -74,7 +74,7 @@ public class SonivumControllerImpl implements SonivmController {
 	private volatile RepeatMode repeatState = RepeatMode.OFF;
 
 	private volatile AtomicLong currentTrackTotalListeningTimeMillisec = new AtomicLong(0L);
-	private volatile double scrobbleThreshold = 0.7d;
+	private volatile int scrobbleThresholdPercent = 70;
 	private volatile boolean scrobblingEnabled = false;
 	private volatile boolean currentTrackScrobbled = true;
 
@@ -498,7 +498,7 @@ public class SonivumControllerImpl implements SonivmController {
 					long totalListenTimeSeconds = this.currentTrackTotalListeningTimeMillisec
 							.addAndGet(event.getPlaybackDeltaMilliseconds()) / 1000;
 					if (scrobblingEnabled && !currentTrackScrobbled
-							&& (double) totalListenTimeSeconds / (double) totalDurationSeconds > scrobbleThreshold) {
+							&& totalListenTimeSeconds * 100 / totalDurationSeconds > scrobbleThresholdPercent) {
 						lastFmScrobble(this.currentTrackInfo);
 						currentTrackScrobbled = true;
 					}
@@ -637,7 +637,7 @@ public class SonivumControllerImpl implements SonivmController {
 			try {
 				this.scrobblingEnabled = this.preferencesService.getPassword() != null;
 				int scrobblePercent = this.preferencesService.getPercentageToScrobbleAt(70);
-				this.scrobbleThreshold = (double) scrobblePercent / 100.0d;
+				this.scrobbleThresholdPercent = scrobblePercent;
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "asd", e);
 			}
@@ -695,7 +695,7 @@ public class SonivumControllerImpl implements SonivmController {
 
 	@Override
 	public void onLastFMScrobblePercentageChange(int scrobblePercentageOption) {
-		this.scrobbleThreshold = (double) scrobblePercentageOption / 100.0d;
+		this.scrobbleThresholdPercent = scrobblePercentageOption;
 		new Thread(() -> {
 			try {
 				this.preferencesService.setPercentageToScrobbleAt(scrobblePercentageOption);
