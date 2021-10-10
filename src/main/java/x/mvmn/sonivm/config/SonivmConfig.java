@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
-import x.mvmn.sonivm.prefs.AppPreferencesService;
+import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
@@ -26,14 +26,14 @@ public class SonivmConfig {
 	@Bean
 	@Scope("singleton")
 	public SonivmMainWindow sonivmMainWindow(@Autowired SonivmController sonivmController,
-			@Autowired PlaybackQueueTableModel playbackQueueTableModel, @Autowired AppPreferencesService appPreferencesService) {
+			@Autowired PlaybackQueueTableModel playbackQueueTableModel, @Autowired PreferencesService appPreferencesService) {
 
 		initLookAndFeel(appPreferencesService);
 
 		return new SonivmMainWindow(appVersion, sonivmController, playbackQueueTableModel);
 	}
 
-	private void initLookAndFeel(AppPreferencesService appPreferencesService) {
+	private void initLookAndFeel(PreferencesService appPreferencesService) {
 		String lookAndFeelName = null;
 		try {
 			lookAndFeelName = appPreferencesService.getLookAndFeel();

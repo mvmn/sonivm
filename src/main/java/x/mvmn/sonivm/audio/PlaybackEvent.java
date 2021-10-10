@@ -20,6 +20,7 @@ public class PlaybackEvent {
 	private final AudioFileInfo audioMetadata;
 	private final Control[] dataLineControls;
 	private final Long playbackPositionMilliseconds;
+	private final Long playbackDeltaMilliseconds;
 	private final String error;
 	private final ErrorType errorType;
 }

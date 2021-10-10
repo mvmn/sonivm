@@ -43,4 +43,8 @@ public interface SonivmController extends PlaybackEventListener {
 	void onShuffleModeSwitch(ShuffleMode selectedItem);
 
 	void onRepeatModeSwitch(RepeatMode repeatMode);
+
+	void onLastFMScrobblePercentageChange(int scrobblePercentageOption);
+
+	void onLastFMCredsOrKeysUpdate();
 }

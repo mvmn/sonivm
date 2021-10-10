@@ -30,11 +30,14 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 
+import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.ui.JMenuBarBuilder;
 import x.mvmn.sonivm.ui.JMenuBarBuilder.JMenuBuilder;
 import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
+import x.mvmn.sonivm.ui.UsernamePasswordDialog;
 import x.mvmn.sonivm.ui.model.AudioDeviceOption;
+import x.mvmn.sonivm.util.Pair;
 import x.mvmn.sonivm.util.ui.swing.SwingUtil;
 
 @SpringBootApplication
@@ -48,6 +51,9 @@ public class SonivmLauncher implements Runnable {
 
 	@Autowired
 	private SonivmMainWindow mainWindow;
+
+	@Autowired
+	private PreferencesService preferencesService;
 
 	public static void main(String[] args) {
 		initConsoleLogging();
@@ -108,9 +114,66 @@ public class SonivmLauncher implements Runnable {
 	}
 
 	private JMenuBar initMenuBar(List<AudioDeviceOption> audioDevices) {
+		int scrobblePercentage = preferencesService.getPercentageToScrobbleAt(70);
+
 		JMenuBuilder<JMenuBarBuilder> menuBuilder = new JMenuBarBuilder().menu("Options");
-		JMenuBuilder<JMenuBuilder<JMenuBarBuilder>> menuBuilderLnF = menuBuilder.subMenu("Look&Feel");
+
+		JMenuBuilder<JMenuBuilder<JMenuBuilder<JMenuBarBuilder>>> menuBuilderLastFMScrobblePercentage = menuBuilder.subMenu("LastFM")
+				.item("Set credentials...")
+				.actr(actEvent -> {
+					try {
+						String user = this.preferencesService.getUsername();
+						String password = this.preferencesService.getPassword();
+						new UsernamePasswordDialog(null, "Set credentials", true, new Pair<String, String>(user, password), unPwdPair -> {
+							new Thread(() -> {
+								try {
+									this.preferencesService.setUsername(unPwdPair.getK());
+									this.preferencesService.setPassword(new String(unPwdPair.getV()));
+									sonivmController.onLastFMCredsOrKeysUpdate();
+								} catch (Exception e) {
+									LOGGER.log(Level.WARNING, "Failed to store LastFM credentials to prefs", e);
+								}
+							}).start();
+						}).setVisible(true);
+					} catch (Exception e) {
+						LOGGER.log(Level.WARNING, "Failed to obtain LastFM credentials from prefs", e);
+					}
+				})
+				.build()
+				.item("Set API keys...")
+				.actr(actEvent -> {
+					try {
+						String key = this.preferencesService.getApiKey();
+						String secret = this.preferencesService.getApiSecret();
+						new UsernamePasswordDialog(null, "Set API keys", true, new Pair<String, String>(key, secret), unPwdPair -> {
+							new Thread(() -> {
+								try {
+									this.preferencesService.setApiKey(unPwdPair.getK());
+									this.preferencesService.setApiSecret(new String(unPwdPair.getV()));
+									sonivmController.onLastFMCredsOrKeysUpdate();
+								} catch (Exception e) {
+									LOGGER.log(Level.WARNING, "Failed to store LastFM API keys to prefs", e);
+								}
+							}).start();
+						}, "API Key", "API Secret").setVisible(true);
+					} catch (Exception e) {
+						LOGGER.log(Level.WARNING, "Failed to obtain LastFM API keys from prefs", e);
+					}
+				})
+				.build()
+				.subMenu("Scrobble at");
+		ButtonGroup rbGroupLastFMScrobblePercentage = new ButtonGroup();
+		Stream.of(10, 30, 50, 70, 90)
+				.forEach(scrobblePercentageOption -> menuBuilderLastFMScrobblePercentage.item("" + scrobblePercentageOption + "%")
+						.radioButton()
+						.group(rbGroupLastFMScrobblePercentage)
+						.checked(scrobblePercentageOption == scrobblePercentage)
+						.actr(e -> sonivmController.onLastFMScrobblePercentageChange(scrobblePercentageOption))
+						.build());
+		menuBuilderLastFMScrobblePercentage.build().build();
+
 		String currentLnF = SwingUtil.getLookAndFeelName(UIManager.getLookAndFeel());
+		JMenuBuilder<JMenuBuilder<JMenuBarBuilder>> menuBuilderLnF = menuBuilder.subMenu("Look&Feel");
 		ButtonGroup rbGroupLookAndFeels = new ButtonGroup();
 		Arrays.stream(UIManager.getInstalledLookAndFeels())
 				.map(LookAndFeelInfo::getName)

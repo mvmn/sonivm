@@ -97,6 +97,9 @@ public class AudioServiceImpl implements AudioService, Runnable {
 							int readBytes = -1;
 							byte[] buffer = playbackBuffer;
 							readBytes = currentPcmStream.read(buffer);
+							if(readBytes<buffer.length) {
+								// TODO: prepare next track
+							}
 							if (readBytes < 1) {
 								LOGGER.info("End of track");
 								doStop();
@@ -115,6 +118,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 										executeListenerActions(PlaybackEvent.builder()
 												.type(PlaybackEvent.Type.PROGRESS)
 												.playbackPositionMilliseconds(currentPlayPositionMillis)
+												.playbackDeltaMilliseconds(delta)
 												.build());
 										this.previousDataLineMillisecondsPosition = dataLineMillisecondsPosition;
 									}

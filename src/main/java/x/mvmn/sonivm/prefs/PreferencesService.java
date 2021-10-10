@@ -2,7 +2,7 @@ package x.mvmn.sonivm.prefs;
 
 import java.security.GeneralSecurityException;
 
-public interface AppPreferencesService {
+public interface PreferencesService {
 
 	String getUsername();
 

@@ -11,13 +11,13 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 
 import x.mvmn.sonivm.SonivmLauncher;
-import x.mvmn.sonivm.prefs.AppPreferencesService;
+import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.util.EncryptionUtil;
 import x.mvmn.sonivm.util.EncryptionUtil.KeyAndNonce;
 
 @Service
-public class AppPreferencesServiceImpl implements AppPreferencesService {
-	private static final Logger LOGGER = Logger.getLogger(AppPreferencesServiceImpl.class.getCanonicalName());
+public class PreferencesServiceImpl implements PreferencesService {
+	private static final Logger LOGGER = Logger.getLogger(PreferencesServiceImpl.class.getCanonicalName());
 
 	private static final String DEFAULT_KEY = "9e89b44de1ff37c5246ad0af18406454";
 	private static final String DEFAULT_SECRET = "147320ea9b8930fe196a4231da50ada4";
@@ -34,7 +34,7 @@ public class AppPreferencesServiceImpl implements AppPreferencesService {
 	private final Preferences prefs;
 	private final KeyAndNonce keyAndNonce;
 
-	public AppPreferencesServiceImpl() throws NoSuchAlgorithmException {
+	public PreferencesServiceImpl() throws NoSuchAlgorithmException {
 		this.prefs = getPreferences();
 		String encpwd = prefs.get(KEY_ENCPWD, null);
 		if (encpwd == null) {

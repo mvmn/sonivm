@@ -1,6 +1,7 @@
 package x.mvmn.sonivm.impl;
 
 import java.io.File;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -9,6 +10,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -23,11 +26,15 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import de.umass.lastfm.Authenticator;
+import de.umass.lastfm.Session;
+import de.umass.lastfm.Track;
+import de.umass.lastfm.scrobble.ScrobbleData;
 import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.audio.PlaybackEvent;
 import x.mvmn.sonivm.model.IntRange;
-import x.mvmn.sonivm.prefs.AppPreferencesService;
+import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.tag.TagRetrievalService;
 import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
@@ -56,17 +63,24 @@ public class SonivumControllerImpl implements SonivmController {
 	private SonivmMainWindow mainWindow;
 
 	@Autowired
-	private AppPreferencesService appPreferencesService;
+	private PreferencesService preferencesService;
 
 	@Autowired
 	private TagRetrievalService tagRetrievalService;
 
 	private volatile AudioFileInfo currentAudioFileInfo;
-	// private volatile PlaybackQueueEntry currentTrackInfo;
+	private volatile PlaybackQueueEntry currentTrackInfo;
 	private volatile ShuffleMode shuffleState = ShuffleMode.OFF;
 	private volatile RepeatMode repeatState = RepeatMode.OFF;
 
+	private volatile AtomicLong currentTrackTotalListeningTimeSeconds = new AtomicLong(0L);
+	private volatile double scrobbleThreshold = 0.7d;
+	private volatile boolean scrobblingEnabled = false;
+	private volatile boolean currentTrackScrobbled = true;
+
 	private final ExecutorService tagReadingTaskExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+	private final ExecutorService lastFmScrobbleTaskExecutor = Executors.newFixedThreadPool(1);
+	private final AtomicReference<Session> lastFMSession = new AtomicReference<>();
 
 	@PostConstruct
 	public void initPostConstruct() {
@@ -204,7 +218,7 @@ public class SonivumControllerImpl implements SonivmController {
 				} else if (currentTrackQueuePos < 0) {
 					tryPlayFromStartOfQueue();
 				} else {
-					switchToTrack(++currentTrackQueuePos);
+					switchToTrack(++currentTrackQueuePos, false);
 				}
 			}
 		} else {
@@ -296,6 +310,10 @@ public class SonivumControllerImpl implements SonivmController {
 	}
 
 	private void switchToTrack(int trackQueuePosition) {
+		switchToTrack(trackQueuePosition, true);
+	}
+
+	private void switchToTrack(int trackQueuePosition, boolean stopCurrent) {
 		int queueSize = playbackQueueTableModel.getRowCount();
 		if (trackQueuePosition >= queueSize) {
 			doStop();
@@ -325,7 +343,7 @@ public class SonivumControllerImpl implements SonivmController {
 	private void doStop() {
 		audioService.stop();
 		this.currentAudioFileInfo = null;
-		// this.currentTrackInfo = null;
+		this.currentTrackInfo = null;
 		playbackQueueTableModel.setCurrentQueuePosition(-1);
 		updateStaus("Stopped");
 		updatePlayingState(false);
@@ -338,6 +356,10 @@ public class SonivumControllerImpl implements SonivmController {
 
 	@Override
 	public void onDropFilesToQueue(int queuePosition, List<File> files) {
+		addFilesToQueue(queuePosition, files);
+	}
+
+	private void addFilesToQueue(int queuePosition, List<File> files) {
 		// FIXME: move off EDT
 		for (File track : files) {
 			if (!track.exists()) {
@@ -402,6 +424,7 @@ public class SonivumControllerImpl implements SonivmController {
 		audioService.stop();
 		audioService.shutdown();
 		tagReadingTaskExecutor.shutdownNow();
+		lastFmScrobbleTaskExecutor.shutdown();
 
 		savePlayQueueColumnWidths();
 		savePlayQueueContents();
@@ -418,7 +441,6 @@ public class SonivumControllerImpl implements SonivmController {
 	}
 
 	private void restorePlayQueueContents() {
-
 		try {
 			LOGGER.info("Restoring play queue.");
 			File queueFile = getPlayQueueStorageFile();
@@ -447,7 +469,7 @@ public class SonivumControllerImpl implements SonivmController {
 			for (int i = 0; i < columnModel.getColumnCount(); i++) {
 				columnWidths[i] = columnModel.getColumn(i).getWidth();
 			}
-			appPreferencesService.setPlayQueueColumnWidths(columnWidths);
+			preferencesService.setPlayQueueColumnWidths(columnWidths);
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to store column width for playback queue table", e);
 		}
@@ -473,9 +495,20 @@ public class SonivumControllerImpl implements SonivmController {
 						mainWindow.updateSeekSliderPosition(seekSliderNewPosition);
 						mainWindow.setCurrentPlayTimeDisplay(playbackPositionMillis / 1000, totalDurationSeconds);
 					}, false);
+					long totalListenTimeSec = this.currentTrackTotalListeningTimeSeconds
+							.addAndGet(event.getPlaybackDeltaMilliseconds() / 1000);
+					if (scrobblingEnabled && !currentTrackScrobbled
+							&& (double) totalListenTimeSec / (double) totalDurationSeconds > scrobbleThreshold) {
+						System.out.println(String.format("Listen time %s, duration %s, percent %s, threshold %s", totalListenTimeSec,
+								totalDurationSeconds, (double) totalListenTimeSec / (double) totalDurationSeconds, scrobbleThreshold));
+						lastFmScrobble(this.currentTrackInfo);
+						currentTrackScrobbled = true;
+					}
 				}
 			break;
 			case START:
+				this.currentTrackTotalListeningTimeSeconds.set(0L);
+				this.currentTrackScrobbled = false;
 				AudioFileInfo audioInfo = event.getAudioMetadata();
 				this.currentAudioFileInfo = audioInfo;
 				PlaybackQueueEntry currentEntry = playbackQueueTableModel.getCurrentEntry();
@@ -484,7 +517,7 @@ public class SonivumControllerImpl implements SonivmController {
 				}
 				int queuePos = playbackQueueTableModel.getCurrentQueuePosition();
 				PlaybackQueueEntry trackInfo = playbackQueueTableModel.getRowValue(queuePos);
-				// this.currentTrackInfo = trackInfo;
+				this.currentTrackInfo = trackInfo;
 				playbackQueueTableModel.fireTableRowsUpdated(queuePos, queuePos);
 				SwingUtil.runOnEDT(() -> {
 					if (audioInfo.isSeekable()) {
@@ -494,6 +527,9 @@ public class SonivumControllerImpl implements SonivmController {
 					}
 					mainWindow.updateNowPlaying(trackInfo);
 				}, false);
+				if (scrobblingEnabled) {
+					lastFmSetNowPlaying(this.currentTrackInfo);
+				}
 			break;
 			case DATALINE_CHANGE:
 			// Control[] controls = event.getDataLineControls();
@@ -502,6 +538,84 @@ public class SonivumControllerImpl implements SonivmController {
 			// }
 			break;
 		}
+	}
+
+	private void lastFmSetNowPlaying(PlaybackQueueEntry trackInfo) {
+		lastFmScrobbleTaskExecutor.execute(() -> {
+			try {
+				Session session = getLastFMSession();
+				if (session != null) {
+					ScrobbleData scrobbleData = toScrobbleData(trackInfo);
+					LOGGER.info("Setting LastFM now playing state to " + scrobbleData);
+					Track.updateNowPlaying(scrobbleData, session);
+				} else {
+					LOGGER.info("Skipping update now playing in LastFM - no session.");
+					// TODO: enqueue for retry
+				}
+			} catch (Exception e) {
+				LOGGER.log(Level.WARNING, "Failed to update now playing in LastFM", e);
+				// TODO: enqueue for retry
+			}
+		});
+	}
+
+	private void lastFmScrobble(PlaybackQueueEntry trackInfo) {
+		lastFmScrobbleTaskExecutor.execute(() -> {
+			try {
+				Session session = getLastFMSession();
+				if (session != null) {
+					ScrobbleData scrobbleData = toScrobbleData(trackInfo);
+					LOGGER.info("Scrobbling LastFM track played " + scrobbleData);
+					Track.scrobble(scrobbleData, session);
+				} else {
+					LOGGER.info("Skipping scrobbling track in LastFM - no session.");
+				}
+			} catch (Exception e) {
+				LOGGER.log(Level.WARNING, "Failed to scrobble track in LastFM", e);
+			}
+		});
+	}
+
+	private Session getLastFMSession() throws Exception {
+		Session result = lastFMSession.get();
+		if (result == null) {
+			String user = this.preferencesService.getUsername();
+			String password = this.preferencesService.getPassword();
+			String apiKey = this.preferencesService.getApiKey();
+			String secret = this.preferencesService.getApiSecret();
+
+			if (user != null && password != null) {
+				try {
+					LOGGER.info("Trying to establish LastFM session");
+					result = Authenticator.getMobileSession(user, password, apiKey, secret);
+					if (result == null) {
+						throw new Exception("Failed to connect");
+					}
+					lastFMSession.set(result);
+					LOGGER.info("Successfully established LastFM session");
+				} catch (Exception e) {
+					LOGGER.log(Level.WARNING, "Failed to establish LastFM session", e);
+				}
+			}
+		}
+		return result;
+	}
+
+	private ScrobbleData toScrobbleData(PlaybackQueueEntry trackInfo) {
+		ScrobbleData result = new ScrobbleData(trackInfo.getArtist(), trackInfo.getTitle(), (int) (System.currentTimeMillis() / 1000));
+		if (trackInfo.getDuration() != null) {
+			result.setDuration(trackInfo.getDuration().intValue());
+		}
+
+		if (trackInfo.getTrackMetadata() != null) {
+			result.setAlbum(trackInfo.getAlbum());
+			try {
+				result.setTrackNumber(Integer.parseInt(trackInfo.getTrackNumber()));
+			} catch (NumberFormatException nfe) {
+				LOGGER.finest("Can't parse track number as integer for LastFM: " + trackInfo.getTrackNumber());
+			}
+		}
+		return result;
 	}
 
 	@Override
@@ -519,7 +633,17 @@ public class SonivumControllerImpl implements SonivmController {
 
 	@Override
 	public void onBeforeUiPack() {
-		new Thread(() -> restorePlayQueueContents()).start();
+		new Thread(() -> {
+			restorePlayQueueContents();
+
+			try {
+				this.scrobblingEnabled = this.preferencesService.getPassword() != null;
+				int scrobblePercent = this.preferencesService.getPercentageToScrobbleAt(70);
+				this.scrobbleThreshold = (double) scrobblePercent / 100.0d;
+			} catch (Exception e) {
+				LOGGER.log(Level.WARNING, "asd", e);
+			}
+		}).start();
 	}
 
 	@Override
@@ -529,7 +653,7 @@ public class SonivumControllerImpl implements SonivmController {
 
 	private void restorePlayQueueColumnWidths() {
 		try {
-			int[] playQueueColumnWidths = appPreferencesService.getPlayQueueColumnWidths();
+			int[] playQueueColumnWidths = preferencesService.getPlayQueueColumnWidths();
 			if (playQueueColumnWidths != null) {
 				SwingUtil.runOnEDT(() -> {
 					TableColumnModel columnModel = mainWindow.getPlayQueueTable().getColumnModel();
@@ -554,7 +678,7 @@ public class SonivumControllerImpl implements SonivmController {
 		SwingUtil.setLookAndFeel(lookAndFeelId, false);
 		new Thread(() -> {
 			try {
-				appPreferencesService.setLookAndFeel(lookAndFeelId);
+				preferencesService.setLookAndFeel(lookAndFeelId);
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "Failed to save look and feel preference", e);
 			}
@@ -569,5 +693,27 @@ public class SonivumControllerImpl implements SonivmController {
 	@Override
 	public void onShuffleModeSwitch(ShuffleMode shuffleMode) {
 		this.shuffleState = shuffleMode;
+	}
+
+	@Override
+	public void onLastFMScrobblePercentageChange(int scrobblePercentageOption) {
+		this.scrobbleThreshold = (double) scrobblePercentageOption / 100.0d;
+		new Thread(() -> {
+			try {
+				this.preferencesService.setPercentageToScrobbleAt(scrobblePercentageOption);
+			} catch (Exception e) {
+				LOGGER.log(Level.WARNING, "Failed to save scrobble percentage preference", e);
+			}
+		}).start();
+	}
+
+	@Override
+	public void onLastFMCredsOrKeysUpdate() {
+		try {
+			this.scrobblingEnabled = this.preferencesService.getPassword() != null;
+		} catch (GeneralSecurityException e) {
+			LOGGER.log(Level.WARNING, "Security exception on getting LastFM password from prefs", e);
+		}
+		this.lastFMSession.set(null);
 	}
 }
