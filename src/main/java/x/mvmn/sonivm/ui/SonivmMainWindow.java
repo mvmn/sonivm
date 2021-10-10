@@ -253,8 +253,7 @@ public class SonivmMainWindow extends JFrame {
 		});
 
 		cmbRepeatMode.addActionListener(actEvent -> controller.onRepeatModeSwitch((RepeatMode) cmbRepeatMode.getSelectedItem()));
-		cmbShuffleMode
-				.addActionListener(actEvent -> controller.onShuffleModeSwitch((ShuffleMode) cmbShuffleMode.getSelectedItem()));
+		cmbShuffleMode.addActionListener(actEvent -> controller.onShuffleModeSwitch((ShuffleMode) cmbShuffleMode.getSelectedItem()));
 	}
 
 	public JTable getPlayQueueTable() {
