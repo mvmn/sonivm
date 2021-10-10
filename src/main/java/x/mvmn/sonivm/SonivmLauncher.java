@@ -2,6 +2,7 @@ package x.mvmn.sonivm;
 
 import java.awt.Taskbar;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.ConsoleHandler;
@@ -49,13 +50,7 @@ public class SonivmLauncher implements Runnable {
 	private SonivmMainWindow mainWindow;
 
 	public static void main(String[] args) {
-		// Init console logging
-		ConsoleHandler handler = new ConsoleHandler();
-		handler.setFormatter(new SimpleFormatter());
-		Logger rootLogger = Logger.getLogger("x.mvmn.sonivm");
-		rootLogger.setLevel(Level.INFO);
-		rootLogger.addHandler(handler);
-		handler.setLevel(Level.INFO);
+		initConsoleLogging();
 
 		// Spring Boot makes app headless by default
 		System.setProperty("java.awt.headless", "false");
@@ -69,9 +64,27 @@ public class SonivmLauncher implements Runnable {
 		// Install FlatLaF look&feels
 		SwingUtil.installLookAndFeels(true, FlatLightLaf.class, FlatIntelliJLaf.class, FlatDarkLaf.class, FlatDarculaLaf.class);
 
+		// Ensure data folder exists
+		File userHome = new File(System.getProperty("user.home"));
+		File appHomeFolder = new File(userHome, ".sonivm");
+		if (!appHomeFolder.exists()) {
+			appHomeFolder.mkdir();
+		}
+
+		System.setProperty("sonivm_home_folder", appHomeFolder.getAbsolutePath());
+
 		// Run the app
 		SonivmLauncher launcher = SpringApplication.run(SonivmLauncher.class, args).getBean(SonivmLauncher.class);
 		SwingUtil.runOnEDT(() -> launcher.run(), false);
+	}
+
+	private static void initConsoleLogging() {
+		ConsoleHandler handler = new ConsoleHandler();
+		handler.setFormatter(new SimpleFormatter());
+		Logger rootLogger = Logger.getLogger("x.mvmn.sonivm");
+		rootLogger.setLevel(Level.INFO);
+		rootLogger.addHandler(handler);
+		handler.setLevel(Level.INFO);
 	}
 
 	private static void initTaskbarIcon() {

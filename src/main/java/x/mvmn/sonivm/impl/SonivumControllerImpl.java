@@ -20,6 +20,9 @@ import javax.swing.table.TableColumnModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.audio.PlaybackEvent;
@@ -298,7 +301,7 @@ public class SonivumControllerImpl implements SonivmController {
 			doStop();
 		} else {
 			playbackQueueTableModel.setCurrentQueuePosition(trackQueuePosition);
-			File track = playbackQueueTableModel.getRowValue(trackQueuePosition).getTargetFile();
+			File track = new File(playbackQueueTableModel.getRowValue(trackQueuePosition).getTargetFileFullPath());
 			audioService.stop();
 			audioService.play(track);
 			updateStaus("Playing");
@@ -353,7 +356,10 @@ public class SonivumControllerImpl implements SonivmController {
 				continue;
 			}
 
-			PlaybackQueueEntry queueEntry = PlaybackQueueEntry.builder().targetFile(track).build();
+			PlaybackQueueEntry queueEntry = PlaybackQueueEntry.builder()
+					.targetFileFullPath(track.getAbsolutePath())
+					.targetFileName(track.getName())
+					.build();
 			tagReadingTaskExecutor.submit(() -> {
 				try {
 					TrackMetadata meta = tagRetrievalService.getAudioFileMetadata(track);
@@ -393,11 +399,45 @@ public class SonivumControllerImpl implements SonivmController {
 
 	@Override
 	public void onWindowClose() {
-		savePlayQueueColumnWidths();
-
 		audioService.stop();
 		audioService.shutdown();
 		tagReadingTaskExecutor.shutdownNow();
+
+		savePlayQueueColumnWidths();
+		savePlayQueueContents();
+	}
+
+	private void savePlayQueueContents() {
+		try {
+			LOGGER.info("Storing play queue.");
+			new ObjectMapper().writeValue(getPlayQueueStorageFile(), this.playbackQueueTableModel.getCopyOfQueue());
+			LOGGER.info("Storing play queue succeeded.");
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to store the playback queue", e);
+		}
+	}
+
+	private void restorePlayQueueContents() {
+
+		try {
+			LOGGER.info("Restoring play queue.");
+			File queueFile = getPlayQueueStorageFile();
+			if (queueFile.exists()) {
+				List<PlaybackQueueEntry> queueEntries = new ObjectMapper().readValue(queueFile,
+						new TypeReference<List<PlaybackQueueEntry>>() {});
+				this.playbackQueueTableModel.clearQueue();
+				this.playbackQueueTableModel.addRows(queueEntries);
+				LOGGER.info("Restoring play queue succeeded.");
+			} else {
+				LOGGER.info("Restoring play queue not needed - no queue stored yet.");
+			}
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to retrieve and restore the playback queue", e);
+		}
+	}
+
+	private File getPlayQueueStorageFile() {
+		return new File(new File(System.getProperty("sonivm_home_folder")), "queue.json");
 	}
 
 	private void savePlayQueueColumnWidths() {
@@ -478,7 +518,9 @@ public class SonivumControllerImpl implements SonivmController {
 	}
 
 	@Override
-	public void onBeforeUiPack() {}
+	public void onBeforeUiPack() {
+		new Thread(() -> restorePlayQueueContents()).start();
+	}
 
 	@Override
 	public void onBeforeUiSetVisible() {
