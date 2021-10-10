@@ -4,8 +4,10 @@ import java.awt.Taskbar;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -16,7 +18,6 @@ import javax.swing.JMenuBar;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
-import javax.swing.table.TableColumnModel;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -28,8 +29,6 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 
-import x.mvmn.sonivm.audio.AudioService;
-import x.mvmn.sonivm.prefs.AppPreferencesService;
 import x.mvmn.sonivm.ui.JMenuBarBuilder;
 import x.mvmn.sonivm.ui.JMenuBarBuilder.JMenuBuilder;
 import x.mvmn.sonivm.ui.SonivmController;
@@ -47,15 +46,17 @@ public class SonivmLauncher implements Runnable {
 	private SonivmController sonivmController;
 
 	@Autowired
-	private AudioService audioService;
-
-	@Autowired
-	private AppPreferencesService appPreferencesService;
-
-	@Autowired
 	private SonivmMainWindow mainWindow;
 
 	public static void main(String[] args) {
+		// Init console logging
+		ConsoleHandler handler = new ConsoleHandler();
+		handler.setFormatter(new SimpleFormatter());
+		Logger rootLogger = Logger.getLogger("x.mvmn.sonivm");
+		rootLogger.setLevel(Level.INFO);
+		rootLogger.addHandler(handler);
+		handler.setLevel(Level.INFO);
+
 		// Spring Boot makes app headless by default
 		System.setProperty("java.awt.headless", "false");
 		// Enable macOS native menu bar usage
@@ -83,31 +84,14 @@ public class SonivmLauncher implements Runnable {
 	}
 
 	public void run() {
-		restorePlayQueueColumnWidths();
-
 		mainWindow.setJMenuBar(initMenuBar(getAudioDevicesPlusDefault()));
 		SwingUtil.prefSizeRatioOfScreenSize(mainWindow, 3f / 4f);
+		sonivmController.onBeforeUiPack();
 		mainWindow.pack();
 		SwingUtil.moveToScreenCenter(mainWindow);
+		sonivmController.onBeforeUiSetVisible();
 
 		SwingUtilities.invokeLater(() -> mainWindow.setVisible(true));
-		audioService.addPlaybackEventListener(sonivmController);
-	}
-
-	private void restorePlayQueueColumnWidths() {
-		try {
-			int[] playQueueColumnWidths = appPreferencesService.getPlayQueueColumnWidths();
-			if (playQueueColumnWidths != null) {
-				SwingUtil.runOnEDT(() -> {
-					TableColumnModel columnModel = mainWindow.getPlayQueueTable().getColumnModel();
-					for (int i = 0; i < columnModel.getColumnCount() && i < playQueueColumnWidths.length; i++) {
-						columnModel.getColumn(i).setPreferredWidth(playQueueColumnWidths[i]);
-					}
-				}, true);
-			}
-		} catch (Exception e) {
-			LOGGER.log(Level.WARNING, "Failed to read+apply column width for playback queue table", e);
-		}
 	}
 
 	private JMenuBar initMenuBar(List<AudioDeviceOption> audioDevices) {
@@ -121,43 +105,45 @@ public class SonivmLauncher implements Runnable {
 						.radioButton()
 						.group(rbGroupLookAndFeels)
 						.checked(currentLnF.equals(lnf))
-						.actr(e -> onSetLookAndFeel(lnf))
+						.actr(e -> sonivmController.onSetLookAndFeel(lnf))
 						.build());
 		menuBuilderLnF.build();
+
 		JMenuBuilder<JMenuBuilder<JMenuBarBuilder>> menuBuilderAudioDevice = menuBuilder.subMenu("AudioDevice");
 		ButtonGroup rbGroupAudioDevices = new ButtonGroup();
 		audioDevices.forEach(ad -> menuBuilderAudioDevice.item(ad.toString())
 				.radioButton()
 				.checked(ad.getAudioDeviceInfo() == null)
 				.group(rbGroupAudioDevices)
-				.actr(actEvent -> ad.selected())
+				.actr(actEvent -> sonivmController.onSetAudioDevice(ad))
 				.build());
 		menuBuilderAudioDevice.build();
+
+		Logger rootLogger = Logger.getLogger("x.mvmn.sonivm");
+		Level currentLogLevel = rootLogger.getLevel();
+
+		JMenuBuilder<JMenuBuilder<JMenuBarBuilder>> menuBuilderLogLEvel = menuBuilder.subMenu("Log level");
+		ButtonGroup rbGroupLogLevels = new ButtonGroup();
+		Stream.of(Level.INFO, Level.WARNING, Level.SEVERE, Level.FINE, Level.FINER, Level.FINEST, Level.ALL, Level.CONFIG, Level.OFF)
+				.forEach(level -> menuBuilderLogLEvel.item(level.getName())
+						.radioButton()
+						.checked(level.equals(currentLogLevel))
+						.group(rbGroupLogLevels)
+						.actr(actEvent -> {
+							rootLogger.setLevel(level);
+							Stream.of(rootLogger.getHandlers()).forEach(handler -> handler.setLevel(level));
+						})
+						.build());
+		menuBuilderLogLEvel.build();
 
 		return menuBuilder.build().build();
 	}
 
-	private void onSetLookAndFeel(String lookAndFeelId) {
-		SwingUtil.setLookAndFeel(lookAndFeelId, false);
-		new Thread(() -> saveLookAndFeelPreference(lookAndFeelId)).start();
-	}
-
-	private void saveLookAndFeelPreference(String lookAndFeelId) {
-		try {
-			appPreferencesService.setLookAndFeel(lookAndFeelId);
-		} catch (Exception e) {
-			LOGGER.log(Level.WARNING, "Failed to save look and feel preference", e);
-		}
-	}
-
 	private List<AudioDeviceOption> getAudioDevicesPlusDefault() {
-		return Stream.concat(Stream.of(AudioDeviceOption.builder().onSelect(this::setAudioDevice).audioDeviceInfo(null).build()),
-				Stream.of(AudioSystem.getMixerInfo())
-						.map(mixerInfo -> AudioDeviceOption.builder().audioDeviceInfo(mixerInfo).onSelect(this::setAudioDevice).build()))
+		return Stream
+				.concat(Stream.of(AudioDeviceOption.builder().audioDeviceInfo(null).build()),
+						Stream.of(AudioSystem.getMixerInfo())
+								.map(mixerInfo -> AudioDeviceOption.builder().audioDeviceInfo(mixerInfo).build()))
 				.collect(Collectors.toList());
-	}
-
-	private void setAudioDevice(AudioDeviceOption audioDevice) {
-		audioService.setAudioDevice(audioDevice.getAudioDeviceInfo() != null ? audioDevice.getAudioDeviceInfo().getName() : null);
 	}
 }

@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.PostConstruct;
 import javax.swing.table.TableColumnModel;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import x.mvmn.sonivm.prefs.AppPreferencesService;
 import x.mvmn.sonivm.tag.TagRetrievalService;
 import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
+import x.mvmn.sonivm.ui.model.AudioDeviceOption;
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry.TrackMetadata;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
@@ -55,6 +57,11 @@ public class SonivumControllerImpl implements SonivmController {
 	// private volatile PlaybackQueueEntry currentTrackInfo;
 
 	private final ExecutorService tagReadingTaskExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+	@PostConstruct
+	public void initPostConstruct() {
+		audioService.addPlaybackEventListener(this);
+	}
 
 	@Override
 	public void onVolumeChange(int value) {
@@ -283,5 +290,47 @@ public class SonivumControllerImpl implements SonivmController {
 
 	private void updateStaus(String value) {
 		SwingUtil.runOnEDT(() -> mainWindow.updateStatus(value), false);
+	}
+
+	@Override
+	public void onBeforeUiPack() {}
+
+	@Override
+	public void onBeforeUiSetVisible() {
+		restorePlayQueueColumnWidths();
+	}
+
+	private void restorePlayQueueColumnWidths() {
+		try {
+			int[] playQueueColumnWidths = appPreferencesService.getPlayQueueColumnWidths();
+			if (playQueueColumnWidths != null) {
+				SwingUtil.runOnEDT(() -> {
+					TableColumnModel columnModel = mainWindow.getPlayQueueTable().getColumnModel();
+					for (int i = 0; i < columnModel.getColumnCount() && i < playQueueColumnWidths.length; i++) {
+						columnModel.getColumn(i).setPreferredWidth(playQueueColumnWidths[i]);
+					}
+				}, true);
+			}
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to read+apply column width for playback queue table", e);
+		}
+	}
+
+	@Override
+	public void onSetAudioDevice(AudioDeviceOption audioDeviceOption) {
+		audioService
+				.setAudioDevice(audioDeviceOption.getAudioDeviceInfo() != null ? audioDeviceOption.getAudioDeviceInfo().getName() : null);
+	}
+
+	@Override
+	public void onSetLookAndFeel(String lookAndFeelId) {
+		SwingUtil.setLookAndFeel(lookAndFeelId, false);
+		new Thread(() -> {
+			try {
+				appPreferencesService.setLookAndFeel(lookAndFeelId);
+			} catch (Exception e) {
+				LOGGER.log(Level.WARNING, "Failed to save look and feel preference", e);
+			}
+		}).start();
 	}
 }

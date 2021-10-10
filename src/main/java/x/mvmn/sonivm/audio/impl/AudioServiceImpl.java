@@ -186,6 +186,8 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						this.currentFFAudioInputStream = currentFFAudioInputStream;
 						this.currentStreamIsSeekable = currentFFAudioInputStream.isSeekable();
 
+						// AudioFormat targetAudioFormat = new AudioFormat(44100, 24, 2, true, true);
+						// AudioInputStream currentPcmStream = AudioSystem.getAudioInputStream(targetAudioFormat, currentFFAudioInputStream);
 						AudioInputStream currentPcmStream = AudioSystem.getAudioInputStream(AudioFormat.Encoding.PCM_SIGNED,
 								currentFFAudioInputStream);
 						this.currentPcmStream = currentPcmStream;
@@ -331,6 +333,9 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				}
 			} else {
 				newValue = min;
+			}
+			if (LOGGER.isLoggable(Level.FINE)) {
+				LOGGER.fine("Setting volume to: " + newValue);
 			}
 			volumeControl.setValue(newValue);
 		} else {

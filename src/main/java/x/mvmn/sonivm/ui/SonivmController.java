@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.List;
 
 import x.mvmn.sonivm.audio.PlaybackEventListener;
+import x.mvmn.sonivm.ui.model.AudioDeviceOption;
 
 public interface SonivmController extends PlaybackEventListener {
 
@@ -28,4 +29,12 @@ public interface SonivmController extends PlaybackEventListener {
 	boolean onDropQueueRowsInsideQueue(int queuePosition, int firstRow, int lastRow);
 
 	void onDeleteRowsFromQueue(int firstRow, int lastRow);
+
+	void onBeforeUiPack();
+
+	void onBeforeUiSetVisible();
+
+	void onSetAudioDevice(AudioDeviceOption audiodeviceoption);
+
+	void onSetLookAndFeel(String lnf);
 }
