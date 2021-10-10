@@ -546,13 +546,16 @@ public class SonivumControllerImpl implements SonivmController {
 					ScrobbleData scrobbleData = toScrobbleData(trackInfo);
 					LOGGER.info("Setting LastFM now playing state to " + scrobbleData);
 					Track.updateNowPlaying(scrobbleData, session);
+					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(true), false);
 				} else {
 					LOGGER.info("Skipping update now playing in LastFM - no session.");
 					// TODO: enqueue for retry
+					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(false), false);
 				}
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "Failed to update now playing in LastFM", e);
 				// TODO: enqueue for retry
+				SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(false), false);
 			}
 		});
 	}
@@ -565,11 +568,14 @@ public class SonivumControllerImpl implements SonivmController {
 					ScrobbleData scrobbleData = toScrobbleData(trackInfo);
 					LOGGER.info("Scrobbling LastFM track played " + scrobbleData);
 					Track.scrobble(scrobbleData, session);
+					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(true), false);
 				} else {
 					LOGGER.info("Skipping scrobbling track in LastFM - no session.");
+					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(false), false);
 				}
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "Failed to scrobble track in LastFM", e);
+				SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(false), false);
 			}
 		});
 	}
@@ -591,8 +597,10 @@ public class SonivumControllerImpl implements SonivmController {
 					}
 					lastFMSession.set(result);
 					LOGGER.info("Successfully established LastFM session");
+					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(true), false);
 				} catch (Exception e) {
 					LOGGER.log(Level.WARNING, "Failed to establish LastFM session", e);
+					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(false), false);
 				}
 			}
 		}

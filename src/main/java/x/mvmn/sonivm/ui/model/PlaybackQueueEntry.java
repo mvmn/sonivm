@@ -49,7 +49,7 @@ public class PlaybackQueueEntry {
 
 	@Transient
 	public String getTitle() {
-		return trackMetadata != null ? trackMetadata.getTitle() : targetFileName;
+		return trackMetadata != null && trackMetadata.getTitle() != null ? trackMetadata.getTitle() : targetFileName;
 	}
 
 	@Transient
@@ -71,8 +71,7 @@ public class PlaybackQueueEntry {
 		if (trackMetadata == null) {
 			return targetFileName;
 		} else {
-			return String.format("%1$s \"%2$s\" (%4$s) - %3$s", trackMetadata.getArtist(), trackMetadata.getAlbum(),
-					trackMetadata.getTitle(), trackMetadata.getDate());
+			return String.format("%1$s \"%2$s\" (%4$s) - %3$s", getArtist(), getAlbum(), getTitle(), getDate());
 		}
 	}
 }

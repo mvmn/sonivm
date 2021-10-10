@@ -20,6 +20,7 @@ import javax.swing.ActionMap;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.DropMode;
+import javax.swing.ImageIcon;
 import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -41,6 +42,7 @@ import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
 import x.mvmn.sonivm.ui.model.RepeatMode;
 import x.mvmn.sonivm.ui.model.ShuffleMode;
 import x.mvmn.sonivm.util.TimeUnitUtil;
+import x.mvmn.sonivm.util.ui.swing.ImageUtil;
 import x.mvmn.sonivm.util.ui.swing.SwingUtil;
 
 public class SonivmMainWindow extends JFrame {
@@ -61,6 +63,11 @@ public class SonivmMainWindow extends JFrame {
 	private final JSlider volumeSlider;
 	private final JComboBox<RepeatMode> cmbRepeatMode;
 	private final JComboBox<ShuffleMode> cmbShuffleMode;
+	private final JLabel lastFMStatusIcon;
+	private final ImageIcon lastFMDefault;
+	private final ImageIcon lastFMConnected;
+	private final ImageIcon lastFMDisconnected;
+
 	private volatile boolean seekSliderIsDragged;
 
 	public SonivmMainWindow(String title, SonivmController controller, PlaybackQueueTableModel playbackQueueTableModel) {
@@ -119,6 +126,10 @@ public class SonivmMainWindow extends JFrame {
 		Stream.of(buttons).forEach(playbackButtonsPanel::add);
 		Stream.of(buttons).forEach(btn -> btn.setFocusable(false));
 
+		JLabel lblRepeat = new JLabel("Repeat: ", JLabel.RIGHT);
+		JLabel lblShuffle = new JLabel("Shuffle: ", JLabel.RIGHT);
+		lblRepeat.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
+		lblShuffle.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
 		JPanel topPanel = SwingUtil.panel(BorderLayout::new)
 				.addEast(playbackButtonsPanel)
 				.addCenter(SwingUtil.panel(BorderLayout::new)
@@ -129,15 +140,30 @@ public class SonivmMainWindow extends JFrame {
 				.addNorth(SwingUtil.panel(() -> new BorderLayout())
 						.addCenter(lblNowPlaying)
 						.addEast(SwingUtil.panel(pnl -> new BoxLayout(pnl, BoxLayout.X_AXIS))
-								.add(new JLabel("Repeat: ", JLabel.RIGHT))
+								.add(lblRepeat)
 								.add(cmbRepeatMode)
-								.add(new JLabel("Shuffle: ", JLabel.RIGHT))
+								.add(lblShuffle)
 								.add(cmbShuffleMode)
 								.build())
 						.build())
 				.build();
 		topPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
-		JPanel bottomPanel = SwingUtil.panel(BorderLayout::new).addCenter(lblStatus).build();
+
+		{
+			int lastFMIconSize = 16;
+			lastFMDefault = ImageUtil.resizeImageIcon(ImageUtil.fromClasspathResource("/lastfm_default.png"), lastFMIconSize,
+					lastFMIconSize, java.awt.Image.SCALE_SMOOTH);
+			lastFMConnected = ImageUtil.resizeImageIcon(ImageUtil.fromClasspathResource("/lastfm_connected.png"), lastFMIconSize,
+					lastFMIconSize, java.awt.Image.SCALE_SMOOTH);
+			lastFMDisconnected = ImageUtil.resizeImageIcon(ImageUtil.fromClasspathResource("/lastfm_disconnected.png"), lastFMIconSize,
+					lastFMIconSize, java.awt.Image.SCALE_SMOOTH);
+		}
+
+		lastFMStatusIcon = new JLabel();
+		lastFMStatusIcon.setHorizontalAlignment(JLabel.RIGHT);
+		lastFMStatusIcon.setIcon(lastFMDefault);
+
+		JPanel bottomPanel = SwingUtil.panel(BorderLayout::new).addCenter(lblStatus).addEast(lastFMStatusIcon).build();
 		bottomPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 		volumeSlider.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 		seekSlider.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
@@ -310,5 +336,9 @@ public class SonivmMainWindow extends JFrame {
 
 	public void updateShuffleView(RepeatMode shuffleMode) {
 		cmbShuffleMode.setSelectedItem(shuffleMode);
+	}
+
+	public void updateLastFMStatus(boolean ok) {
+		lastFMStatusIcon.setIcon(ok ? lastFMConnected : lastFMDisconnected);
 	}
 }

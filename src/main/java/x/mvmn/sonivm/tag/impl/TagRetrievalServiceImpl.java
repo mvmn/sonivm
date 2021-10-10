@@ -25,12 +25,12 @@ public class TagRetrievalServiceImpl implements TagRetrievalService {
 			if (optionalTag.isPresent()) {
 				Tag tag = optionalTag.get();
 				return TrackMetadata.builder()
-						.trackNumber(tag.getFirst(FieldKey.TRACK))
-						.artist(tag.getFirst(FieldKey.ARTIST))
-						.album(tag.getFirst(FieldKey.ALBUM))
-						.title(tag.getFirst(FieldKey.TITLE))
-						.date(tag.getFirst(FieldKey.YEAR))
-						.genre(tag.getFirst(FieldKey.GENRE))
+						.trackNumber(nullForBlank(tag.getFirst(FieldKey.TRACK)))
+						.artist(nullForBlank(tag.getFirst(FieldKey.ARTIST)))
+						.album(nullForBlank(tag.getFirst(FieldKey.ALBUM)))
+						.title(nullForBlank(tag.getFirst(FieldKey.TITLE)))
+						.date(nullForBlank(tag.getFirst(FieldKey.YEAR)))
+						.genre(nullForBlank(tag.getFirst(FieldKey.GENRE)))
 						.duration(audioFile.getAudioHeader().getDuration(TimeUnit.SECONDS, true))
 						.build();
 			}
@@ -39,5 +39,9 @@ public class TagRetrievalServiceImpl implements TagRetrievalService {
 			throw new RuntimeException(e);
 		}
 		return null;
+	}
+
+	private String nullForBlank(String str) {
+		return str == null || str.isBlank() ? null : str;
 	}
 }
