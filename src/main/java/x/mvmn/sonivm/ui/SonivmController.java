@@ -5,6 +5,8 @@ import java.util.List;
 
 import x.mvmn.sonivm.audio.PlaybackEventListener;
 import x.mvmn.sonivm.ui.model.AudioDeviceOption;
+import x.mvmn.sonivm.ui.model.RepeatMode;
+import x.mvmn.sonivm.ui.model.ShuffleMode;
 
 public interface SonivmController extends PlaybackEventListener {
 
@@ -37,4 +39,8 @@ public interface SonivmController extends PlaybackEventListener {
 	void onSetAudioDevice(AudioDeviceOption audiodeviceoption);
 
 	void onSetLookAndFeel(String lnf);
+
+	void onShuffleModeSwitch(ShuffleMode selectedItem);
+
+	void onRepeatModeSwitch(RepeatMode repeatMode);
 }

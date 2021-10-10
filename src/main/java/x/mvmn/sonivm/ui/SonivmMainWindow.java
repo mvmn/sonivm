@@ -18,9 +18,11 @@ import java.util.stream.Stream;
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.DropMode;
 import javax.swing.InputMap;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -36,6 +38,8 @@ import javax.swing.table.DefaultTableCellRenderer;
 
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
+import x.mvmn.sonivm.ui.model.RepeatMode;
+import x.mvmn.sonivm.ui.model.ShuffleMode;
 import x.mvmn.sonivm.util.TimeUnitUtil;
 import x.mvmn.sonivm.util.ui.swing.SwingUtil;
 
@@ -55,6 +59,8 @@ public class SonivmMainWindow extends JFrame {
 	private final JButton btnPreviousTrack;
 	private final JSlider seekSlider;
 	private final JSlider volumeSlider;
+	private final JComboBox<RepeatMode> cmbRepeatMode;
+	private final JComboBox<ShuffleMode> cmbShuffleMode;
 	private volatile boolean seekSliderIsDragged;
 
 	public SonivmMainWindow(String title, SonivmController controller, PlaybackQueueTableModel playbackQueueTableModel) {
@@ -98,6 +104,9 @@ public class SonivmMainWindow extends JFrame {
 		lblPlayTimeRemaining = new JLabel("-00:00 / 00:00");
 		// lblPlayTimeTotal = new JLabel("00:00");
 
+		cmbShuffleMode = new JComboBox<>(ShuffleMode.values());
+		cmbRepeatMode = new JComboBox<>(RepeatMode.values());
+
 		seekSlider = new JSlider(0, 0);
 		seekSlider.setEnabled(false);
 		SwingUtil.makeJSliderMoveToClickPoistion(seekSlider);
@@ -117,7 +126,15 @@ public class SonivmMainWindow extends JFrame {
 						.addCenter(seekSlider)
 						.addEast(lblPlayTimeRemaining)
 						.build())
-				.addNorth(lblNowPlaying)
+				.addNorth(SwingUtil.panel(() -> new BorderLayout())
+						.addCenter(lblNowPlaying)
+						.addEast(SwingUtil.panel(pnl -> new BoxLayout(pnl, BoxLayout.X_AXIS))
+								.add(new JLabel("Repeat: ", JLabel.RIGHT))
+								.add(cmbRepeatMode)
+								.add(new JLabel("Shuffle: ", JLabel.RIGHT))
+								.add(cmbShuffleMode)
+								.build())
+						.build())
 				.build();
 		topPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 		JPanel bottomPanel = SwingUtil.panel(BorderLayout::new).addCenter(lblStatus).build();
@@ -130,6 +147,7 @@ public class SonivmMainWindow extends JFrame {
 		lblNowPlaying.setFont(lblNowPlaying.getFont().deriveFont(Font.BOLD));
 
 		JScrollPane scrollTblPlayQueue = new JScrollPane(tblPlayQueue);
+		@SuppressWarnings("unused")
 		JSplitPane spLibraryAndPlayQueue = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, false, new JScrollPane(treeTrackLibrary),
 				scrollTblPlayQueue);
 
@@ -142,9 +160,9 @@ public class SonivmMainWindow extends JFrame {
 		scrollTblPlayQueue.setDropTarget(dropTarget);
 
 		this.getContentPane().setLayout(new BorderLayout());
-		this.getContentPane()
-				.add(SwingUtil.panel(BorderLayout::new).addSouth(topPanel).addNorth(lblNowPlaying).build(), BorderLayout.NORTH);
-		this.getContentPane().add(spLibraryAndPlayQueue, BorderLayout.CENTER);
+		this.getContentPane().add(topPanel, BorderLayout.NORTH);
+		// this.getContentPane().add(spLibraryAndPlayQueue, BorderLayout.CENTER);
+		this.getContentPane().add(scrollTblPlayQueue, BorderLayout.CENTER);
 		this.getContentPane().add(volumeSlider, BorderLayout.EAST);
 		this.getContentPane().add(bottomPanel, BorderLayout.SOUTH);
 
@@ -233,6 +251,10 @@ public class SonivmMainWindow extends JFrame {
 				controller.onPlayPause();
 			}
 		});
+
+		cmbRepeatMode.addActionListener(actEvent -> controller.onRepeatModeSwitch((RepeatMode) cmbRepeatMode.getSelectedItem()));
+		cmbShuffleMode
+				.addActionListener(actEvent -> controller.onShuffleModeSwitch((ShuffleMode) cmbShuffleMode.getSelectedItem()));
 	}
 
 	public JTable getPlayQueueTable() {
@@ -281,5 +303,13 @@ public class SonivmMainWindow extends JFrame {
 
 	public void scrollToTrack(int rowNumber) {
 		tblPlayQueue.scrollRectToVisible(new Rectangle(tblPlayQueue.getCellRect(rowNumber, 0, true)));
+	}
+
+	public void updateRepeatView(RepeatMode repeatMode) {
+		cmbRepeatMode.setSelectedItem(repeatMode);
+	}
+
+	public void updateShuffleView(RepeatMode shuffleMode) {
+		cmbShuffleMode.setSelectedItem(shuffleMode);
 	}
 }
