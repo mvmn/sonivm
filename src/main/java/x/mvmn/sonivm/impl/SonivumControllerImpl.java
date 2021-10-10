@@ -73,7 +73,7 @@ public class SonivumControllerImpl implements SonivmController {
 	private volatile ShuffleMode shuffleState = ShuffleMode.OFF;
 	private volatile RepeatMode repeatState = RepeatMode.OFF;
 
-	private volatile AtomicLong currentTrackTotalListeningTimeSeconds = new AtomicLong(0L);
+	private volatile AtomicLong currentTrackTotalListeningTimeMillisec = new AtomicLong(0L);
 	private volatile double scrobbleThreshold = 0.7d;
 	private volatile boolean scrobblingEnabled = false;
 	private volatile boolean currentTrackScrobbled = true;
@@ -495,19 +495,17 @@ public class SonivumControllerImpl implements SonivmController {
 						mainWindow.updateSeekSliderPosition(seekSliderNewPosition);
 						mainWindow.setCurrentPlayTimeDisplay(playbackPositionMillis / 1000, totalDurationSeconds);
 					}, false);
-					long totalListenTimeSec = this.currentTrackTotalListeningTimeSeconds
-							.addAndGet(event.getPlaybackDeltaMilliseconds() / 1000);
+					long totalListenTimeSeconds = this.currentTrackTotalListeningTimeMillisec
+							.addAndGet(event.getPlaybackDeltaMilliseconds()) / 1000;
 					if (scrobblingEnabled && !currentTrackScrobbled
-							&& (double) totalListenTimeSec / (double) totalDurationSeconds > scrobbleThreshold) {
-						System.out.println(String.format("Listen time %s, duration %s, percent %s, threshold %s", totalListenTimeSec,
-								totalDurationSeconds, (double) totalListenTimeSec / (double) totalDurationSeconds, scrobbleThreshold));
+							&& (double) totalListenTimeSeconds / (double) totalDurationSeconds > scrobbleThreshold) {
 						lastFmScrobble(this.currentTrackInfo);
 						currentTrackScrobbled = true;
 					}
 				}
 			break;
 			case START:
-				this.currentTrackTotalListeningTimeSeconds.set(0L);
+				this.currentTrackTotalListeningTimeMillisec.set(0L);
 				this.currentTrackScrobbled = false;
 				AudioFileInfo audioInfo = event.getAudioMetadata();
 				this.currentAudioFileInfo = audioInfo;
