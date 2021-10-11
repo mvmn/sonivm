@@ -34,6 +34,7 @@ import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.audio.PlaybackEvent;
 import x.mvmn.sonivm.model.IntRange;
+import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.tag.TagRetrievalService;
 import x.mvmn.sonivm.ui.SonivmController;
@@ -41,7 +42,6 @@ import x.mvmn.sonivm.ui.SonivmMainWindow;
 import x.mvmn.sonivm.ui.model.AudioDeviceOption;
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry.TrackMetadata;
-import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
 import x.mvmn.sonivm.ui.model.RepeatMode;
 import x.mvmn.sonivm.ui.model.ShuffleMode;
 import x.mvmn.sonivm.util.ui.swing.SwingUtil;
@@ -57,7 +57,7 @@ public class SonivumControllerImpl implements SonivmController {
 	private AudioService audioService;
 
 	@Autowired
-	private PlaybackQueueTableModel playbackQueueTableModel;
+	private PlaybackQueueService playbackQueueService;
 
 	@Autowired
 	private SonivmMainWindow mainWindow;
@@ -132,8 +132,8 @@ public class SonivumControllerImpl implements SonivmController {
 	}
 
 	private void doNextTrack(boolean userRequested) {
-		int trackCount = playbackQueueTableModel.getRowCount();
-		int currentTrackQueuePos = playbackQueueTableModel.getCurrentQueuePosition();
+		int trackCount = playbackQueueService.queueSize();
+		int currentTrackQueuePos = playbackQueueService.getCurrentQueuePosition();
 		ShuffleMode shuffleState = this.shuffleState;
 		RepeatMode repeatState = this.repeatState;
 
@@ -149,7 +149,7 @@ public class SonivumControllerImpl implements SonivmController {
 
 		if (trackCount > 0) {
 			if (ShuffleMode.OFF != shuffleState) {
-				PlaybackQueueEntry currentTrack = playbackQueueTableModel.getRowValue(currentTrackQueuePos);
+				PlaybackQueueEntry currentTrack = playbackQueueService.getEntryByIndex(currentTrackQueuePos);
 				switch (shuffleState) {
 					case ALBUM: {
 						int[] matchingTrackIndexes = findAllTracksByProperty(currentTrack.getAlbum(), false);
@@ -233,9 +233,9 @@ public class SonivumControllerImpl implements SonivmController {
 			value = value.trim();
 		}
 		List<Integer> result = new ArrayList<>();
-		int rows = playbackQueueTableModel.getRowCount();
+		int rows = playbackQueueService.queueSize();
 		for (int i = 0; i < rows; i++) {
-			PlaybackQueueEntry queueEntry = playbackQueueTableModel.getRowValue(i);
+			PlaybackQueueEntry queueEntry = playbackQueueService.getEntryByIndex(i);
 			String valB = useArtist ? queueEntry.getArtist() : queueEntry.getAlbum();
 			if (valB == null) {
 				valB = "";
@@ -251,19 +251,19 @@ public class SonivumControllerImpl implements SonivmController {
 
 	@Override
 	public void onPreviousTrack() {
-		int currentTrack = playbackQueueTableModel.getCurrentQueuePosition();
+		int currentTrack = playbackQueueService.getCurrentQueuePosition();
 		if (currentTrack > 0) {
 			switchToTrack(--currentTrack);
 		}
 	}
 
 	private IntRange detectTrackRange(int currentPosition, boolean byArtist) {
-		int trackCount = playbackQueueTableModel.getRowCount();
+		int trackCount = playbackQueueService.queueSize();
 		if (trackCount > 0) {
-			PlaybackQueueEntry currentTrack = playbackQueueTableModel.getRowValue(currentPosition);
+			PlaybackQueueEntry currentTrack = playbackQueueService.getEntryByIndex(currentPosition);
 			int start = currentPosition;
 			while (start > 0) {
-				PlaybackQueueEntry prevTrack = playbackQueueTableModel.getRowValue(start - 1);
+				PlaybackQueueEntry prevTrack = playbackQueueService.getEntryByIndex(start - 1);
 				if (!propertyEquals(currentTrack, prevTrack, byArtist)) {
 					break;
 				} else {
@@ -272,7 +272,7 @@ public class SonivumControllerImpl implements SonivmController {
 			}
 			int end = currentPosition;
 			while (end < trackCount - 1) {
-				PlaybackQueueEntry nextTrack = playbackQueueTableModel.getRowValue(end + 1);
+				PlaybackQueueEntry nextTrack = playbackQueueService.getEntryByIndex(end + 1);
 				if (!propertyEquals(currentTrack, nextTrack, byArtist)) {
 					break;
 				} else {
@@ -302,7 +302,7 @@ public class SonivumControllerImpl implements SonivmController {
 	}
 
 	private void tryPlayFromStartOfQueue() {
-		if (playbackQueueTableModel.getRowCount() > 0) {
+		if (playbackQueueService.queueSize() > 0) {
 			switchToTrack(0);
 		} else {
 			doStop();
@@ -314,12 +314,12 @@ public class SonivumControllerImpl implements SonivmController {
 	}
 
 	private void switchToTrack(int trackQueuePosition, boolean stopCurrent) {
-		int queueSize = playbackQueueTableModel.getRowCount();
+		int queueSize = playbackQueueService.queueSize();
 		if (trackQueuePosition >= queueSize) {
 			doStop();
 		} else {
-			playbackQueueTableModel.setCurrentQueuePosition(trackQueuePosition);
-			File track = new File(playbackQueueTableModel.getRowValue(trackQueuePosition).getTargetFileFullPath());
+			playbackQueueService.setCurrentQueuePosition(trackQueuePosition);
+			File track = new File(playbackQueueService.getEntryByIndex(trackQueuePosition).getTargetFileFullPath());
 			audioService.stop();
 			audioService.play(track);
 			updateStaus("Playing");
@@ -344,7 +344,7 @@ public class SonivumControllerImpl implements SonivmController {
 		audioService.stop();
 		this.currentAudioFileInfo = null;
 		this.currentTrackInfo = null;
-		playbackQueueTableModel.setCurrentQueuePosition(-1);
+		playbackQueueService.setCurrentQueuePosition(-1);
 		updateStaus("Stopped");
 		updatePlayingState(false);
 		SwingUtil.runOnEDT(() -> {
@@ -360,52 +360,56 @@ public class SonivumControllerImpl implements SonivmController {
 	}
 
 	private void addFilesToQueue(int queuePosition, List<File> files) {
-		// FIXME: move off EDT
-		for (File track : files) {
-			if (!track.exists()) {
-				continue;
-			}
-			if (track.isDirectory()) {
-				onDropFilesToQueue(queuePosition, Stream.of(track.listFiles())
-						.sorted(queuePosition >= 0 ? Comparator.comparing(File::getName).reversed() : Comparator.comparing(File::getName))
-						.filter(file -> file.isDirectory() || (file.getName().indexOf(".") > 0 && supportedExtensions
-								.contains(file.getName().substring(file.getName().lastIndexOf(".") + 1).toLowerCase())))
-						.collect(Collectors.toList()));
-				continue;
-			}
-			if (track.getName().toLowerCase().endsWith(".cue")) {
-				// TODO: parse CUE
-				continue;
-			}
-
-			PlaybackQueueEntry queueEntry = PlaybackQueueEntry.builder()
-					.targetFileFullPath(track.getAbsolutePath())
-					.targetFileName(track.getName())
-					.build();
-			tagReadingTaskExecutor.submit(() -> {
-				try {
-					TrackMetadata meta = tagRetrievalService.getAudioFileMetadata(track);
-					queueEntry.setTrackMetadata(meta);
-					playbackQueueTableModel.signalUpdateInTrackInfo(queueEntry);
-				} catch (Throwable t) {
-					LOGGER.log(Level.WARNING, "Failed to read tags for file " + track.getAbsolutePath(), t);
+		new Thread(() -> {
+			// FIXME: move off EDT
+			for (File track : files) {
+				if (!track.exists()) {
+					continue;
 				}
-			});
+				if (track.isDirectory()) {
+					onDropFilesToQueue(queuePosition,
+							Stream.of(track.listFiles())
+									.sorted(queuePosition >= 0 ? Comparator.comparing(File::getName).reversed()
+											: Comparator.comparing(File::getName))
+									.filter(file -> file.isDirectory() || (file.getName().indexOf(".") > 0 && supportedExtensions
+											.contains(file.getName().substring(file.getName().lastIndexOf(".") + 1).toLowerCase())))
+									.collect(Collectors.toList()));
+					continue;
+				}
+				if (track.getName().toLowerCase().endsWith(".cue")) {
+					// TODO: parse CUE
+					continue;
+				}
 
-			List<PlaybackQueueEntry> newEntries = Arrays.asList(queueEntry);
-			if (queuePosition >= 0) {
-				playbackQueueTableModel.addRows(queuePosition, newEntries);
-			} else {
-				playbackQueueTableModel.addRows(newEntries);
+				PlaybackQueueEntry queueEntry = PlaybackQueueEntry.builder()
+						.targetFileFullPath(track.getAbsolutePath())
+						.targetFileName(track.getName())
+						.build();
+				tagReadingTaskExecutor.submit(() -> {
+					try {
+						TrackMetadata meta = tagRetrievalService.getAudioFileMetadata(track);
+						queueEntry.setTrackMetadata(meta);
+						playbackQueueService.signalUpdateInTrackInfo(queueEntry);
+					} catch (Throwable t) {
+						LOGGER.log(Level.WARNING, "Failed to read tags for file " + track.getAbsolutePath(), t);
+					}
+				});
+
+				List<PlaybackQueueEntry> newEntries = Arrays.asList(queueEntry);
+				if (queuePosition >= 0) {
+					playbackQueueService.addRows(queuePosition, newEntries);
+				} else {
+					playbackQueueService.addRows(newEntries);
+				}
 			}
-		}
+		}).start();
 	}
 
 	@Override
 	public boolean onDropQueueRowsInsideQueue(int insertPosition, int firstRow, int lastRow) {
 		int rowCount = lastRow - firstRow + 1;
 		if (insertPosition > lastRow || insertPosition < firstRow) {
-			playbackQueueTableModel.moveRows(insertPosition, firstRow, lastRow);
+			playbackQueueService.moveRows(insertPosition, firstRow, lastRow);
 
 			if (lastRow < insertPosition) {
 				insertPosition -= rowCount;
@@ -433,7 +437,7 @@ public class SonivumControllerImpl implements SonivmController {
 	private void savePlayQueueContents() {
 		try {
 			LOGGER.info("Storing play queue.");
-			new ObjectMapper().writeValue(getPlayQueueStorageFile(), this.playbackQueueTableModel.getCopyOfQueue());
+			new ObjectMapper().writeValue(getPlayQueueStorageFile(), this.playbackQueueService.getCopyOfQueue());
 			LOGGER.info("Storing play queue succeeded.");
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to store the playback queue", e);
@@ -447,8 +451,8 @@ public class SonivumControllerImpl implements SonivmController {
 			if (queueFile.exists()) {
 				List<PlaybackQueueEntry> queueEntries = new ObjectMapper().readValue(queueFile,
 						new TypeReference<List<PlaybackQueueEntry>>() {});
-				this.playbackQueueTableModel.clearQueue();
-				this.playbackQueueTableModel.addRows(queueEntries);
+				this.playbackQueueService.clearQueue();
+				this.playbackQueueService.addRows(queueEntries);
 				LOGGER.info("Restoring play queue succeeded.");
 			} else {
 				LOGGER.info("Restoring play queue not needed - no queue stored yet.");
@@ -509,14 +513,14 @@ public class SonivumControllerImpl implements SonivmController {
 				this.currentTrackScrobbled = false;
 				AudioFileInfo audioInfo = event.getAudioMetadata();
 				this.currentAudioFileInfo = audioInfo;
-				PlaybackQueueEntry currentEntry = playbackQueueTableModel.getCurrentEntry();
+				PlaybackQueueEntry currentEntry = playbackQueueService.getCurrentEntry();
 				if (currentEntry != null) {
 					currentEntry.setDuration(audioInfo.getDurationSeconds());
 				}
-				int queuePos = playbackQueueTableModel.getCurrentQueuePosition();
-				PlaybackQueueEntry trackInfo = playbackQueueTableModel.getRowValue(queuePos);
+				int queuePos = playbackQueueService.getCurrentQueuePosition();
+				PlaybackQueueEntry trackInfo = playbackQueueService.getEntryByIndex(queuePos);
 				this.currentTrackInfo = trackInfo;
-				playbackQueueTableModel.fireTableRowsUpdated(queuePos, queuePos);
+				playbackQueueService.signalUpdateInRow(queuePos);
 				SwingUtil.runOnEDT(() -> {
 					if (audioInfo.isSeekable()) {
 						mainWindow.allowSeek(audioInfo.getDurationSeconds().intValue() * 10);
@@ -626,7 +630,7 @@ public class SonivumControllerImpl implements SonivmController {
 
 	@Override
 	public void onDeleteRowsFromQueue(int firstRow, int lastRow) {
-		playbackQueueTableModel.deleteRows(firstRow, lastRow + 1);
+		playbackQueueService.deleteRows(firstRow, lastRow + 1);
 	}
 
 	private void updatePlayingState(boolean playing) {

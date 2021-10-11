@@ -85,7 +85,7 @@ public class SonivmMainWindow extends JFrame {
 					int column) {
 				Component result = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-				if (row == playbackQueueTableModel.getCurrentQueuePosition()) {
+				if (row == playbackQueueTableModel.getIndexOfHighlightedRow()) {
 					result.setFont(result.getFont().deriveFont(Font.BOLD));
 				}
 
