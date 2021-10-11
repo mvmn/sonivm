@@ -2,7 +2,6 @@ package x.mvmn.sonivm.impl;
 
 import java.io.File;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -152,7 +151,7 @@ public class SonivumControllerImpl implements SonivmController {
 				PlaybackQueueEntry currentTrack = playbackQueueService.getEntryByIndex(currentTrackQueuePos);
 				switch (shuffleState) {
 					case ALBUM: {
-						int[] matchingTrackIndexes = findAllTracksByProperty(currentTrack.getAlbum(), false);
+						int[] matchingTrackIndexes = playbackQueueService.findTracksByProperty(currentTrack.getAlbum(), false);
 						if (matchingTrackIndexes.length < 1) {
 							tryPlayFromStartOfQueue();
 						} else {
@@ -162,7 +161,7 @@ public class SonivumControllerImpl implements SonivmController {
 						return;
 					}
 					case ARTIST: {
-						int[] matchingTrackIndexes = findAllTracksByProperty(currentTrack.getArtist(), true);
+						int[] matchingTrackIndexes = playbackQueueService.findTracksByProperty(currentTrack.getArtist(), true);
 						if (matchingTrackIndexes.length < 1) {
 							tryPlayFromStartOfQueue();
 						} else {
@@ -190,12 +189,12 @@ public class SonivumControllerImpl implements SonivmController {
 					int startOfRange = 0;
 					switch (repeatState) {
 						case ALBUM:
-							IntRange albumRange = detectTrackRange(currentTrackQueuePos, false);
+							IntRange albumRange = playbackQueueService.detectTrackRange(currentTrackQueuePos, false);
 							startOfRange = albumRange.getFrom();
 							endOfRange = albumRange.getTo();
 						break;
 						case ARTIST:
-							IntRange artistRange = detectTrackRange(currentTrackQueuePos, true);
+							IntRange artistRange = playbackQueueService.detectTrackRange(currentTrackQueuePos, true);
 							startOfRange = artistRange.getFrom();
 							endOfRange = artistRange.getTo();
 						break;
@@ -226,79 +225,12 @@ public class SonivumControllerImpl implements SonivmController {
 		}
 	}
 
-	private int[] findAllTracksByProperty(String value, boolean useArtist) {
-		if (value == null) {
-			value = "";
-		} else {
-			value = value.trim();
-		}
-		List<Integer> result = new ArrayList<>();
-		int rows = playbackQueueService.queueSize();
-		for (int i = 0; i < rows; i++) {
-			PlaybackQueueEntry queueEntry = playbackQueueService.getEntryByIndex(i);
-			String valB = useArtist ? queueEntry.getArtist() : queueEntry.getAlbum();
-			if (valB == null) {
-				valB = "";
-			} else {
-				valB = valB.trim();
-			}
-			if (trackPropertiesEqual(value, valB)) {
-				result.add(i);
-			}
-		}
-		return result.stream().mapToInt(Integer::intValue).toArray();
-	}
-
 	@Override
 	public void onPreviousTrack() {
 		int currentTrack = playbackQueueService.getCurrentQueuePosition();
 		if (currentTrack > 0) {
 			switchToTrack(--currentTrack);
 		}
-	}
-
-	private IntRange detectTrackRange(int currentPosition, boolean byArtist) {
-		int trackCount = playbackQueueService.queueSize();
-		if (trackCount > 0) {
-			PlaybackQueueEntry currentTrack = playbackQueueService.getEntryByIndex(currentPosition);
-			int start = currentPosition;
-			while (start > 0) {
-				PlaybackQueueEntry prevTrack = playbackQueueService.getEntryByIndex(start - 1);
-				if (!propertyEquals(currentTrack, prevTrack, byArtist)) {
-					break;
-				} else {
-					start--;
-				}
-			}
-			int end = currentPosition;
-			while (end < trackCount - 1) {
-				PlaybackQueueEntry nextTrack = playbackQueueService.getEntryByIndex(end + 1);
-				if (!propertyEquals(currentTrack, nextTrack, byArtist)) {
-					break;
-				} else {
-					end++;
-				}
-			}
-			return new IntRange(start, end);
-		} else {
-			return new IntRange(-1, -1);
-		}
-	}
-
-	private boolean propertyEquals(PlaybackQueueEntry entryA, PlaybackQueueEntry entryB, boolean byArtist) {
-		String valA = byArtist ? entryA.getArtist() : entryA.getAlbum();
-		String valB = byArtist ? entryB.getArtist() : entryB.getAlbum();
-		return trackPropertiesEqual(valA, valB);
-	}
-
-	private boolean trackPropertiesEqual(String valA, String valB) {
-		if (valA == null) {
-			valA = "";
-		}
-		if (valB == null) {
-			valB = "";
-		}
-		return valA.trim().equalsIgnoreCase(valB.trim());
 	}
 
 	private void tryPlayFromStartOfQueue() {

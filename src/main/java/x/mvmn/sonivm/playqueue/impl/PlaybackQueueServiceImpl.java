@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import x.mvmn.sonivm.model.IntRange;
 import x.mvmn.sonivm.playqueue.PlaybackQueueChangeListener;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
@@ -226,6 +227,79 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	private void onTableRowsDelete(int firstRow, int lastRow, boolean waitForUiUpdate) {
 		if (changeListener != null) {
 			changeListener.onTableRowsDelete(firstRow, lastRow, waitForUiUpdate);
+		}
+	}
+
+	@Override
+	public int[] findTracksByProperty(String value, boolean useArtist) {
+		if (value == null) {
+			value = "";
+		} else {
+			value = value.trim();
+		}
+		List<Integer> result = new ArrayList<>();
+		synchronized (DATA_LOCK_OBJ) {
+			int rows = data.size();
+			for (int i = 0; i < rows; i++) {
+				PlaybackQueueEntry queueEntry = data.get(i);
+				String valB = useArtist ? queueEntry.getArtist() : queueEntry.getAlbum();
+				if (valB == null) {
+					valB = "";
+				} else {
+					valB = valB.trim();
+				}
+				if (trackPropertiesEqual(value, valB)) {
+					result.add(i);
+				}
+			}
+		}
+		return result.stream().mapToInt(Integer::intValue).toArray();
+	}
+
+	private boolean propertyEquals(PlaybackQueueEntry entryA, PlaybackQueueEntry entryB, boolean byArtist) {
+		String valA = byArtist ? entryA.getArtist() : entryA.getAlbum();
+		String valB = byArtist ? entryB.getArtist() : entryB.getAlbum();
+		return trackPropertiesEqual(valA, valB);
+	}
+
+	private boolean trackPropertiesEqual(String valA, String valB) {
+		if (valA == null) {
+			valA = "";
+		}
+		if (valB == null) {
+			valB = "";
+		}
+		return valA.trim().equalsIgnoreCase(valB.trim());
+	}
+
+	@Override
+	public IntRange detectTrackRange(int currentPosition, boolean byArtist) {
+		synchronized (DATA_LOCK_OBJ) {
+			int trackCount = data.size();
+			if (trackCount > 0) {
+				PlaybackQueueEntry currentTrack = data.get(currentPosition);
+				int start = currentPosition;
+				while (start > 0) {
+					PlaybackQueueEntry prevTrack = data.get(start - 1);
+					if (!propertyEquals(currentTrack, prevTrack, byArtist)) {
+						break;
+					} else {
+						start--;
+					}
+				}
+				int end = currentPosition;
+				while (end < trackCount - 1) {
+					PlaybackQueueEntry nextTrack = data.get(end + 1);
+					if (!propertyEquals(currentTrack, nextTrack, byArtist)) {
+						break;
+					} else {
+						end++;
+					}
+				}
+				return new IntRange(start, end);
+			} else {
+				return new IntRange(-1, -1);
+			}
 		}
 	}
 }
