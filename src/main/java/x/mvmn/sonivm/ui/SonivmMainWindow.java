@@ -114,11 +114,16 @@ public class SonivmMainWindow extends JFrame {
 		cmbShuffleMode = new JComboBox<>(ShuffleMode.values());
 		cmbRepeatMode = new JComboBox<>(RepeatMode.values());
 
+		cmbShuffleMode.setFocusable(false);
+		cmbRepeatMode.setFocusable(false);
+
 		seekSlider = new JSlider(0, 0);
 		seekSlider.setEnabled(false);
+		seekSlider.setFocusable(false);
 		SwingUtil.makeJSliderMoveToClickPoistion(seekSlider);
 
 		volumeSlider = new JSlider(JSlider.VERTICAL, 0, 100, 100);
+		volumeSlider.setFocusable(false);
 		SwingUtil.makeJSliderMoveToClickPoistion(volumeSlider);
 
 		JPanel playbackButtonsPanel = new JPanel(new GridLayout(1, 4));
