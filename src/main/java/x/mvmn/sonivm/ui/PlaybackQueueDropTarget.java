@@ -17,6 +17,8 @@ import java.util.logging.Logger;
 
 import javax.swing.JTable;
 
+import x.mvmn.sonivm.model.IntRange;
+
 public final class PlaybackQueueDropTarget extends DropTarget {
 	private static final Logger LOGGER = Logger.getLogger(PlaybackQueueDropTarget.class.getCanonicalName());
 
@@ -39,13 +41,10 @@ public final class PlaybackQueueDropTarget extends DropTarget {
 		if (dtde.isDataFlavorSupported(PlayQueueTableDnDTransferHandler.DATA_FLAVOR_STRING_ROW_INDEXES_RANGE)) {
 			dtde.acceptDrop(DnDConstants.ACTION_LINK);
 			try {
-				String[] idxRangeStrs = transferable.getTransferData(PlayQueueTableDnDTransferHandler.DATA_FLAVOR_STRING_ROW_INDEXES_RANGE)
-						.toString()
-						.split("-");
+				IntRange intRange = (IntRange) transferable
+						.getTransferData(PlayQueueTableDnDTransferHandler.DATA_FLAVOR_STRING_ROW_INDEXES_RANGE);
 
-				int startRow = Integer.parseInt(idxRangeStrs[0]);
-				int endRow = Integer.parseInt(idxRangeStrs[1]);
-				controller.onDropQueueRowsInsideQueue(tblPlayQueue.getRowCount(), startRow, endRow);
+				controller.onDropQueueRowsInsideQueue(tblPlayQueue.getRowCount(), intRange.getFrom(), intRange.getTo());
 			} catch (UnsupportedFlavorException e) {
 				LOGGER.log(Level.WARNING, "UnsupportedFlavorException on playback queue table drag-n-drop. Flavors: "
 						+ Arrays.toString(transferable.getTransferDataFlavors()), e);

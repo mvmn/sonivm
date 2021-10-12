@@ -1,6 +1,7 @@
 package x.mvmn.sonivm.ui;
 
 import java.awt.Cursor;
+import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -18,6 +19,7 @@ import javax.swing.JTable;
 import javax.swing.TransferHandler;
 
 import lombok.RequiredArgsConstructor;
+import x.mvmn.sonivm.model.IntRange;
 
 @RequiredArgsConstructor
 public class PlayQueueTableDnDTransferHandler extends TransferHandler {
@@ -25,7 +27,8 @@ public class PlayQueueTableDnDTransferHandler extends TransferHandler {
 
 	private static final Logger LOGGER = Logger.getLogger(PlayQueueTableDnDTransferHandler.class.getName());
 
-	public static final DataFlavor DATA_FLAVOR_STRING_ROW_INDEXES_RANGE = new DataFlavor(String.class, "String Row Indexes Range");
+	public static final DataFlavor DATA_FLAVOR_STRING_ROW_INDEXES_RANGE = new DataFlavor(
+			DataFlavor.javaSerializedObjectMimeType + ";class=x.mvmn.sonivm.model.IntRange", "String Row Indexes Range");
 
 	private final JTable playbackQueueTable;
 	private final SonivmController controller;
@@ -48,7 +51,8 @@ public class PlayQueueTableDnDTransferHandler extends TransferHandler {
 	protected Transferable createTransferable(JComponent component) {
 		if (component == playbackQueueTable) {
 			int[] selectedRows = playbackQueueTable.getSelectedRows();
-			return new DataHandler("" + selectedRows[0] + "-" + selectedRows[selectedRows.length - 1],
+			// "" + selectedRows[0] + "-" + selectedRows[selectedRows.length - 1]
+			return new DataHandler(new IntRange(selectedRows[0], selectedRows[selectedRows.length - 1]),
 					DATA_FLAVOR_STRING_ROW_INDEXES_RANGE.getMimeType());
 		} else {
 			return super.createTransferable(component);
@@ -70,11 +74,9 @@ public class PlayQueueTableDnDTransferHandler extends TransferHandler {
 
 		if (info.getTransferable().isDataFlavorSupported(DATA_FLAVOR_STRING_ROW_INDEXES_RANGE)) {
 			try {
-				String[] idxRangeStrs = info.getTransferable().getTransferData(DATA_FLAVOR_STRING_ROW_INDEXES_RANGE).toString().split("-");
+				IntRange intRange = (IntRange) info.getTransferable().getTransferData(DATA_FLAVOR_STRING_ROW_INDEXES_RANGE);
 
-				int startRow = Integer.parseInt(idxRangeStrs[0]);
-				int endRow = Integer.parseInt(idxRangeStrs[1]);
-				return controller.onDropQueueRowsInsideQueue(insertPosition, startRow, endRow);
+				return controller.onDropQueueRowsInsideQueue(insertPosition, intRange.getFrom(), intRange.getTo());
 			} catch (UnsupportedFlavorException e) {
 				LOGGER.log(Level.WARNING, "UnsupportedFlavorException on playback queue table drag-n-drop. Flavors: "
 						+ Arrays.toString(info.getTransferable().getTransferDataFlavors()), e);
@@ -101,5 +103,39 @@ public class PlayQueueTableDnDTransferHandler extends TransferHandler {
 		if (act == TransferHandler.MOVE) {
 			playbackQueueTable.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
 		}
+	}
+
+	@Override
+
+	public void exportToClipboard(JComponent comp, Clipboard clip, int action) throws IllegalStateException {
+		if ((action == COPY) && (getSourceActions(comp) & action) != 0) {
+			int[] selectedRows = playbackQueueTable.getSelectedRows();
+			if (selectedRows.length > 0) {
+				StringBuilder result = new StringBuilder();
+				for (int rowIndex : selectedRows) {
+					for (int colIndex = 0; colIndex < playbackQueueTable.getColumnCount(); colIndex++) {
+						if (colIndex > 0) {
+							result.append("\t");
+						}
+						Object value = playbackQueueTable.getValueAt(rowIndex, colIndex);
+						result.append(value != null ? value.toString() : "");
+					}
+					result.append(System.lineSeparator());
+				}
+
+				Transferable t = new DataHandler(result.toString(), new DataFlavor(String.class, "Text").getMimeType());
+				try {
+					clip.setContents(t, null);
+					exportDone(comp, t, action);
+					return;
+				} catch (IllegalStateException ise) {
+					exportDone(comp, t, NONE);
+					throw ise;
+				}
+			}
+
+		}
+
+		exportDone(comp, null, NONE);
 	}
 }
