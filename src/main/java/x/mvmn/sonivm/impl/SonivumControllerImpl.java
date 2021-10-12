@@ -506,7 +506,7 @@ public class SonivumControllerImpl implements SonivmController {
 			SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(finalSuccess), false);
 
 			if (success) {
-				lastFMQueueService.processQueuedTracks(tracks -> tracks.forEach(this::doScrobbleTrack), scrobbleThresholdPercent);
+				reSubmitFailedLastFMSubmissions();
 			}
 		});
 	}
@@ -520,6 +520,14 @@ public class SonivumControllerImpl implements SonivmController {
 			}
 			SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(success), false);
 		});
+	}
+
+	private void reSubmitFailedLastFMSubmissions() {
+		try {
+			lastFMQueueService.processQueuedTracks(tracks -> tracks.forEach(this::doScrobbleTrack), 100);
+		} catch (Throwable t) {
+			LOGGER.log(Level.SEVERE, "Failed to re-submit LastFM track", t);
+		}
 	}
 
 	private boolean doScrobbleTrack(ScrobbleData scrobbleData) {
@@ -618,6 +626,7 @@ public class SonivumControllerImpl implements SonivmController {
 	@Override
 	public void onBeforeUiSetVisible() {
 		restorePlayQueueColumnWidths();
+		lastFmScrobbleTaskExecutor.execute(() -> reSubmitFailedLastFMSubmissions());
 	}
 
 	private void restorePlayQueueColumnWidths() {
