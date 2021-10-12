@@ -504,35 +504,43 @@ public class SonivumControllerImpl implements SonivmController {
 			}
 			boolean finalSuccess = success;
 			SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(finalSuccess), false);
+
+			if (success) {
+				lastFMQueueService.processQueuedTracks(tracks -> tracks.forEach(this::doScrobbleTrack), scrobbleThresholdPercent);
+			}
 		});
 	}
 
 	private void lastFmScrobble(PlaybackQueueEntry trackInfo) {
 		lastFmScrobbleTaskExecutor.execute(() -> {
 			ScrobbleData scrobbleData = toScrobbleData(trackInfo);
-			boolean success = false;
-			try {
-				Session session = getLastFMSession();
-				if (session != null) {
-					LOGGER.info("Scrobbling LastFM track played " + scrobbleData);
-					ScrobbleResult scrobbleResult = Track.scrobble(scrobbleData, session);
-					if (!scrobbleResult.isSuccessful()) {
-						LOGGER.info("LastFM scrobbling failed: " + scrobbleResult.getErrorCode() + " " + scrobbleResult.getErrorMessage());
-					} else {
-						success = true;
-					}
-				} else {
-					LOGGER.info("Skipping scrobbling track in LastFM - no session.");
-				}
-			} catch (Exception e) {
-				LOGGER.log(Level.WARNING, "Failed to scrobble track in LastFM", e);
-			}
+			boolean success = doScrobbleTrack(scrobbleData);
 			if (!success) {
 				lastFMQueueService.queueTrack(scrobbleData);
 			}
-			boolean finalSuccess = success;
-			SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(finalSuccess), false);
+			SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(success), false);
 		});
+	}
+
+	private boolean doScrobbleTrack(ScrobbleData scrobbleData) {
+		boolean success = false;
+		try {
+			Session session = getLastFMSession();
+			if (session != null) {
+				LOGGER.info("Scrobbling LastFM track played " + scrobbleData);
+				ScrobbleResult scrobbleResult = Track.scrobble(scrobbleData, session);
+				if (!scrobbleResult.isSuccessful()) {
+					LOGGER.info("LastFM scrobbling failed: " + scrobbleResult.getErrorCode() + " " + scrobbleResult.getErrorMessage());
+				} else {
+					success = true;
+				}
+			} else {
+				LOGGER.info("Skipping scrobbling track in LastFM - no session.");
+			}
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to scrobble track in LastFM", e);
+		}
+		return success;
 	}
 
 	private Session getLastFMSession() throws Exception {
