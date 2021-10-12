@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -48,20 +49,21 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 
 	private volatile boolean shutdownRequested = false;
 
-	public void importFilesIntoPlayQueue(int queuePosition, List<File> filesToImport) {
+	@Override
+	public void importFilesIntoPlayQueue(int queuePosition, List<File> filesToImport, Consumer<String> importProgressListener) {
 		filesToImport.sort(Comparator.comparing(File::getName));
 		if (queuePosition < 0) {
 			queuePosition = playbackQueueService.getQueueSize();
 		}
 		for (File file : filesToImport) {
-			queuePosition += addFileToQueue(queuePosition, file);
+			queuePosition += addFileToQueue(queuePosition, file, importProgressListener);
 			if (this.shutdownRequested) {
 				break;
 			}
 		}
 	}
 
-	private int addFileToQueue(int queuePosition, File file) {
+	private int addFileToQueue(int queuePosition, File file, Consumer<String> importProgressListener) {
 		if (this.shutdownRequested) {
 			return 0;
 		}
@@ -86,6 +88,7 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 					File cueTargetFile = processCueFile(file, cueFile, tracksFromCueFileToAdd);
 					if (!tracksFromCueFileToAdd.isEmpty()) {
 						playbackQueueService.addRows(queuePosition, tracksFromCueFileToAdd);
+						importProgressListener.accept("tracks from CUE file " + file.getName());
 						countOfTracksAddedFromAllCueFiles += tracksFromCueFileToAdd.size();
 						// Skip file that was added as individual tracks by CUE sheet
 						filesInDirByName.remove(cueTargetFile.getName());
@@ -102,13 +105,15 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 					String fileName = remainingFile.getName();
 					String extension = FilenameUtils.getExtension(fileName);
 					if (remainingFile.isDirectory()) {
-						addedFromRemainingFiles += addFileToQueue(queuePosition + addedFromRemainingFiles, remainingFile);
+						addedFromRemainingFiles += addFileToQueue(queuePosition + addedFromRemainingFiles, remainingFile,
+								importProgressListener);
 					} else if (supportedExtensions.contains(extension.toLowerCase())) {
 						entriesToAdd.add(fileToQueueEntry(remainingFile));
 					}
 				}
 
 				playbackQueueService.addRows(queuePosition + addedFromRemainingFiles, entriesToAdd);
+				importProgressListener.accept("files from directory " + file.getName());
 				entriesToAdd.forEach(this::createTagReadingTask);
 
 				return addedFromRemainingFiles + countOfTracksAddedFromAllCueFiles + entriesToAdd.size();
@@ -125,6 +130,8 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 					tracksFromCueToAdd.size();
 				}
 
+				importProgressListener.accept("tracks from CUE file " + file.getName());
+
 				return tracksFromCueToAdd.size();
 			}
 
@@ -136,6 +143,7 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 				} else {
 					playbackQueueService.addRows(newEntries);
 				}
+				importProgressListener.accept(file.getName());
 				createTagReadingTask(queueEntry);
 				return 1;
 			} else {

@@ -18,7 +18,6 @@ import java.util.stream.Stream;
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
 import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.DropMode;
 import javax.swing.ImageIcon;
 import javax.swing.InputMap;
@@ -49,7 +48,8 @@ public class SonivmMainWindow extends JFrame {
 	private static final long serialVersionUID = -3402450540379541023L;
 
 	private final JLabel lblStatus;
-	private final JLabel lblNowPlaying;
+	private final JLabel lblNowPlayingTrack;
+	private final JLabel lblNowPlayingFile;
 	private final JLabel lblPlayTimeElapsed;
 	private final JLabel lblPlayTimeRemaining;
 	// private final JLabel lblPlayTimeTotal;
@@ -106,7 +106,8 @@ public class SonivmMainWindow extends JFrame {
 		btnNextTrack = new JButton(">>");
 		btnPreviousTrack = new JButton("<<");
 		lblStatus = new JLabel("Stopped");
-		lblNowPlaying = new JLabel("Now playing:");
+		lblNowPlayingTrack = new JLabel("");
+		lblNowPlayingFile = new JLabel("");
 		lblPlayTimeElapsed = new JLabel("00:00 / 00:00");
 		lblPlayTimeRemaining = new JLabel("-00:00 / 00:00");
 		// lblPlayTimeTotal = new JLabel("00:00");
@@ -126,6 +127,8 @@ public class SonivmMainWindow extends JFrame {
 		Stream.of(buttons).forEach(playbackButtonsPanel::add);
 		Stream.of(buttons).forEach(btn -> btn.setFocusable(false));
 
+		JPanel nowPlayingPanel = SwingUtil.panel(() -> new GridLayout(2, 1)).add(lblNowPlayingTrack).add(lblNowPlayingFile).build();
+
 		JLabel lblRepeat = new JLabel("Repeat: ", JLabel.RIGHT);
 		JLabel lblShuffle = new JLabel("Shuffle: ", JLabel.RIGHT);
 		lblRepeat.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
@@ -138,8 +141,9 @@ public class SonivmMainWindow extends JFrame {
 						.addEast(lblPlayTimeRemaining)
 						.build())
 				.addNorth(SwingUtil.panel(() -> new BorderLayout())
-						.addCenter(lblNowPlaying)
-						.addEast(SwingUtil.panel(pnl -> new BoxLayout(pnl, BoxLayout.X_AXIS))
+						.addWest(new JLabel("Now playing: "))
+						.addCenter(nowPlayingPanel)
+						.addEast(SwingUtil.panel(pnl -> new GridLayout(2, 2))
 								.add(lblRepeat)
 								.add(cmbRepeatMode)
 								.add(lblShuffle)
@@ -169,8 +173,7 @@ public class SonivmMainWindow extends JFrame {
 		seekSlider.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
 		lblPlayTimeElapsed.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
 		lblPlayTimeRemaining.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 8));
-		lblNowPlaying.setBorder(BorderFactory.createEmptyBorder(4, 12, 4, 8));
-		lblNowPlaying.setFont(lblNowPlaying.getFont().deriveFont(Font.BOLD));
+		lblNowPlayingTrack.setFont(lblNowPlayingTrack.getFont().deriveFont(Font.BOLD));
 
 		JScrollPane scrollTblPlayQueue = new JScrollPane(tblPlayQueue);
 		@SuppressWarnings("unused")
@@ -323,7 +326,25 @@ public class SonivmMainWindow extends JFrame {
 	}
 
 	public void updateNowPlaying(PlaybackQueueEntry trackInfo) {
-		this.lblNowPlaying.setText("Now playing: " + (trackInfo != null ? trackInfo.toDisplayStr() : ""));
+		String trackInfoText;
+		String fileInfo;
+		if (trackInfo != null) {
+			if (trackInfo.isCueSheetTrack()) {
+				fileInfo = "CUE track " + trackInfo.getTrackNumber() + " ("
+						+ TimeUnitUtil.prettyPrintFromSeconds(trackInfo.getCueSheetTrackStartTimeMillis() / 1000) + " - "
+						+ TimeUnitUtil.prettyPrintFromSeconds(trackInfo.getCueSheetTrackFinishTimeMillis() / 1000) + "ms)" + " of "
+						+ trackInfo.getTargetFileFullPath();
+			} else {
+				fileInfo = trackInfo.getTargetFileFullPath();
+			}
+			trackInfoText = trackInfo.toDisplayStr();
+		} else {
+			fileInfo = "";
+			trackInfoText = "";
+		}
+		this.lblNowPlayingTrack.setText(trackInfoText);
+		this.lblNowPlayingFile.setText(fileInfo);
+
 	}
 
 	public void scrollToTrack(int rowNumber) {

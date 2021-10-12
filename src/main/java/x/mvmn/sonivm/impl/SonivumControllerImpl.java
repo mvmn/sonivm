@@ -99,13 +99,11 @@ public class SonivumControllerImpl implements SonivmController {
 	public void onPlayPause() {
 		if (audioService.isPaused()) {
 			audioService.resume();
-			updateStaus("Playing");
 			updatePlayingState(true);
 		} else if (audioService.isStopped()) {
 			tryPlayFromStartOfQueue();
 		} else {
 			audioService.pause();
-			updateStaus("Paused");
 			updatePlayingState(false);
 		}
 	}
@@ -252,7 +250,7 @@ public class SonivumControllerImpl implements SonivmController {
 					&& currentTrack.getTargetFileFullPath().equals(newTrack.getTargetFileFullPath())
 					&& currentTrack.getCueSheetTrackFinishTimeMillis().equals(newTrack.getCueSheetTrackStartTimeMillis())) {
 				// Next track is continuation of current track in an audio file, just a next cue index
-				LOGGER.info("Next CUE track is a continuation of same auido file");
+				LOGGER.fine("Next CUE track is a continuation of same auido file");
 				handleStartTrackPlay(currentAudioFileInfo);
 			} else {
 				File track = new File(playbackQueueService.getEntryByIndex(trackQueuePosition).getTargetFileFullPath());
@@ -264,7 +262,6 @@ public class SonivumControllerImpl implements SonivmController {
 				} else {
 					audioService.play(track);
 				}
-				updateStaus("Playing");
 				updatePlayingState(true);
 			}
 			SwingUtil.runOnEDT(() -> mainWindow.scrollToTrack(trackQueuePosition), false);
@@ -276,7 +273,6 @@ public class SonivumControllerImpl implements SonivmController {
 			File track = new File(currentAudioFileInfo.getFilePath());
 			audioService.stop();
 			audioService.play(track);
-			updateStaus("Playing");
 			updatePlayingState(true);
 		} else {
 			doStop();
@@ -288,7 +284,6 @@ public class SonivumControllerImpl implements SonivmController {
 		this.currentAudioFileInfo = null;
 		this.currentTrackInfo = null;
 		playbackQueueService.setCurrentQueuePosition(-1);
-		updateStaus("Stopped");
 		updatePlayingState(false);
 		SwingUtil.runOnEDT(() -> {
 			mainWindow.disallowSeek();
@@ -299,7 +294,8 @@ public class SonivumControllerImpl implements SonivmController {
 
 	@Override
 	public void onDropFilesToQueue(int queuePosition, List<File> files) {
-		new Thread(() -> playbackQueueFileImportService.importFilesIntoPlayQueue(queuePosition, files)).start();
+		new Thread(() -> playbackQueueFileImportService.importFilesIntoPlayQueue(queuePosition, files,
+				importedTrack -> SwingUtil.runOnEDT(() -> updateStaus("Loaded into queue: " + importedTrack), false))).start();
 	}
 
 	@Override
