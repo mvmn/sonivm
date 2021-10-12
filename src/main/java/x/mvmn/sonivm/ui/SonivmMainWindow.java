@@ -18,6 +18,7 @@ import java.util.stream.Stream;
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.DropMode;
 import javax.swing.ImageIcon;
 import javax.swing.InputMap;
@@ -49,7 +50,6 @@ public class SonivmMainWindow extends JFrame {
 
 	private final JLabel lblStatus;
 	private final JLabel lblNowPlayingTrack;
-	private final JLabel lblNowPlayingFile;
 	private final JLabel lblPlayTimeElapsed;
 	private final JLabel lblPlayTimeRemaining;
 	// private final JLabel lblPlayTimeTotal;
@@ -107,7 +107,6 @@ public class SonivmMainWindow extends JFrame {
 		btnPreviousTrack = new JButton("<<");
 		lblStatus = new JLabel("Stopped");
 		lblNowPlayingTrack = new JLabel("");
-		lblNowPlayingFile = new JLabel("");
 		lblPlayTimeElapsed = new JLabel("00:00 / 00:00");
 		lblPlayTimeRemaining = new JLabel("-00:00 / 00:00");
 		// lblPlayTimeTotal = new JLabel("00:00");
@@ -127,12 +126,13 @@ public class SonivmMainWindow extends JFrame {
 		Stream.of(buttons).forEach(playbackButtonsPanel::add);
 		Stream.of(buttons).forEach(btn -> btn.setFocusable(false));
 
-		JPanel nowPlayingPanel = SwingUtil.panel(() -> new GridLayout(2, 1)).add(lblNowPlayingTrack).add(lblNowPlayingFile).build();
-
 		JLabel lblRepeat = new JLabel("Repeat: ", JLabel.RIGHT);
 		JLabel lblShuffle = new JLabel("Shuffle: ", JLabel.RIGHT);
 		lblRepeat.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
 		lblShuffle.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
+
+		JLabel nowPlayingText = new JLabel("Now playing: ");
+		nowPlayingText.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 2));
 		JPanel topPanel = SwingUtil.panel(BorderLayout::new)
 				.addEast(playbackButtonsPanel)
 				.addCenter(SwingUtil.panel(BorderLayout::new)
@@ -141,9 +141,9 @@ public class SonivmMainWindow extends JFrame {
 						.addEast(lblPlayTimeRemaining)
 						.build())
 				.addNorth(SwingUtil.panel(() -> new BorderLayout())
-						.addWest(new JLabel("Now playing: "))
-						.addCenter(nowPlayingPanel)
-						.addEast(SwingUtil.panel(pnl -> new GridLayout(2, 2))
+						.addWest(nowPlayingText)
+						.addCenter(lblNowPlayingTrack)
+						.addEast(SwingUtil.panel(pnl -> new BoxLayout(pnl, BoxLayout.X_AXIS))
 								.add(lblRepeat)
 								.add(cmbRepeatMode)
 								.add(lblShuffle)
@@ -343,7 +343,7 @@ public class SonivmMainWindow extends JFrame {
 			trackInfoText = "";
 		}
 		this.lblNowPlayingTrack.setText(trackInfoText);
-		this.lblNowPlayingFile.setText(fileInfo);
+		this.lblNowPlayingTrack.setToolTipText(fileInfo);
 
 	}
 
