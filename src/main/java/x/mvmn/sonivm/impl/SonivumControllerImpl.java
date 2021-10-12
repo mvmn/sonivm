@@ -24,9 +24,11 @@ import de.umass.lastfm.Authenticator;
 import de.umass.lastfm.Session;
 import de.umass.lastfm.Track;
 import de.umass.lastfm.scrobble.ScrobbleData;
+import de.umass.lastfm.scrobble.ScrobbleResult;
 import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.audio.PlaybackEvent;
+import x.mvmn.sonivm.lastfm.LastFMQueueService;
 import x.mvmn.sonivm.model.IntRange;
 import x.mvmn.sonivm.playqueue.PlaybackQueueFileImportService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
@@ -59,6 +61,9 @@ public class SonivumControllerImpl implements SonivmController {
 
 	@Autowired
 	private PreferencesService preferencesService;
+
+	@Autowired
+	private LastFMQueueService lastFMQueueService;
 
 	@Autowired(required = false)
 	private List<SonivmShutdownListener> shutdownListeners;
@@ -254,7 +259,7 @@ public class SonivumControllerImpl implements SonivmController {
 				handleStartTrackPlay(currentAudioFileInfo);
 			} else {
 				File track = new File(playbackQueueService.getEntryByIndex(trackQueuePosition).getTargetFileFullPath());
-				if (stopCurrent || currentTrack.isCueSheetTrack()) {
+				if (stopCurrent || currentTrack != null && currentTrack.isCueSheetTrack()) {
 					audioService.stop();
 				}
 				if (newTrack.isCueSheetTrack()) {
@@ -478,43 +483,55 @@ public class SonivumControllerImpl implements SonivmController {
 
 	private void lastFmSetNowPlaying(PlaybackQueueEntry trackInfo) {
 		lastFmScrobbleTaskExecutor.execute(() -> {
+			ScrobbleData scrobbleData = toScrobbleData(trackInfo);
+			boolean success = false;
 			try {
 				Session session = getLastFMSession();
 				if (session != null) {
-					ScrobbleData scrobbleData = toScrobbleData(trackInfo);
 					LOGGER.info("Setting LastFM now playing state to " + scrobbleData);
-					Track.updateNowPlaying(scrobbleData, session);
-					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(true), false);
+					ScrobbleResult scrobbleResult = Track.updateNowPlaying(scrobbleData, session);
+					if (!scrobbleResult.isSuccessful()) {
+						LOGGER.info("LastFM update now playing failed: " + scrobbleResult.getErrorCode() + " "
+								+ scrobbleResult.getErrorMessage());
+					} else {
+						success = true;
+					}
 				} else {
 					LOGGER.info("Skipping update now playing in LastFM - no session.");
-					// TODO: enqueue for retry
-					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(false), false);
 				}
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "Failed to update now playing in LastFM", e);
-				// TODO: enqueue for retry
-				SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(false), false);
 			}
+			boolean finalSuccess = success;
+			SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(finalSuccess), false);
 		});
 	}
 
 	private void lastFmScrobble(PlaybackQueueEntry trackInfo) {
 		lastFmScrobbleTaskExecutor.execute(() -> {
+			ScrobbleData scrobbleData = toScrobbleData(trackInfo);
+			boolean success = false;
 			try {
 				Session session = getLastFMSession();
 				if (session != null) {
-					ScrobbleData scrobbleData = toScrobbleData(trackInfo);
 					LOGGER.info("Scrobbling LastFM track played " + scrobbleData);
-					Track.scrobble(scrobbleData, session);
-					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(true), false);
+					ScrobbleResult scrobbleResult = Track.scrobble(scrobbleData, session);
+					if (!scrobbleResult.isSuccessful()) {
+						LOGGER.info("LastFM scrobbling failed: " + scrobbleResult.getErrorCode() + " " + scrobbleResult.getErrorMessage());
+					} else {
+						success = true;
+					}
 				} else {
 					LOGGER.info("Skipping scrobbling track in LastFM - no session.");
-					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(false), false);
 				}
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "Failed to scrobble track in LastFM", e);
-				SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(false), false);
 			}
+			if (!success) {
+				lastFMQueueService.queueTrack(scrobbleData);
+			}
+			boolean finalSuccess = success;
+			SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(finalSuccess), false);
 		});
 	}
 

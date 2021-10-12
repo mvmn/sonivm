@@ -14,7 +14,7 @@ public class CueData {
 	private String title;
 	private String performer;
 	private String songwriter;
-	private CueDataFileData fileData;
+	private List<CueDataFileData> fileData;
 	@Builder.Default
 	private Map<String, String> rems = new HashMap<>();
 

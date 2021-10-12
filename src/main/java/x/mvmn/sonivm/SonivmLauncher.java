@@ -55,6 +55,9 @@ public class SonivmLauncher implements Runnable {
 	@Autowired
 	private PreferencesService preferencesService;
 
+	// @Autowired
+	// private LastFMQueueService lastFMQueueService;
+
 	public static void main(String[] args) {
 		initConsoleLogging();
 
@@ -97,8 +100,8 @@ public class SonivmLauncher implements Runnable {
 		try {
 			BufferedImage image = ImageIO.read(SonivmLauncher.class.getResourceAsStream("/sonivm_logo.png"));
 			Taskbar.getTaskbar().setIconImage(image);
-		} catch (Exception e) {
-			LOGGER.log(Level.WARNING, "Failed to load and set main window and taskbar icon.", e);
+		} catch (Throwable t) {
+			LOGGER.log(Level.WARNING, "Failed to load and set main window and taskbar icon.", t);
 		}
 	}
 
@@ -111,6 +114,16 @@ public class SonivmLauncher implements Runnable {
 		sonivmController.onBeforeUiSetVisible();
 
 		SwingUtilities.invokeLater(() -> mainWindow.setVisible(true));
+
+		// new Thread(() -> {
+		// try {
+		// lastFMQueueService.processQueuedTracks(track -> {
+		//
+		// }, 100);
+		// } catch (Throwable t) {
+		// LOGGER.log(Level.SEVERE, "Failed reprocess LastFM submission queue.", t);
+		// }
+		// });
 	}
 
 	private JMenuBar initMenuBar(List<AudioDeviceOption> audioDevices) {

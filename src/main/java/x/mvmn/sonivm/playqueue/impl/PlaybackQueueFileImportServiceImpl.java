@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import x.mvmn.sonivm.cue.CueData;
+import x.mvmn.sonivm.cue.CueData.CueDataFileData;
 import x.mvmn.sonivm.cue.CueData.CueDataTrackData;
 import x.mvmn.sonivm.cue.CueSheetParser;
 import x.mvmn.sonivm.playqueue.PlaybackQueueFileImportService;
@@ -85,13 +86,13 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 				for (String cueFileName : cueFileNames) {
 					List<PlaybackQueueEntry> tracksFromCueFileToAdd = new ArrayList<>();
 					File cueFile = filesInDirByName.get(cueFileName);
-					File cueTargetFile = processCueFile(file, cueFile, tracksFromCueFileToAdd);
+					List<File> cueTargetFiles = processCueFile(file, cueFile, tracksFromCueFileToAdd);
 					if (!tracksFromCueFileToAdd.isEmpty()) {
 						playbackQueueService.addRows(queuePosition, tracksFromCueFileToAdd);
 						importProgressListener.accept("tracks from CUE file " + file.getName());
 						countOfTracksAddedFromAllCueFiles += tracksFromCueFileToAdd.size();
 						// Skip file that was added as individual tracks by CUE sheet
-						filesInDirByName.remove(cueTargetFile.getName());
+						cueTargetFiles.stream().map(File::getName).forEach(filesInDirByName::remove);
 					}
 				}
 				queuePosition += countOfTracksAddedFromAllCueFiles;
@@ -171,60 +172,65 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 		});
 	}
 
-	private File processCueFile(File directory, File cueFile, List<PlaybackQueueEntry> tracksFromCueToAdd) {
-		File cueTargetFile = null;
+	private List<File> processCueFile(File directory, File cueFile, List<PlaybackQueueEntry> tracksFromCueToAdd) {
+		List<File> cueTargetFiles = new ArrayList<>();
 		try {
 			CueData cueData = CueSheetParser.parseCueFile(cueFile);
-			if (cueData.getFileData() != null && cueData.getFileData().getFile() != null && cueData.getFileData().getTracks() != null
-					&& !cueData.getFileData().getTracks().isEmpty()) {
-				String targetFilePath = cueData.getFileData().getFile();
-				cueTargetFile = new File(directory, targetFilePath);
-				if (!cueTargetFile.exists()) {
-					return null;
-				}
-				Long targetFileDurationMilliseconds = AudioFileUtil.getAudioFileDurationInMilliseconds(cueTargetFile);
-				if (targetFileDurationMilliseconds != null) {
-					PlaybackQueueEntry previousTrack = null;
-					for (CueDataTrackData cueTrack : cueData.getFileData().getTracks()) {
-						if (cueTrack.getIndexes() != null && !cueTrack.getIndexes().isEmpty()
-								&& "audio".equalsIgnoreCase(cueTrack.getDataType())) {
-							Long startTime = cueIndexTimeToMillisec(cueTrack.getIndexes().get(0).getIndexValue());
+			if (cueData.getFileData() != null && cueData.getFileData() != null && !cueData.getFileData().isEmpty()) {
+				for (CueDataFileData cueFileTargetFile : cueData.getFileData()) {
+					String targetFilePath = cueFileTargetFile.getFile();
+					if (targetFilePath == null || cueFileTargetFile.getTracks() == null || cueFileTargetFile.getTracks().isEmpty()) {
+						continue;
+					}
+					File cueTargetFile = new File(directory, targetFilePath);
+					if (!cueTargetFile.exists()) {
+						continue;
+					}
+					cueTargetFiles.add(cueTargetFile);
+					Long targetFileDurationMilliseconds = AudioFileUtil.getAudioFileDurationInMilliseconds(cueTargetFile);
+					if (targetFileDurationMilliseconds != null) {
+						PlaybackQueueEntry previousTrack = null;
+						for (CueDataTrackData cueTrack : cueFileTargetFile.getTracks()) {
+							if (cueTrack.getIndexes() != null && !cueTrack.getIndexes().isEmpty()
+									&& "audio".equalsIgnoreCase(cueTrack.getDataType())) {
+								Long startTime = cueIndexTimeToMillisec(cueTrack.getIndexes().get(0).getIndexValue());
 
-							PlaybackQueueEntry track = PlaybackQueueEntry.builder()
-									.cueSheetTrack(true)
-									.targetFileFullPath(cueTargetFile.getAbsolutePath())
-									.targetFileName(cueTrack.getTitle())
-									.cueSheetTrackStartTimeMillis(startTime)
-									.trackMetadata(TrackMetadata.builder()
-											.title(cueTrack.getTitle())
-											.artist(cueTrack.getPerformer() != null && !cueTrack.getPerformer().isBlank()
-													? cueTrack.getPerformer()
-													: cueData.getPerformer())
-											.album(cueData.getTitle())
-											.trackNumber(cueTrack.getNumber())
-											.date(cueData.getRems().get("DATE"))
-											.build())
-									.build();
+								PlaybackQueueEntry track = PlaybackQueueEntry.builder()
+										.cueSheetTrack(true)
+										.targetFileFullPath(cueTargetFile.getAbsolutePath())
+										.targetFileName(cueTrack.getTitle())
+										.cueSheetTrackStartTimeMillis(startTime)
+										.trackMetadata(TrackMetadata.builder()
+												.title(cueTrack.getTitle())
+												.artist(cueTrack.getPerformer() != null && !cueTrack.getPerformer().isBlank()
+														? cueTrack.getPerformer()
+														: cueData.getPerformer())
+												.album(cueData.getTitle())
+												.trackNumber(cueTrack.getNumber())
+												.date(cueData.getRems().get("DATE"))
+												.build())
+										.build();
 
-							cueTrack.getIndexes().get(0);
-							if (previousTrack != null) {
-								long prevTrackDuration = startTime - previousTrack.getCueSheetTrackStartTimeMillis();
-								previousTrack.setCueSheetTrackFinishTimeMillis(startTime);
-								previousTrack.setDuration(prevTrackDuration);
+								cueTrack.getIndexes().get(0);
+								if (previousTrack != null) {
+									long prevTrackDuration = startTime - previousTrack.getCueSheetTrackStartTimeMillis();
+									previousTrack.setCueSheetTrackFinishTimeMillis(startTime);
+									previousTrack.setDuration(prevTrackDuration);
+								}
+								tracksFromCueToAdd.add(track);
+
+								previousTrack = track;
 							}
-							tracksFromCueToAdd.add(track);
-
-							previousTrack = track;
 						}
-					}
 
-					if (previousTrack != null) {
-						long prevTrackDuration = targetFileDurationMilliseconds - previousTrack.getCueSheetTrackStartTimeMillis();
-						previousTrack.setCueSheetTrackFinishTimeMillis(targetFileDurationMilliseconds);
-						previousTrack.setDuration(prevTrackDuration);
+						if (previousTrack != null) {
+							long prevTrackDuration = targetFileDurationMilliseconds - previousTrack.getCueSheetTrackStartTimeMillis();
+							previousTrack.setCueSheetTrackFinishTimeMillis(targetFileDurationMilliseconds);
+							previousTrack.setDuration(prevTrackDuration);
+						}
+					} else {
+						LOGGER.warning("Unable to determine cue file target file audio duration " + cueFile.getAbsolutePath());
 					}
-				} else {
-					LOGGER.warning("Unable to determine cue file target file audio duration " + cueFile.getAbsolutePath());
 				}
 			} else {
 				LOGGER.warning("Missing file data in cue file " + cueFile.getAbsolutePath());
@@ -232,7 +238,7 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 		} catch (Throwable t) {
 			LOGGER.log(Level.SEVERE, "Failed to process cue file " + cueFile.getAbsolutePath(), t);
 		}
-		return cueTargetFile;
+		return cueTargetFiles;
 	}
 
 	private long cueIndexTimeToMillisec(String indexValue) {

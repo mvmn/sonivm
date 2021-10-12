@@ -50,6 +50,7 @@ public class CueSheetParser {
 		CueDataBuilder cueDataBuilder = CueData.builder();
 		CueDataTrackDataBuilder trackBuilder = null;
 		CueDataFileDataBuilder fileDataBuilder = null;
+		List<CueDataFileData> files = new ArrayList<>();
 		ParserState state = ParserState.TOPLEVEL;
 
 		List<CueDataTrackData> tracks = new ArrayList<>();
@@ -84,6 +85,20 @@ public class CueSheetParser {
 					}
 				}
 			} else if ("FILE".equals(firstWord)) {
+				if (fileDataBuilder != null) {
+					if (trackBuilder != null) {
+						// Complete current track
+						if (trackIndexes != null) {
+							trackBuilder.indexes(trackIndexes);
+						}
+						tracks.add(trackBuilder.rems(trackRems).build());
+						trackRems = new HashMap<>();
+					}
+
+					fileDataBuilder.tracks(tracks);
+					files.add(fileDataBuilder.build());
+					tracks = new ArrayList<>();
+				}
 				state = ParserState.FILE;
 				fileDataBuilder = CueDataFileData.builder();
 				List<String> params = toIndividualParams(reminder);
@@ -93,7 +108,7 @@ public class CueSheetParser {
 						fileDataBuilder.fileAudioType(params.get(1));
 					}
 				} else {
-					LOGGER.fine("Missling parameter to a file meta of cue file " + fileName + " line " + i);
+					LOGGER.fine("Missing parameter to a file meta of cue file " + fileName + " line " + i);
 				}
 			} else if ("TRACK".equals(firstWord)) {
 				if (ParserState.TRACK == state) {
@@ -191,8 +206,9 @@ public class CueSheetParser {
 
 		if (fileDataBuilder != null) {
 			fileDataBuilder.tracks(tracks);
-			cueDataBuilder.fileData(fileDataBuilder.build()).rems(sheetRems);
+			files.add(fileDataBuilder.build());
 		}
+		cueDataBuilder.fileData(files).rems(sheetRems);
 
 		return cueDataBuilder.build();
 	}
