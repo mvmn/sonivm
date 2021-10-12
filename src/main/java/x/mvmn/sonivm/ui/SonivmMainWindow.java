@@ -344,7 +344,6 @@ public class SonivmMainWindow extends JFrame {
 		}
 		this.lblNowPlayingTrack.setText(trackInfoText);
 		this.lblNowPlayingTrack.setToolTipText(fileInfo);
-
 	}
 
 	public void scrollToTrack(int rowNumber) {
