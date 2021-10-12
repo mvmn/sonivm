@@ -1,18 +1,18 @@
 package x.mvmn.sonivm.ui.model;
 
-import javax.annotation.PostConstruct;
+import java.util.Collections;
+import java.util.List;
+
 import javax.swing.table.AbstractTableModel;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import x.mvmn.sonivm.playqueue.PlaybackQueueChangeListener;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.util.TimeUnitUtil;
-import x.mvmn.sonivm.util.ui.swing.SwingUtil;
 
 @Component
-public class PlaybackQueueTableModel extends AbstractTableModel implements PlaybackQueueChangeListener {
+public class PlaybackQueueTableModel extends AbstractTableModel {
 	private static final long serialVersionUID = -4393495956274405244L;
 
 	private static final String[] columnNames = new String[] { "#", "N", "Title", "Artist", "Album", "Length", "Date", "Genre" };
@@ -20,10 +20,7 @@ public class PlaybackQueueTableModel extends AbstractTableModel implements Playb
 	@Autowired
 	private PlaybackQueueService playQueueService;
 
-	@PostConstruct
-	private void initPostConstruct() {
-		playQueueService.setChangeListener(this);
-	}
+	private volatile List<Integer> searchMatchedRows = Collections.emptyList();
 
 	// Columns
 	@Override
@@ -81,18 +78,21 @@ public class PlaybackQueueTableModel extends AbstractTableModel implements Playb
 		return playQueueService.getCurrentQueuePosition();
 	}
 
-	@Override
-	public void onTableRowsUpdate(int firstRow, int lastRow, boolean waitForUiUpdate) {
-		SwingUtil.runOnEDT(() -> this.fireTableRowsUpdated(firstRow, lastRow), waitForUiUpdate);
+
+
+	public boolean isSearchMatched(Integer row) {
+		return this.searchMatchedRows.contains(row);
 	}
 
-	@Override
-	public void onTableRowsInsert(int firstRow, int lastRow, boolean waitForUiUpdate) {
-		SwingUtil.runOnEDT(() -> this.fireTableRowsInserted(firstRow, lastRow), waitForUiUpdate);
+	public void setSearchMatchedRows(List<Integer> rows) {
+		fireRowsChanged(this.searchMatchedRows);
+		this.searchMatchedRows = rows;
+		fireRowsChanged(rows);
 	}
 
-	@Override
-	public void onTableRowsDelete(int firstRow, int lastRow, boolean waitForUiUpdate) {
-		SwingUtil.runOnEDT(() -> this.fireTableRowsDeleted(firstRow, lastRow), waitForUiUpdate);
+	private void fireRowsChanged(List<Integer> rows) {
+		if (!rows.isEmpty()) {
+			rows.forEach(row -> fireTableRowsUpdated(row, row));
+		}
 	}
 }

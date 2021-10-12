@@ -37,8 +37,8 @@ import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
 import x.mvmn.sonivm.ui.UsernamePasswordDialog;
 import x.mvmn.sonivm.ui.model.AudioDeviceOption;
+import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.Pair;
-import x.mvmn.sonivm.util.ui.swing.SwingUtil;
 
 @SpringBootApplication
 @Component
@@ -172,6 +172,16 @@ public class SonivmLauncher implements Runnable {
 						.build());
 		menuBuilderLastFMScrobblePercentage.build().build();
 
+		JMenuBuilder<JMenuBuilder<JMenuBarBuilder>> menuBuilderAudioDevice = menuBuilder.subMenu("AudioDevice");
+		ButtonGroup rbGroupAudioDevices = new ButtonGroup();
+		audioDevices.forEach(ad -> menuBuilderAudioDevice.item(ad.toString())
+				.radioButton()
+				.checked(ad.getAudioDeviceInfo() == null)
+				.group(rbGroupAudioDevices)
+				.actr(actEvent -> sonivmController.onSetAudioDevice(ad))
+				.build());
+		menuBuilderAudioDevice.build();
+
 		String currentLnF = SwingUtil.getLookAndFeelName(UIManager.getLookAndFeel());
 		JMenuBuilder<JMenuBuilder<JMenuBarBuilder>> menuBuilderLnF = menuBuilder.subMenu("Look&Feel");
 		ButtonGroup rbGroupLookAndFeels = new ButtonGroup();
@@ -184,16 +194,6 @@ public class SonivmLauncher implements Runnable {
 						.actr(e -> sonivmController.onSetLookAndFeel(lnf))
 						.build());
 		menuBuilderLnF.build();
-
-		JMenuBuilder<JMenuBuilder<JMenuBarBuilder>> menuBuilderAudioDevice = menuBuilder.subMenu("AudioDevice");
-		ButtonGroup rbGroupAudioDevices = new ButtonGroup();
-		audioDevices.forEach(ad -> menuBuilderAudioDevice.item(ad.toString())
-				.radioButton()
-				.checked(ad.getAudioDeviceInfo() == null)
-				.group(rbGroupAudioDevices)
-				.actr(actEvent -> sonivmController.onSetAudioDevice(ad))
-				.build());
-		menuBuilderAudioDevice.build();
 
 		Logger rootLogger = Logger.getLogger("x.mvmn.sonivm");
 		Level currentLogLevel = rootLogger.getLevel();

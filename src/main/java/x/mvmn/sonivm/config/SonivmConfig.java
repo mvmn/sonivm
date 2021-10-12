@@ -13,7 +13,7 @@ import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
-import x.mvmn.sonivm.util.ui.swing.SwingUtil;
+import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 
 @Configuration
 public class SonivmConfig {

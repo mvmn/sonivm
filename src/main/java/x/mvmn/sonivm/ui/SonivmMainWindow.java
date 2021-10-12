@@ -1,7 +1,9 @@
 package x.mvmn.sonivm.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.Point;
@@ -13,6 +15,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.List;
 import java.util.stream.Stream;
 
 import javax.swing.AbstractAction;
@@ -32,22 +35,27 @@ import javax.swing.JScrollPane;
 import javax.swing.JSlider;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
+import javax.swing.UIManager;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
 import x.mvmn.sonivm.ui.model.RepeatMode;
 import x.mvmn.sonivm.ui.model.ShuffleMode;
+import x.mvmn.sonivm.ui.util.swing.ImageUtil;
+import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.TimeUnitUtil;
-import x.mvmn.sonivm.util.ui.swing.ImageUtil;
-import x.mvmn.sonivm.util.ui.swing.SwingUtil;
 
 public class SonivmMainWindow extends JFrame {
 	private static final long serialVersionUID = -3402450540379541023L;
 
+	private final PlaybackQueueTableModel playbackQueueTableModel;
 	private final JLabel lblStatus;
 	private final JLabel lblNowPlayingTrack;
 	private final JLabel lblPlayTimeElapsed;
@@ -67,11 +75,17 @@ public class SonivmMainWindow extends JFrame {
 	private final ImageIcon lastFMDefault;
 	private final ImageIcon lastFMConnected;
 	private final ImageIcon lastFMDisconnected;
+	private final JTextField tfSearch;
+	private final JButton btnSearchNextMatch;
+	private final JButton btnSearchPreviousMatch;
+	private final JLabel lblSearchMatchesCount;
+	private final JLabel lblQueueSize;
 
 	private volatile boolean seekSliderIsDragged;
 
 	public SonivmMainWindow(String title, SonivmController controller, PlaybackQueueTableModel playbackQueueTableModel) {
 		super(title);
+		this.playbackQueueTableModel = playbackQueueTableModel;
 
 		tblPlayQueue = new JTable(playbackQueueTableModel);
 		tblPlayQueue.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
@@ -80,24 +94,89 @@ public class SonivmMainWindow extends JFrame {
 		tblPlayQueue.setDefaultRenderer(String.class, new DefaultTableCellRenderer() {
 			private static final long serialVersionUID = 8392498039681170058L;
 
+			private final JLabel renderJLabel = new JLabel();
+			{
+				renderJLabel.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 4));
+				renderJLabel.setOpaque(true);
+			}
+
 			@Override
 			public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row,
 					int column) {
-				Component result = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+				// Component result = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+				renderJLabel.setText(value != null ? value.toString() : "");
 
-				if (row == playbackQueueTableModel.getIndexOfHighlightedRow()) {
-					result.setFont(result.getFont().deriveFont(Font.BOLD));
+				boolean isHighlighted = row == playbackQueueTableModel.getIndexOfHighlightedRow();
+				renderJLabel.setFont(isHighlighted ? tblPlayQueue.getFont().deriveFont(Font.BOLD) : tblPlayQueue.getFont());
+				renderJLabel.setHorizontalAlignment(column == 0 || column == 1 || column == 5 || column == 6 ? JLabel.RIGHT : JLabel.LEFT);
+
+				Color fgRegular = table.getForeground();
+				Color bgRegular = table.getBackground();
+
+				Color fgSelected = table.getSelectionForeground();
+				Color bgSelected = table.getSelectionBackground();
+
+				// From DefaultTableCellRenderer
+				JTable.DropLocation dropLocation = table.getDropLocation();
+				if (dropLocation != null && !dropLocation.isInsertRow() && !dropLocation.isInsertColumn() && dropLocation.getRow() == row
+						&& dropLocation.getColumn() == column) {
+					isSelected = true;
+					fgSelected = lookupInUIDefaults("Table.dropCellForeground", fgSelected);
+					bgSelected = lookupInUIDefaults("Table.dropCellBackground", bgSelected);
 				}
 
-				return result;
+				// if (hasFocus) {
+				// isSelected = true;
+				//
+				// fgSelected = lookupInUIDefaults("Table.focusCellForeground", fgSelected);
+				// bgSelected = lookupInUIDefaults("Table.focusCellBackground", bgSelected);
+				// }
+
+				if (isHighlighted) {
+					bgRegular = altColor(bgRegular, false, 50, -10, -10);
+				} else if (playbackQueueTableModel.isSearchMatched(row)) {
+					bgRegular = altColor(bgRegular, false, -10, 50, 10);
+				} else if (row % 2 == 0) {
+					bgRegular = SwingUtil.modifyColor(bgRegular, -10, -10, -10);
+				}
+
+				fgRegular = altColor(fgRegular, isHighlighted, 20, 20, 20);
+				fgSelected = altColor(fgSelected, isHighlighted, 20, 20, 20);
+
+				renderJLabel.setForeground(isSelected ? fgSelected : fgRegular);
+				renderJLabel.setBackground(isSelected ? bgSelected : bgRegular);
+
+				// super.setForeground(isSelected ? fgSelected : fgRegular);
+				// super.setBackground(isSelected ? bgSelected : bgRegular);
+
+				return renderJLabel;
+			}
+
+			private Color altColor(Color color, boolean highlight, int deltaRed, int deltaGreen, int deltaBlue) {
+				if (color.getRed() > 127 && !highlight) {
+					return SwingUtil.modifyColor(color, -deltaRed, -deltaGreen, -deltaBlue);
+				} else {
+					return SwingUtil.modifyColor(color, deltaRed, deltaGreen, deltaBlue);
+				}
+			}
+
+			@Override
+			public boolean isOpaque() {
+				return true;
+			}
+
+			private Color lookupInUIDefaults(String key, Color defaultColor) {
+				Color result = UIManager.getColor(key);
+				return result != null ? result : defaultColor;
 			}
 		});
-		DefaultTableCellRenderer rightRendererForDuration = new DefaultTableCellRenderer();
-		rightRendererForDuration.setHorizontalAlignment(JLabel.RIGHT);
-		tblPlayQueue.getColumnModel().getColumn(5).setCellRenderer(rightRendererForDuration);
-		DefaultTableCellRenderer rightRendererForDate = new DefaultTableCellRenderer();
-		rightRendererForDate.setHorizontalAlignment(JLabel.RIGHT);
-		tblPlayQueue.getColumnModel().getColumn(6).setCellRenderer(rightRendererForDate);
+
+		// DefaultTableCellRenderer rightRendererForDuration = new DefaultTableCellRenderer();
+		// rightRendererForDuration.setHorizontalAlignment(JLabel.RIGHT);
+		// tblPlayQueue.getColumnModel().getColumn(5).setCellRenderer(rightRendererForDuration);
+		// DefaultTableCellRenderer rightRendererForDate = new DefaultTableCellRenderer();
+		// rightRendererForDate.setHorizontalAlignment(JLabel.RIGHT);
+		// tblPlayQueue.getColumnModel().getColumn(6).setCellRenderer(rightRendererForDate);
 
 		treeTrackLibrary = new JTree();
 
@@ -110,6 +189,17 @@ public class SonivmMainWindow extends JFrame {
 		lblPlayTimeElapsed = new JLabel("00:00 / 00:00");
 		lblPlayTimeRemaining = new JLabel("-00:00 / 00:00");
 		// lblPlayTimeTotal = new JLabel("00:00");
+		lblQueueSize = new JLabel("" + playbackQueueTableModel.getRowCount());
+
+		tfSearch = new JTextField("");
+		tfSearch.setMinimumSize(
+				new Dimension(tfSearch.getFontMetrics(tfSearch.getFont()).stringWidth("Hello to all the world out there 12345"),
+						tfSearch.getMinimumSize().height));
+		tfSearch.setPreferredSize(tfSearch.getMinimumSize());
+
+		btnSearchNextMatch = new JButton("V");
+		btnSearchPreviousMatch = new JButton("^");
+		lblSearchMatchesCount = new JLabel("0");
 
 		cmbShuffleMode = new JComboBox<>(ShuffleMode.values());
 		cmbRepeatMode = new JComboBox<>(RepeatMode.values());
@@ -171,8 +261,25 @@ public class SonivmMainWindow extends JFrame {
 		lastFMStatusIcon = new JLabel();
 		lastFMStatusIcon.setHorizontalAlignment(JLabel.RIGHT);
 		lastFMStatusIcon.setIcon(lastFMDefault);
+		lastFMStatusIcon.setBorder(BorderFactory.createEmptyBorder(0, 2, 0, 0));
 
-		JPanel bottomPanel = SwingUtil.panel(BorderLayout::new).addCenter(lblStatus).addEast(lastFMStatusIcon).build();
+		JPanel bottomPanel = SwingUtil.panel(BorderLayout::new)
+				.addCenter(lblStatus)
+				.addEast(SwingUtil.panel(pnl -> new BoxLayout(pnl, BoxLayout.X_AXIS))
+						.addSeparator(true)
+						.add(SwingUtil.withEmptyBorder(new JLabel("Tracks in queue:"), 0, 4, 0, 0))
+						.add(SwingUtil.withEmptyBorder(lblQueueSize, 0, 2, 0, 4))
+						.addSeparator(true)
+						.add(SwingUtil.withEmptyBorder(new JLabel("Search:"), 0, 4, 0, 0))
+						.add(tfSearch)
+						.add(SwingUtil.withEmptyBorder(new JLabel("Matches:"), 0, 4, 0, 0))
+						.add(SwingUtil.withEmptyBorder(lblSearchMatchesCount, 0, 2, 0, 4))
+						.add(btnSearchNextMatch)
+						.add(btnSearchPreviousMatch)
+						.addSeparator(true)
+						.add(lastFMStatusIcon)
+						.build())
+				.build();
 		bottomPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 		volumeSlider.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 		seekSlider.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
@@ -288,6 +395,24 @@ public class SonivmMainWindow extends JFrame {
 
 		cmbRepeatMode.addActionListener(actEvent -> controller.onRepeatModeSwitch((RepeatMode) cmbRepeatMode.getSelectedItem()));
 		cmbShuffleMode.addActionListener(actEvent -> controller.onShuffleModeSwitch((ShuffleMode) cmbShuffleMode.getSelectedItem()));
+
+		tfSearch.getDocument().addDocumentListener(new DocumentListener() {
+			@Override
+			public void removeUpdate(DocumentEvent e) {
+				controller.onSearchValueChange(tfSearch.getText());
+			}
+
+			@Override
+			public void insertUpdate(DocumentEvent e) {
+				controller.onSearchValueChange(tfSearch.getText());
+			}
+
+			@Override
+			public void changedUpdate(DocumentEvent e) {}
+		});
+
+		btnSearchNextMatch.addActionListener(actEvent -> controller.onSearchNextMatch());
+		btnSearchPreviousMatch.addActionListener(actEvent -> controller.onSearchPreviousMatch());
 	}
 
 	public JTable getPlayQueueTable() {
@@ -352,18 +477,31 @@ public class SonivmMainWindow extends JFrame {
 	}
 
 	public void scrollToTrack(int rowNumber) {
-		tblPlayQueue.scrollRectToVisible(new Rectangle(tblPlayQueue.getCellRect(rowNumber, 0, true)));
+		this.tblPlayQueue.scrollRectToVisible(new Rectangle(tblPlayQueue.getCellRect(rowNumber, 0, true)));
+	}
+
+	public void selectTrack(int rowNumber) {
+		this.tblPlayQueue.getSelectionModel().setSelectionInterval(rowNumber, rowNumber);
 	}
 
 	public void updateRepeatView(RepeatMode repeatMode) {
-		cmbRepeatMode.setSelectedItem(repeatMode);
+		this.cmbRepeatMode.setSelectedItem(repeatMode);
 	}
 
 	public void updateShuffleView(RepeatMode shuffleMode) {
-		cmbShuffleMode.setSelectedItem(shuffleMode);
+		this.cmbShuffleMode.setSelectedItem(shuffleMode);
 	}
 
 	public void updateLastFMStatus(boolean ok) {
-		lastFMStatusIcon.setIcon(ok ? lastFMConnected : lastFMDisconnected);
+		this.lastFMStatusIcon.setIcon(ok ? lastFMConnected : lastFMDisconnected);
+	}
+
+	public void setSearchMatchedRows(List<Integer> rows) {
+		this.playbackQueueTableModel.setSearchMatchedRows(rows);
+		this.lblSearchMatchesCount.setText(String.valueOf(rows.size()));
+	}
+
+	public void updatePlayQueueSizeLabel() {
+		this.lblQueueSize.setText("" + playbackQueueTableModel.getRowCount());
 	}
 }

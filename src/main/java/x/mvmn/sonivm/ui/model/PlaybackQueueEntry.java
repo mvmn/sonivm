@@ -1,6 +1,7 @@
 package x.mvmn.sonivm.ui.model;
 
 import java.beans.Transient;
+import java.util.function.Function;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -67,7 +68,8 @@ public class PlaybackQueueEntry {
 
 	public Long getDuration() {
 		if (cueSheetTrack) {
-			return (cueSheetTrackFinishTimeMillis - cueSheetTrackStartTimeMillis) / 1000;
+			long result = (cueSheetTrackFinishTimeMillis - cueSheetTrackStartTimeMillis) / 1000;
+			return Math.max(0, result);
 		}
 		return duration != null ? duration : (trackMetadata != null ? trackMetadata.getDuration() : null);
 	}
@@ -79,5 +81,30 @@ public class PlaybackQueueEntry {
 		} else {
 			return String.format("%1$s \"%2$s\" (%4$s) - %3$s", getArtist(), getAlbum(), getTitle(), getDate());
 		}
+	}
+
+	public boolean artistMatches(PlaybackQueueEntry other) {
+		return propertyEquals(this, other, PlaybackQueueEntry::getArtist);
+	}
+
+	public boolean albumMatches(PlaybackQueueEntry other) {
+		return propertyEquals(this, other, PlaybackQueueEntry::getAlbum);
+	}
+
+	private static boolean propertyEquals(PlaybackQueueEntry entryA, PlaybackQueueEntry entryB,
+			Function<PlaybackQueueEntry, String> propertyExtractor) {
+		String valA = propertyExtractor.apply(entryA);
+		String valB = propertyExtractor.apply(entryB);
+		return trackPropertiesEqual(valA, valB);
+	}
+
+	private static boolean trackPropertiesEqual(String valA, String valB) {
+		if (valA == null) {
+			valA = "";
+		}
+		if (valB == null) {
+			valB = "";
+		}
+		return valA.trim().equalsIgnoreCase(valB.trim());
 	}
 }

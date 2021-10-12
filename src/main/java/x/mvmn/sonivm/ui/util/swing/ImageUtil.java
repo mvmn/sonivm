@@ -1,4 +1,4 @@
-package x.mvmn.sonivm.util.ui.swing;
+package x.mvmn.sonivm.ui.util.swing;
 
 import javax.swing.ImageIcon;
 

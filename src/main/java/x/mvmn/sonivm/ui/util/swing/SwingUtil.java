@@ -1,6 +1,7 @@
-package x.mvmn.sonivm.util.ui.swing;
+package x.mvmn.sonivm.ui.util.swing;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Frame;
@@ -26,6 +27,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JFormattedTextField;
 import javax.swing.JPanel;
+import javax.swing.JSeparator;
 import javax.swing.JSlider;
 import javax.swing.LookAndFeel;
 import javax.swing.SwingConstants;
@@ -300,6 +302,11 @@ public class SwingUtil {
 			return this;
 		}
 
+		public PanelBuilder addSeparator(boolean vertical) {
+			this.panel.add(new JSeparator(vertical ? SwingConstants.VERTICAL : SwingConstants.HORIZONTAL));
+			return this;
+		}
+
 		public JPanel build() {
 			return panel;
 		}
@@ -352,5 +359,25 @@ public class SwingUtil {
 				}
 			}
 		});
+	}
+
+	public static Color modifyColor(Color color, int redDelta, int greenDelta, int blueDelta) {
+		return new Color(normalizeColorComponent(color.getRed() + redDelta), normalizeColorComponent(color.getGreen() + greenDelta),
+				normalizeColorComponent(color.getBlue() + blueDelta), color.getAlpha());
+	}
+
+	private static int normalizeColorComponent(int value) {
+		if (value < 0) {
+			value = 0;
+		}
+		if (value > 255) {
+			value = 255;
+		}
+		return value;
+	}
+
+	public static JComponent withEmptyBorder(JComponent cmp, int top, int left, int bottom, int right) {
+		cmp.setBorder(BorderFactory.createEmptyBorder(top, left, bottom, right));
+		return cmp;
 	}
 }

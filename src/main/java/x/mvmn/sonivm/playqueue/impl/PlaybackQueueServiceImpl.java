@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Predicate;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import x.mvmn.sonivm.model.IntRange;
@@ -21,7 +23,8 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	private static final Object QUEUE_POSITION_LOCK_OBJ = new Object();
 	private static final Object DATA_LOCK_OBJ = new Object();
 
-	private PlaybackQueueChangeListener changeListener;
+	@Autowired
+	private List<PlaybackQueueChangeListener> changeListeners;
 
 	@Override
 	public int getCurrentQueuePosition() {
@@ -207,69 +210,41 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	}
 
 	@Override
-	public void setChangeListener(PlaybackQueueChangeListener changeListener) {
-		this.changeListener = changeListener;
+	public void addChangeListener(PlaybackQueueChangeListener changeListener) {
+		this.changeListeners.add(changeListener);
 	}
 
 	private void onTableRowsUpdate(int firstRow, int lastRow, boolean waitForUiUpdate) {
-		if (changeListener != null) {
+		for (PlaybackQueueChangeListener changeListener : changeListeners) {
 			changeListener.onTableRowsUpdate(firstRow, lastRow, waitForUiUpdate);
 		}
 	}
 
 	private void onTableRowsInsert(int firstRow, int lastRow, boolean waitForUiUpdate) {
-		if (changeListener != null) {
+		for (PlaybackQueueChangeListener changeListener : changeListeners) {
 			changeListener.onTableRowsInsert(firstRow, lastRow, waitForUiUpdate);
 		}
-
 	}
 
 	private void onTableRowsDelete(int firstRow, int lastRow, boolean waitForUiUpdate) {
-		if (changeListener != null) {
+		for (PlaybackQueueChangeListener changeListener : changeListeners) {
 			changeListener.onTableRowsDelete(firstRow, lastRow, waitForUiUpdate);
 		}
 	}
 
 	@Override
-	public int[] findTracksByProperty(String value, boolean useArtist) {
-		if (value == null) {
-			value = "";
-		} else {
-			value = value.trim();
-		}
+	public int[] findTracks(Predicate<PlaybackQueueEntry> matches) {
 		List<Integer> result = new ArrayList<>();
 		synchronized (DATA_LOCK_OBJ) {
 			int rows = data.size();
 			for (int i = 0; i < rows; i++) {
 				PlaybackQueueEntry queueEntry = data.get(i);
-				String valB = useArtist ? queueEntry.getArtist() : queueEntry.getAlbum();
-				if (valB == null) {
-					valB = "";
-				} else {
-					valB = valB.trim();
-				}
-				if (trackPropertiesEqual(value, valB)) {
+				if (matches.test(queueEntry)) {
 					result.add(i);
 				}
 			}
 		}
 		return result.stream().mapToInt(Integer::intValue).toArray();
-	}
-
-	private boolean propertyEquals(PlaybackQueueEntry entryA, PlaybackQueueEntry entryB, boolean byArtist) {
-		String valA = byArtist ? entryA.getArtist() : entryA.getAlbum();
-		String valB = byArtist ? entryB.getArtist() : entryB.getAlbum();
-		return trackPropertiesEqual(valA, valB);
-	}
-
-	private boolean trackPropertiesEqual(String valA, String valB) {
-		if (valA == null) {
-			valA = "";
-		}
-		if (valB == null) {
-			valB = "";
-		}
-		return valA.trim().equalsIgnoreCase(valB.trim());
 	}
 
 	@Override
@@ -281,7 +256,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 				int start = currentPosition;
 				while (start > 0) {
 					PlaybackQueueEntry prevTrack = data.get(start - 1);
-					if (!propertyEquals(currentTrack, prevTrack, byArtist)) {
+					if (!(byArtist ? currentTrack.artistMatches(prevTrack) : currentTrack.albumMatches(prevTrack))) {
 						break;
 					} else {
 						start--;
@@ -290,7 +265,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 				int end = currentPosition;
 				while (end < trackCount - 1) {
 					PlaybackQueueEntry nextTrack = data.get(end + 1);
-					if (!propertyEquals(currentTrack, nextTrack, byArtist)) {
+					if (!(byArtist ? currentTrack.artistMatches(nextTrack) : currentTrack.albumMatches(nextTrack))) {
 						break;
 					} else {
 						end++;

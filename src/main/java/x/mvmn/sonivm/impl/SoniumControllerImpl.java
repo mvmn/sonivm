@@ -2,6 +2,7 @@ package x.mvmn.sonivm.impl;
 
 import java.io.File;
 import java.security.GeneralSecurityException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -10,6 +11,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.annotation.PostConstruct;
 import javax.swing.table.TableColumnModel;
@@ -39,13 +42,14 @@ import x.mvmn.sonivm.ui.model.AudioDeviceOption;
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
 import x.mvmn.sonivm.ui.model.RepeatMode;
 import x.mvmn.sonivm.ui.model.ShuffleMode;
+import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.SonivmShutdownListener;
-import x.mvmn.sonivm.util.ui.swing.SwingUtil;
+import x.mvmn.sonivm.util.StringUtil;
 
 @Component
-public class SonivumControllerImpl implements SonivmController {
+public class SoniumControllerImpl implements SonivmController {
 
-	private static final Logger LOGGER = Logger.getLogger(SonivumControllerImpl.class.getSimpleName());
+	private static final Logger LOGGER = Logger.getLogger(SoniumControllerImpl.class.getSimpleName());
 
 	@Autowired
 	private AudioService audioService;
@@ -80,6 +84,9 @@ public class SonivumControllerImpl implements SonivmController {
 
 	private final ExecutorService lastFmScrobbleTaskExecutor = Executors.newFixedThreadPool(1);
 	private final AtomicReference<Session> lastFMSession = new AtomicReference<>();
+
+	private volatile List<Integer> searchMatches = Collections.emptyList();
+	private volatile int currentSearchMatch = -1;
 
 	@PostConstruct
 	public void initPostConstruct() {
@@ -153,7 +160,7 @@ public class SonivumControllerImpl implements SonivmController {
 				PlaybackQueueEntry currentTrack = playbackQueueService.getEntryByIndex(currentTrackQueuePos);
 				switch (shuffleState) {
 					case ALBUM: {
-						int[] matchingTrackIndexes = playbackQueueService.findTracksByProperty(currentTrack.getAlbum(), false);
+						int[] matchingTrackIndexes = playbackQueueService.findTracks(track -> currentTrack.albumMatches(track));
 						if (matchingTrackIndexes.length < 1) {
 							tryPlayFromStartOfQueue();
 						} else {
@@ -163,7 +170,7 @@ public class SonivumControllerImpl implements SonivmController {
 						return;
 					}
 					case ARTIST: {
-						int[] matchingTrackIndexes = playbackQueueService.findTracksByProperty(currentTrack.getArtist(), true);
+						int[] matchingTrackIndexes = playbackQueueService.findTracks(track -> currentTrack.artistMatches(track));
 						if (matchingTrackIndexes.length < 1) {
 							tryPlayFromStartOfQueue();
 						} else {
@@ -693,5 +700,62 @@ public class SonivumControllerImpl implements SonivmController {
 			LOGGER.log(Level.WARNING, "Security exception on getting LastFM password from prefs", e);
 		}
 		this.lastFMSession.set(null);
+	}
+
+	@Override
+	public void onSearchValueChange(String text) {
+		new Thread(() -> {
+			if (text == null || text.isBlank()) {
+				searchMatches = Collections.emptyList();
+			} else {
+				String finalText = text.toLowerCase();
+				searchMatches = IntStream
+						.of(playbackQueueService
+								.findTracks(queueEntry -> StringUtil.blankForNull(queueEntry.getArtist()).toLowerCase().contains(finalText)
+										|| StringUtil.blankForNull(queueEntry.getAlbum()).toLowerCase().contains(finalText)
+										|| StringUtil.blankForNull(queueEntry.getTitle()).toLowerCase().contains(finalText)
+										|| StringUtil.blankForNull(queueEntry.getDate()).toLowerCase().contains(finalText)
+										|| StringUtil.blankForNull(queueEntry.getGenre()).toLowerCase().contains(finalText)))
+						.mapToObj(Integer::valueOf)
+						.collect(Collectors.toList());
+			}
+			currentSearchMatch = -1;
+			SwingUtil.runOnEDT(() -> {
+				mainWindow.setSearchMatchedRows(searchMatches);
+				onSearchNextMatch();
+			}, false);
+		}).start();
+	}
+
+	@Override
+	public void onSearchNextMatch() {
+		int matchesCount = searchMatches.size();
+		if (matchesCount > 0) {
+			currentSearchMatch++;
+			if (currentSearchMatch >= matchesCount) {
+				currentSearchMatch = 0;
+			}
+		}
+		gotoSearchMatch();
+	}
+
+	@Override
+	public void onSearchPreviousMatch() {
+		int matchesCount = searchMatches.size();
+		if (matchesCount > 0) {
+			currentSearchMatch--;
+			if (currentSearchMatch < 0) {
+				currentSearchMatch = matchesCount - 1;
+			}
+		}
+		gotoSearchMatch();
+	}
+
+	private void gotoSearchMatch() {
+		if (currentSearchMatch > -1 && currentSearchMatch < searchMatches.size()) {
+			int row = searchMatches.get(currentSearchMatch);
+			mainWindow.scrollToTrack(row);
+			mainWindow.selectTrack(row);
+		}
 	}
 }

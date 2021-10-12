@@ -2,6 +2,7 @@ package x.mvmn.sonivm.tag.impl;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
 
@@ -13,9 +14,11 @@ import ealvatag.tag.FieldKey;
 import ealvatag.tag.Tag;
 import x.mvmn.sonivm.tag.TagRetrievalService;
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry.TrackMetadata;
+import x.mvmn.sonivm.util.StringUtil;
 
 @Service
 public class TagRetrievalServiceImpl implements TagRetrievalService {
+	private static final Pattern PTRN_DATE_STARTS_WITH_YEAR = Pattern.compile("^\\d{4}\\-.*");
 
 	@Override
 	public TrackMetadata getAudioFileMetadata(File file) {
@@ -25,12 +28,12 @@ public class TagRetrievalServiceImpl implements TagRetrievalService {
 			if (optionalTag.isPresent()) {
 				Tag tag = optionalTag.get();
 				return TrackMetadata.builder()
-						.trackNumber(nullForBlank(tag.getFirst(FieldKey.TRACK)))
-						.artist(nullForBlank(tag.getFirst(FieldKey.ARTIST)))
-						.album(nullForBlank(tag.getFirst(FieldKey.ALBUM)))
-						.title(nullForBlank(tag.getFirst(FieldKey.TITLE)))
-						.date(nullForBlank(tag.getFirst(FieldKey.YEAR)))
-						.genre(nullForBlank(tag.getFirst(FieldKey.GENRE)))
+						.trackNumber(StringUtil.nullForBlank(tag.getFirst(FieldKey.TRACK)))
+						.artist(StringUtil.nullForBlank(tag.getFirst(FieldKey.ARTIST)))
+						.album(StringUtil.nullForBlank(tag.getFirst(FieldKey.ALBUM)))
+						.title(StringUtil.nullForBlank(tag.getFirst(FieldKey.TITLE)))
+						.date(StringUtil.nullForBlank(convertDate(tag.getFirst(FieldKey.YEAR))))
+						.genre(StringUtil.nullForBlank(tag.getFirst(FieldKey.GENRE)))
 						.duration(audioFile.getAudioHeader().getDuration(TimeUnit.SECONDS, true))
 						.build();
 			}
@@ -40,7 +43,10 @@ public class TagRetrievalServiceImpl implements TagRetrievalService {
 		return null;
 	}
 
-	private String nullForBlank(String str) {
-		return str == null || str.isBlank() ? null : str;
+	private String convertDate(String date) {
+		if (date != null && PTRN_DATE_STARTS_WITH_YEAR.matcher(date.trim()).matches()) {
+			date = date.trim().substring(0, 4);
+		}
+		return date;
 	}
 }

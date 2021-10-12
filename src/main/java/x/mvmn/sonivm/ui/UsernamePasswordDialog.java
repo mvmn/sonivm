@@ -13,8 +13,8 @@ import javax.swing.JDialog;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
+import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.Pair;
-import x.mvmn.sonivm.util.ui.swing.SwingUtil;
 
 public class UsernamePasswordDialog extends JDialog {
 	private static final long serialVersionUID = 3943012295659417955L;

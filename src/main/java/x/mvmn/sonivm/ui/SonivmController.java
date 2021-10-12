@@ -47,4 +47,10 @@ public interface SonivmController extends PlaybackEventListener {
 	void onLastFMScrobblePercentageChange(int scrobblePercentageOption);
 
 	void onLastFMCredsOrKeysUpdate();
+
+	void onSearchValueChange(String text);
+
+	void onSearchNextMatch();
+
+	void onSearchPreviousMatch();
 }
