@@ -7,7 +7,7 @@ public class StringUtil {
 	}
 
 	public static String nullForBlank(String val) {
-		return val != null && val.isBlank() ? null : val;
+		return val != null && val.trim().isEmpty() ? null : val;
 	}
 
 	public static String nullForEmpty(String val) {

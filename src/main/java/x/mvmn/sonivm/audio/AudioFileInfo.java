@@ -8,6 +8,6 @@ import lombok.Data;
 public class AudioFileInfo {
 
 	private final String filePath;
-	private final Long durationSeconds;
+	private final Integer durationSeconds;
 	private final boolean seekable;
 }

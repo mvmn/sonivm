@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit;
 
 public class TimeUnitUtil {
 
-	public static String prettyPrintFromSeconds(final long seconds) {
+	public static String prettyPrintFromSeconds(final int seconds) {
 		final long hr = TimeUnit.SECONDS.toHours(seconds);
 		final long min = TimeUnit.SECONDS.toMinutes(seconds - TimeUnit.HOURS.toSeconds(hr));
 		final long sec = TimeUnit.SECONDS.toSeconds(seconds - TimeUnit.HOURS.toSeconds(hr) - TimeUnit.MINUTES.toSeconds(min));

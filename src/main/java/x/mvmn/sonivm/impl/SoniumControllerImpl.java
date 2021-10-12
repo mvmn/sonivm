@@ -411,7 +411,7 @@ public class SoniumControllerImpl implements SonivmController {
 			case PROGRESS:
 				if (currentAudioFileInfo != null) {
 					Long playbackPositionMillis;
-					long totalDurationSeconds;
+					int totalDurationSeconds;
 					PlaybackQueueEntry currentTrackInfo = this.currentTrackInfo;
 					long playbackPositionFromEvent = event.getPlaybackPositionMilliseconds();
 					if (currentTrackInfo != null && currentTrackInfo.isCueSheetTrack()) {
@@ -438,7 +438,7 @@ public class SoniumControllerImpl implements SonivmController {
 
 					SwingUtil.runOnEDT(() -> {
 						mainWindow.updateSeekSliderPosition(seekSliderNewPosition);
-						mainWindow.setCurrentPlayTimeDisplay(playbackPositionMillis / 1000, totalDurationSeconds);
+						mainWindow.setCurrentPlayTimeDisplay((int) (playbackPositionMillis / 1000), totalDurationSeconds);
 					}, false);
 					long totalListenTimeSeconds = this.currentTrackTotalListeningTimeMillisec
 							.addAndGet(event.getPlaybackDeltaMilliseconds()) / 1000;
@@ -703,9 +703,10 @@ public class SoniumControllerImpl implements SonivmController {
 	}
 
 	@Override
-	public void onSearchValueChange(String text) {
+	public void onSearchValueChange() {
+		String text = mainWindow.getSearchText();
 		new Thread(() -> {
-			if (text == null || text.isBlank()) {
+			if (text == null || text.trim().isEmpty()) {
 				searchMatches = Collections.emptyList();
 			} else {
 				String finalText = text.toLowerCase();

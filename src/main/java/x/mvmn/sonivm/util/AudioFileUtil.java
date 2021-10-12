@@ -10,16 +10,16 @@ import com.tagtraum.ffsampledsp.FFAudioFileReader;
 
 public class AudioFileUtil {
 
-	public static Long getAudioFileDurationInMilliseconds(File audioFile) throws IOException {
-		Long result = null;
+	public static Integer getAudioFileDurationInMilliseconds(File audioFile) throws IOException {
+		Integer result = null;
 		try {
 			AudioFileFormat format = new FFAudioFileReader().getAudioFileFormat(audioFile);
 			if (format.properties() != null && format.properties().get("duration") != null) {
 				Object duration = format.properties().get("duration");
 				if (duration instanceof Number) {
-					result = ((Number) duration).longValue() / 1000;
+					result = (int) (((Number) duration).longValue() / 1000);
 				} else {
-					result = Long.parseLong(duration.toString()) / 1000;
+					result = (int) (Long.parseLong(duration.toString()) / 1000);
 				}
 			}
 		} catch (UnsupportedAudioFileException e) {

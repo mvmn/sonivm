@@ -16,11 +16,11 @@ public class PlaybackQueueEntry {
 	private String targetFileFullPath;
 	private String targetFileName;
 	private boolean cueSheetTrack;
-	private Long cueSheetTrackStartTimeMillis;
-	private Long cueSheetTrackFinishTimeMillis;
+	private Integer cueSheetTrackStartTimeMillis;
+	private Integer cueSheetTrackFinishTimeMillis;
 
 	private volatile TrackMetadata trackMetadata;
-	private volatile Long duration;
+	private volatile Integer duration;
 
 	@Data
 	@Builder
@@ -33,7 +33,7 @@ public class PlaybackQueueEntry {
 		private String title;
 		private String date;
 		private String genre;
-		private Long duration;
+		private Integer duration;
 	}
 
 	@Transient
@@ -66,9 +66,9 @@ public class PlaybackQueueEntry {
 		return trackMetadata != null ? trackMetadata.getGenre() : null;
 	}
 
-	public Long getDuration() {
+	public Integer getDuration() {
 		if (cueSheetTrack) {
-			long result = (cueSheetTrackFinishTimeMillis - cueSheetTrackStartTimeMillis) / 1000;
+			int result = (int) ((cueSheetTrackFinishTimeMillis - cueSheetTrackStartTimeMillis) / 1000);
 			return Math.max(0, result);
 		}
 		return duration != null ? duration : (trackMetadata != null ? trackMetadata.getDuration() : null);

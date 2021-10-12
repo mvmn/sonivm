@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 
@@ -26,7 +27,8 @@ public class CueSheetParser {
 
 	private static final Logger LOGGER = Logger.getLogger(CueSheetParser.class.getCanonicalName());
 
-	private static final Set<String> IGNORED_METADATA = Set.of("ISRC", "CATALOG", "FLAGS", "CDTEXTFILE", "PREGAP", "POSTGAP");
+	private static final Set<String> IGNORED_METADATA = Stream.of("ISRC", "CATALOG", "FLAGS", "CDTEXTFILE", "PREGAP", "POSTGAP")
+			.collect(Collectors.toSet());
 
 	private static enum ParserState {
 		TOPLEVEL, FILE, TRACK

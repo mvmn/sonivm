@@ -399,12 +399,12 @@ public class SonivmMainWindow extends JFrame {
 		tfSearch.getDocument().addDocumentListener(new DocumentListener() {
 			@Override
 			public void removeUpdate(DocumentEvent e) {
-				controller.onSearchValueChange(tfSearch.getText());
+				controller.onSearchValueChange();
 			}
 
 			@Override
 			public void insertUpdate(DocumentEvent e) {
-				controller.onSearchValueChange(tfSearch.getText());
+				controller.onSearchValueChange();
 			}
 
 			@Override
@@ -447,8 +447,8 @@ public class SonivmMainWindow extends JFrame {
 		// lblPlayTimeTotal.setText(TimeUnitUtil.prettyPrintFromSeconds(totalSeconds));
 	}
 
-	public void setCurrentPlayTimeDisplay(long playedSeconds, long totalSeconds) {
-		long remainingSeconds = totalSeconds - playedSeconds;
+	public void setCurrentPlayTimeDisplay(int playedSeconds, int totalSeconds) {
+		int remainingSeconds = totalSeconds - playedSeconds;
 		lblPlayTimeRemaining.setText(
 				"-" + TimeUnitUtil.prettyPrintFromSeconds(remainingSeconds) + " / " + TimeUnitUtil.prettyPrintFromSeconds(totalSeconds));
 		lblPlayTimeElapsed
@@ -503,5 +503,9 @@ public class SonivmMainWindow extends JFrame {
 
 	public void updatePlayQueueSizeLabel() {
 		this.lblQueueSize.setText("" + playbackQueueTableModel.getRowCount());
+	}
+
+	public String getSearchText() {
+		return tfSearch.getText();
 	}
 }

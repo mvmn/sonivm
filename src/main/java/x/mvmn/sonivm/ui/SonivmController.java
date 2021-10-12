@@ -48,7 +48,7 @@ public interface SonivmController extends PlaybackEventListener {
 
 	void onLastFMCredsOrKeysUpdate();
 
-	void onSearchValueChange(String text);
+	void onSearchValueChange();
 
 	void onSearchNextMatch();
 

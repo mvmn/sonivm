@@ -187,13 +187,13 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 						continue;
 					}
 					cueTargetFiles.add(cueTargetFile);
-					Long targetFileDurationMilliseconds = AudioFileUtil.getAudioFileDurationInMilliseconds(cueTargetFile);
+					Integer targetFileDurationMilliseconds = AudioFileUtil.getAudioFileDurationInMilliseconds(cueTargetFile);
 					if (targetFileDurationMilliseconds != null) {
 						PlaybackQueueEntry previousTrack = null;
 						for (CueDataTrackData cueTrack : cueFileTargetFile.getTracks()) {
 							if (cueTrack.getIndexes() != null && !cueTrack.getIndexes().isEmpty()
 									&& "audio".equalsIgnoreCase(cueTrack.getDataType())) {
-								Long startTime = cueIndexTimeToMillisec(cueTrack.getIndexes().get(0).getIndexValue());
+								Integer startTime = cueIndexTimeToMillisec(cueTrack.getIndexes().get(0).getIndexValue());
 
 								PlaybackQueueEntry track = PlaybackQueueEntry.builder()
 										.cueSheetTrack(true)
@@ -202,7 +202,7 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 										.cueSheetTrackStartTimeMillis(startTime)
 										.trackMetadata(TrackMetadata.builder()
 												.title(cueTrack.getTitle())
-												.artist(cueTrack.getPerformer() != null && !cueTrack.getPerformer().isBlank()
+												.artist(cueTrack.getPerformer() != null && !cueTrack.getPerformer().trim().isEmpty()
 														? cueTrack.getPerformer()
 														: cueData.getPerformer())
 												.album(cueData.getTitle())
@@ -213,7 +213,7 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 
 								cueTrack.getIndexes().get(0);
 								if (previousTrack != null) {
-									long prevTrackDuration = startTime - previousTrack.getCueSheetTrackStartTimeMillis();
+									int prevTrackDuration = startTime - previousTrack.getCueSheetTrackStartTimeMillis();
 									previousTrack.setCueSheetTrackFinishTimeMillis(startTime);
 									previousTrack.setDuration(prevTrackDuration);
 								}
@@ -224,7 +224,7 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 						}
 
 						if (previousTrack != null) {
-							long prevTrackDuration = targetFileDurationMilliseconds - previousTrack.getCueSheetTrackStartTimeMillis();
+							int prevTrackDuration = targetFileDurationMilliseconds - previousTrack.getCueSheetTrackStartTimeMillis();
 							previousTrack.setCueSheetTrackFinishTimeMillis(targetFileDurationMilliseconds);
 							previousTrack.setDuration(prevTrackDuration);
 						}
@@ -241,7 +241,7 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 		return cueTargetFiles;
 	}
 
-	private long cueIndexTimeToMillisec(String indexValue) {
+	private int cueIndexTimeToMillisec(String indexValue) {
 		// https://www.gnu.org/software/ccd2cue/manual/html_node/INDEX-_0028CUE-Command_0029.html#INDEX-_0028CUE-Command_0029
 		// mm minutes plus ss seconds plus ff frames
 		// The time mm:ss:ff is an offset relative to the beginning of the file specified by the current FILE command context

@@ -12,12 +12,12 @@
 
 	<groupId>x.mvmn.sonivm</groupId>
 	<artifactId>sonivm</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.1.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<properties>
 		<mainClass>x.mvmn.sonivm.SonivmLauncher</mainClass>
-		<java.version>11</java.version>
+		<java.version>1.8</java.version>
 	</properties>
 
 	<dependencies>
@@ -26,12 +26,10 @@
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		<!-- <dependency> <groupId>net.jthink</groupId> <artifactId>jaudiotagger</artifactId> 
-			<version>2.2.6-SNAPSHOT</version> </dependency> -->
 		<dependency>
-			<groupId>com.ealva</groupId>
-			<artifactId>ealvatag</artifactId>
-			<version>0.4.6</version>
+			<groupId>net.jthink</groupId>
+			<artifactId>jaudiotagger</artifactId>
+			<version>3.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.tagtraum</groupId>

@@ -1,8 +1,9 @@
 package x.mvmn.sonivm;
 
-import java.awt.Taskbar;
+import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.ConsoleHandler;
@@ -96,7 +97,13 @@ public class SonivmLauncher implements Runnable {
 	private static void initTaskbarIcon() {
 		try {
 			BufferedImage image = ImageIO.read(SonivmLauncher.class.getResourceAsStream("/sonivm_logo.png"));
-			Taskbar.getTaskbar().setIconImage(image);
+			Class<?> util = Class.forName("com.apple.eawt.Application");
+			Method getApplication = util.getMethod("getApplication", new Class[0]);
+			Object application = getApplication.invoke(util);
+			Method setDockIconImage = util.getMethod("setDockIconImage", new Class[] { Image.class });
+			setDockIconImage.invoke(application, image);
+
+			// Taskbar.getTaskbar().setIconImage(image); // Requires Java 1.9+
 		} catch (Throwable t) {
 			LOGGER.log(Level.WARNING, "Failed to load and set main window and taskbar icon.", t);
 		}

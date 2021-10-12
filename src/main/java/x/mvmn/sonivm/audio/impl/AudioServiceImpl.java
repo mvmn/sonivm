@@ -197,19 +197,19 @@ public class AudioServiceImpl implements AudioService, Runnable {
 								currentFFAudioInputStream);
 						this.currentPcmStream = currentPcmStream;
 
-						Long lengthInSeconds = AudioFileUtil.getAudioFileDurationInMilliseconds(file);
+						Integer lengthInSeconds = AudioFileUtil.getAudioFileDurationInMilliseconds(file);
 						if (lengthInSeconds != null) {
 							lengthInSeconds /= 1000;
 						} else {
 							LOGGER.fine(
 									"Can't determine file duration from format parameters - calculating from number of frames and framerate.");
-							lengthInSeconds = (long) (currentFFAudioInputStream.getFrameLength()
+							lengthInSeconds = (int) (currentFFAudioInputStream.getFrameLength()
 									/ currentFFAudioInputStream.getFormat().getFrameRate());
 						}
 						AudioFileInfo fileMetadata = AudioFileInfo.builder()
 								.filePath(filePath)
 								.seekable(currentFFAudioInputStream.isSeekable())
-								.durationSeconds(lengthInSeconds != null ? lengthInSeconds.longValue() : -1)
+								.durationSeconds(lengthInSeconds != null ? lengthInSeconds.intValue() : -1)
 								.build();
 
 						SourceDataLine currentSourceDataLine;
