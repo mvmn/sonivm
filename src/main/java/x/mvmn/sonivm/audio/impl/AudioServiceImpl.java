@@ -167,7 +167,9 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	}
 
 	private void handleTask(AudioServiceTask task) throws Exception {
-		LOGGER.fine("Got task " + task);
+		if (LOGGER.isLoggable(Level.FINE)) {
+			LOGGER.fine("Got task " + task);
+		}
 		switch (task.getType()) {
 			case UPDATE_VOLUME:
 				if (State.STOPPED != this.state) {
@@ -268,10 +270,14 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						break;
 					}
 				}
-				LOGGER.fine("Switching audio device to " + audioDeviceName);
+				if (LOGGER.isLoggable(Level.FINE)) {
+					LOGGER.fine("Switching audio device to " + audioDeviceName);
+				}
 				selectedAudioDevice = mixerInfo;
 				if (State.PLAYING == this.state) {
-					LOGGER.fine("On-the-fly switching audio device to " + audioDeviceName);
+					if (LOGGER.isLoggable(Level.FINE)) {
+						LOGGER.fine("On-the-fly switching audio device to " + audioDeviceName);
+					}
 					SourceDataLine newSourceDataLine = mixerInfo != null
 							? AudioSystem.getSourceDataLine(currentPcmStream.getFormat(), selectedAudioDevice)
 							: AudioSystem.getSourceDataLine(currentPcmStream.getFormat());

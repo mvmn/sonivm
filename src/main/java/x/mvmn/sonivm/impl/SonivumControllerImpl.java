@@ -44,9 +44,6 @@ import x.mvmn.sonivm.util.ui.swing.SwingUtil;
 public class SonivumControllerImpl implements SonivmController {
 
 	private static final Logger LOGGER = Logger.getLogger(SonivumControllerImpl.class.getSimpleName());
-	static {
-		LOGGER.setLevel(null);
-	}
 
 	@Autowired
 	private AudioService audioService;
