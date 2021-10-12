@@ -39,7 +39,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	};
 
 	@Override
-	public int queueSize() {
+	public int getQueueSize() {
 		return data.size();
 	}
 
@@ -77,7 +77,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 			if (atIndex < 0 || atIndex >= dataSizeBeforeAdd) {
 				int numberAdded = newRows.size();
 				data.addAll(newRows);
-				onTableRowsInsert(dataSizeBeforeAdd, dataSizeBeforeAdd + numberAdded - 1, true);
+				onTableRowsInsert(dataSizeBeforeAdd, dataSizeBeforeAdd + numberAdded - 1, false);
 			} else {
 				int numberAdded = newRows.size();
 				data.addAll(atIndex, newRows);
@@ -88,7 +88,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 						setCurrentQueuePosition(currentQueuePosition);
 					}
 				}
-				onTableRowsInsert(atIndex, atIndex + numberAdded - 1, true);
+				onTableRowsInsert(atIndex, atIndex + numberAdded - 1, false);
 			}
 		}
 	}

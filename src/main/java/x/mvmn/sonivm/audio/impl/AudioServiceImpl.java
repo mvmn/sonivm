@@ -1,6 +1,7 @@
 package x.mvmn.sonivm.audio.impl;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -16,7 +17,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
-import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -37,6 +37,7 @@ import x.mvmn.sonivm.audio.PlaybackEvent;
 import x.mvmn.sonivm.audio.PlaybackEvent.ErrorType;
 import x.mvmn.sonivm.audio.PlaybackEventListener;
 import x.mvmn.sonivm.audio.impl.AudioServiceTask.Type;
+import x.mvmn.sonivm.util.AudioFileUtil;
 
 @Service
 public class AudioServiceImpl implements AudioService, Runnable {
@@ -67,7 +68,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private volatile long playbackStartPositionMillisec;
 
 	private volatile int volumePercent = 100;
-	private volatile Integer requestedSeekPosition = null;
+	private volatile Integer requestedSeekPositionMillisec = null;
 
 	private List<PlaybackEventListener> listeners = new CopyOnWriteArrayList<>();
 
@@ -97,7 +98,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 							int readBytes = -1;
 							byte[] buffer = playbackBuffer;
 							readBytes = currentPcmStream.read(buffer);
-							if(readBytes<buffer.length) {
+							if (readBytes < buffer.length) {
 								// TODO: prepare next track
 							}
 							if (readBytes < 1) {
@@ -109,7 +110,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 									LOGGER.finest("Writing bytes to source data line: " + readBytes);
 								}
 								currentSourceDataLine.write(buffer, 0, readBytes);
-								if (requestedSeekPosition == null) {
+								if (requestedSeekPositionMillisec == null) {
 									long dataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
 									long delta = dataLineMillisecondsPosition - this.previousDataLineMillisecondsPosition;
 									if (delta > 100) { // Every 1/10th of a second (or at least not more frequent)
@@ -184,8 +185,6 @@ public class AudioServiceImpl implements AudioService, Runnable {
 					FFAudioFileReader ffAudioFileReader = new FFAudioFileReader();
 					File file = new File(filePath);
 					if (file.exists()) {
-						AudioFileFormat format = ffAudioFileReader.getAudioFileFormat(file);
-
 						FFAudioInputStream currentFFAudioInputStream = (FFAudioInputStream) ffAudioFileReader.getAudioInputStream(file);
 						this.currentFFAudioInputStream = currentFFAudioInputStream;
 						this.currentStreamIsSeekable = currentFFAudioInputStream.isSeekable();
@@ -196,22 +195,19 @@ public class AudioServiceImpl implements AudioService, Runnable {
 								currentFFAudioInputStream);
 						this.currentPcmStream = currentPcmStream;
 
-						long lengthInSeconds = -1;
-						if (format.properties() != null && format.properties().get("duration") != null) {
-							Object duration = format.properties().get("duration");
-							if (duration instanceof Number) {
-								lengthInSeconds = ((Number) duration).longValue() / 1000000;
-							} else {
-								lengthInSeconds = Long.parseLong(duration.toString()) / 1000000;
-							}
+						Long lengthInSeconds = AudioFileUtil.getAudioFileDurationInMilliseconds(file);
+						if (lengthInSeconds != null) {
+							lengthInSeconds /= 1000;
 						} else {
+							LOGGER.fine(
+									"Can't determine file duration from format parameters - calculating from number of frames and framerate.");
 							lengthInSeconds = (long) (currentFFAudioInputStream.getFrameLength()
 									/ currentFFAudioInputStream.getFormat().getFrameRate());
 						}
 						AudioFileInfo fileMetadata = AudioFileInfo.builder()
 								.filePath(filePath)
 								.seekable(currentFFAudioInputStream.isSeekable())
-								.durationSeconds(lengthInSeconds)
+								.durationSeconds(lengthInSeconds != null ? lengthInSeconds.longValue() : -1)
 								.build();
 
 						SourceDataLine currentSourceDataLine;
@@ -221,11 +217,17 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						currentSourceDataLine.open(currentPcmStream.getFormat());
 						currentSourceDataLine.start();
 						this.currentSourceDataLine = currentSourceDataLine;
+
 						doUpdateVolume();
 						this.playbackBuffer = new byte[Math.max(128, currentPcmStream.getFormat().getFrameSize()) * 64];
 						this.playbackStartPositionMillisec = 0;
 						this.startingDataLineMillisecondsPosition = 0;
 						this.previousDataLineMillisecondsPosition = 0;
+
+						if (task.getNumericData() != null) {
+							doSeek(task.getNumericData());
+						}
+
 						this.state = State.PLAYING;
 						executeListenerActions(PlaybackEvent.builder()
 								.type(PlaybackEvent.Type.DATALINE_CHANGE)
@@ -240,14 +242,12 @@ public class AudioServiceImpl implements AudioService, Runnable {
 			break;
 			case SEEK:
 				if (State.PLAYING == this.state || State.PAUSED == this.state) {
-					if (this.currentStreamIsSeekable && requestedSeekPosition != null) {
-						int seekPosition = requestedSeekPosition; // task.getNumericData()
-						this.currentFFAudioInputStream.seek(seekPosition, TimeUnit.MILLISECONDS);
-						this.playbackStartPositionMillisec = seekPosition;
-						this.startingDataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
+					if (this.currentStreamIsSeekable && requestedSeekPositionMillisec != null) {
+						int seekPosition = requestedSeekPositionMillisec; // task.getNumericData()
+						doSeek(seekPosition);
 					}
 				}
-				requestedSeekPosition = null;
+				requestedSeekPositionMillisec = null;
 			break;
 			case STOP:
 				if (State.STOPPED != this.state) {
@@ -287,6 +287,12 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				}
 			break;
 		}
+	}
+
+	private void doSeek(long seekPositionMillisec) throws UnsupportedOperationException, IOException {
+		this.currentFFAudioInputStream.seek(seekPositionMillisec, TimeUnit.MILLISECONDS);
+		this.playbackStartPositionMillisec = seekPositionMillisec;
+		this.startingDataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
 	}
 
 	protected void handlePauseRequest() {
@@ -363,6 +369,11 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	}
 
 	@Override
+	public void play(File file, int startFromMilliseconds) {
+		enqueueTask(Type.PLAY, file.getAbsolutePath(), startFromMilliseconds);
+	}
+
+	@Override
 	public void pause() {
 		handlePauseRequest();
 		// enqueueTask(Type.PAUSE);
@@ -385,7 +396,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		// The var will be reset on processing seek request,
 		// so for multiple requests in short time only first one will actually
 		// be executed - to avoid repeated seek to the same position.
-		requestedSeekPosition = milliseconds;
+		requestedSeekPositionMillisec = milliseconds;
 		enqueueTask(Type.SEEK, milliseconds);
 	}
 
@@ -404,6 +415,10 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 	private void enqueueTask(Type taskType, String data) {
 		taskQueue.add(new AudioServiceTask(taskType, data, null));
+	}
+
+	private void enqueueTask(Type taskType, String data, long numData) {
+		taskQueue.add(new AudioServiceTask(taskType, data, numData));
 	}
 
 	private Mixer.Info getMixerInfoByName(String name) {

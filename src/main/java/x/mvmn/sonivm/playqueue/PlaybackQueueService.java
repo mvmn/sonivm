@@ -14,7 +14,7 @@ public interface PlaybackQueueService {
 
 	PlaybackQueueEntry getEntryByIndex(int index);
 
-	int queueSize();
+	int getQueueSize();
 
 	void setCurrentQueuePosition(int newPosition);
 

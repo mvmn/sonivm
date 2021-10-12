@@ -74,7 +74,7 @@ public class PlaybackQueueTableModel extends AbstractTableModel implements Playb
 
 	@Override
 	public int getRowCount() {
-		return playQueueService.queueSize();
+		return playQueueService.getQueueSize();
 	}
 
 	public int getIndexOfHighlightedRow() {

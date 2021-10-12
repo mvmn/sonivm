@@ -31,7 +31,7 @@ public class CueData {
 	@Builder
 	public static class CueDataTrackData {
 		private String number;
-		private String type;
+		private String dataType;
 		private String title;
 		private String performer;
 		private String songwriter;

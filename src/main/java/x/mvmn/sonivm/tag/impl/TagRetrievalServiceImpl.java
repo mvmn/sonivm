@@ -35,8 +35,7 @@ public class TagRetrievalServiceImpl implements TagRetrievalService {
 						.build();
 			}
 		} catch (Exception e) {
-			// TODO: proper handling
-			throw new RuntimeException(e);
+			throw new RuntimeException("Failed to read tags for a file " + file.getAbsolutePath(), e);
 		}
 		return null;
 	}

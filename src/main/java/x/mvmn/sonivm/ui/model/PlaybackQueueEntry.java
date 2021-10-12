@@ -14,6 +14,9 @@ import lombok.NoArgsConstructor;
 public class PlaybackQueueEntry {
 	private String targetFileFullPath;
 	private String targetFileName;
+	private boolean cueSheetTrack;
+	private Long cueSheetTrackStartTimeMillis;
+	private Long cueSheetTrackFinishTimeMillis;
 
 	private volatile TrackMetadata trackMetadata;
 	private volatile Long duration;
@@ -63,6 +66,9 @@ public class PlaybackQueueEntry {
 	}
 
 	public Long getDuration() {
+		if (cueSheetTrack) {
+			return (cueSheetTrackFinishTimeMillis - cueSheetTrackStartTimeMillis) / 1000;
+		}
 		return duration != null ? duration : (trackMetadata != null ? trackMetadata.getDuration() : null);
 	}
 

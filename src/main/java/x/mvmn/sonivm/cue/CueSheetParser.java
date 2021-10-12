@@ -26,7 +26,7 @@ public class CueSheetParser {
 
 	private static final Logger LOGGER = Logger.getLogger(CueSheetParser.class.getCanonicalName());
 
-	private static final Set<String> IGNORED_METADATA = Set.of("ISRC", "CATALOG", "FLAGS", "CDTEXTFILE");
+	private static final Set<String> IGNORED_METADATA = Set.of("ISRC", "CATALOG", "FLAGS", "CDTEXTFILE", "PREGAP", "POSTGAP");
 
 	private static enum ParserState {
 		TOPLEVEL, FILE, TRACK
@@ -60,6 +60,9 @@ public class CueSheetParser {
 		String[] lines = cueFileContents.split("[\r\n]+");
 		for (int i = 0; i < lines.length; i++) {
 			String line = lines[i].trim();
+			if (line.trim().isEmpty()) {
+				continue;
+			}
 			String firstWord = line;
 			String reminder = "";
 			int indexOfSpace = line.indexOf(" ");
@@ -110,10 +113,10 @@ public class CueSheetParser {
 					trackBuilder.number(params.get(0));
 				}
 				if (params.size() > 1) {
-					trackBuilder.type(params.get(1));
+					trackBuilder.dataType(params.get(1));
 				}
 				state = ParserState.TRACK;
-				trackIndexes = new ArrayList<>();
+				trackIndexes = null;
 			} else if ("PERFORMER".equals(firstWord)) {
 				List<String> values = toIndividualParams(reminder);
 				if (!values.isEmpty()) {
@@ -137,6 +140,9 @@ public class CueSheetParser {
 					List<String> values = toIndividualParams(reminder);
 
 					if (values.size() > 1) {
+						if (trackIndexes == null) {
+							trackIndexes = new ArrayList<>();
+						}
 						int indexNumber = trackIndexes.size();
 						try {
 							indexNumber = Integer.parseInt(values.get(0));
@@ -155,7 +161,7 @@ public class CueSheetParser {
 			} else if ("REM".equals(firstWord)) {
 				List<String> values = toIndividualParams(reminder);
 				if (values.size() > 0) {
-					String key = values.get(0);
+					String key = values.get(0).toUpperCase();
 					String value = "";
 					if (values.size() == 2) {
 						value = values.get(1);
@@ -180,7 +186,7 @@ public class CueSheetParser {
 		}
 
 		if (trackBuilder != null) {
-			tracks.add(trackBuilder.rems(trackRems).build());
+			tracks.add(trackBuilder.rems(trackRems).indexes(trackIndexes).build());
 		}
 
 		if (fileDataBuilder != null) {

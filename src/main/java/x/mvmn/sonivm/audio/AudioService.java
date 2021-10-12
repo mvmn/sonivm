@@ -11,6 +11,8 @@ public interface AudioService {
 
 	void play(File file);
 
+	void play(File file, int startFromMilliseconds);
+
 	void pause();
 
 	void resume();
