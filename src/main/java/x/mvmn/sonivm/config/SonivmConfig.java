@@ -1,5 +1,6 @@
 package x.mvmn.sonivm.config;
 
+import java.awt.TrayIcon;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -9,9 +10,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
+import x.mvmn.sonivm.SonivmLauncher;
 import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
+import x.mvmn.sonivm.ui.SonivmTrayIconPopupMenu;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 
@@ -31,6 +34,15 @@ public class SonivmConfig {
 		initLookAndFeel(appPreferencesService);
 
 		return new SonivmMainWindow(appVersion, sonivmController, playbackQueueTableModel);
+	}
+
+	@Bean
+	@Scope("singleton")
+	public TrayIcon sonivmTrayIcon(@Autowired SonivmTrayIconPopupMenu sonivmTrayIconPopupMenu) {
+		TrayIcon trayIcon = new TrayIcon(SonivmLauncher.sonivmIcon);
+		trayIcon.setImageAutoSize(true);
+		trayIcon.setPopupMenu(sonivmTrayIconPopupMenu.getUIComponent());
+		return trayIcon;
 	}
 
 	private void initLookAndFeel(PreferencesService appPreferencesService) {

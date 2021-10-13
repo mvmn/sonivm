@@ -1,8 +1,10 @@
 package x.mvmn.sonivm.util;
 
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
-public class TimeUnitUtil {
+public class TimeDateUtil {
+	private static final Pattern PTRN_DATE_STARTS_WITH_YEAR = Pattern.compile("^\\d{4}\\-.*");
 
 	public static String prettyPrintFromSeconds(final int seconds) {
 		final long hr = TimeUnit.SECONDS.toHours(seconds);
@@ -15,5 +17,12 @@ public class TimeUnitUtil {
 		result.append(String.format("%02d", min)).append(":");
 		result.append(String.format("%02d", sec));
 		return result.toString();
+	}
+
+	public static String yearFromDateTagValue(String date) {
+		if (date != null && PTRN_DATE_STARTS_WITH_YEAR.matcher(date.trim()).matches()) {
+			date = date.trim().substring(0, 4);
+		}
+		return date;
 	}
 }

@@ -31,6 +31,7 @@ import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry.TrackMetadata;
 import x.mvmn.sonivm.util.AudioFileUtil;
 import x.mvmn.sonivm.util.SonivmShutdownListener;
+import x.mvmn.sonivm.util.TimeDateUtil;
 
 @Service
 public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImportService, SonivmShutdownListener {
@@ -207,7 +208,7 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 														: cueData.getPerformer())
 												.album(cueData.getTitle())
 												.trackNumber(cueTrack.getNumber())
-												.date(cueData.getRems().get("DATE"))
+												.date(TimeDateUtil.yearFromDateTagValue(cueData.getRems().get("DATE")))
 												.build())
 										.build();
 

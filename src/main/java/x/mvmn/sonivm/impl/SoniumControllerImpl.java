@@ -1,5 +1,7 @@
 package x.mvmn.sonivm.impl;
 
+import java.awt.SystemTray;
+import java.awt.TrayIcon;
 import java.io.File;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
@@ -38,6 +40,7 @@ import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
+import x.mvmn.sonivm.ui.SonivmTrayIconPopupMenu;
 import x.mvmn.sonivm.ui.model.AudioDeviceOption;
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
 import x.mvmn.sonivm.ui.model.RepeatMode;
@@ -71,6 +74,12 @@ public class SoniumControllerImpl implements SonivmController {
 
 	@Autowired(required = false)
 	private List<SonivmShutdownListener> shutdownListeners;
+
+	@Autowired
+	private TrayIcon sonivmTrayIcon;
+
+	@Autowired
+	private SonivmTrayIconPopupMenu trayIconPopupMenu;
 
 	private volatile AudioFileInfo currentAudioFileInfo;
 	private volatile PlaybackQueueEntry currentTrackInfo;
@@ -301,6 +310,7 @@ public class SoniumControllerImpl implements SonivmController {
 			mainWindow.disallowSeek();
 			mainWindow.setCurrentPlayTimeDisplay(0, 0);
 			mainWindow.updateNowPlaying(null);
+			trayIconPopupMenu.updateNowPlaying(null);
 		}, false);
 	}
 
@@ -329,7 +339,17 @@ public class SoniumControllerImpl implements SonivmController {
 	}
 
 	@Override
-	public void onWindowClose() {
+	public void onQuit() {
+		SwingUtil.runOnEDT(() -> {
+			try {
+				SystemTray.getSystemTray().remove(sonivmTrayIcon);
+			} catch (Throwable t) {
+				LOGGER.log(Level.SEVERE, "Failed to remove tray icon", t);
+			}
+			mainWindow.setVisible(false);
+			mainWindow.dispose();
+		}, true);
+
 		LOGGER.info("Shutting down audio service.");
 		audioService.stop();
 		audioService.shutdown();
@@ -349,6 +369,8 @@ public class SoniumControllerImpl implements SonivmController {
 
 		savePlayQueueColumnWidths();
 		savePlayQueueContents();
+
+		// System.exit(0);
 	}
 
 	private void savePlayQueueContents() {
@@ -482,6 +504,7 @@ public class SoniumControllerImpl implements SonivmController {
 				mainWindow.disallowSeek();
 			}
 			mainWindow.updateNowPlaying(trackInfo);
+			trayIconPopupMenu.updateNowPlaying(trackInfo);
 		}, false);
 		if (scrobblingEnabled) {
 			lastFmSetNowPlaying(this.currentTrackInfo);
@@ -608,7 +631,10 @@ public class SoniumControllerImpl implements SonivmController {
 	}
 
 	private void updatePlayingState(boolean playing) {
-		SwingUtil.runOnEDT(() -> mainWindow.setPlayPauseButtonState(playing), false);
+		SwingUtil.runOnEDT(() -> {
+			mainWindow.setPlayPauseButtonState(playing);
+			trayIconPopupMenu.setPlayPauseButtonState(playing);
+		}, false);
 	}
 
 	private void updateStaus(String value) {

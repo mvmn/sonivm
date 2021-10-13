@@ -10,11 +10,10 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.dnd.DropTarget;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -50,7 +49,7 @@ import x.mvmn.sonivm.ui.model.RepeatMode;
 import x.mvmn.sonivm.ui.model.ShuffleMode;
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
-import x.mvmn.sonivm.util.TimeUnitUtil;
+import x.mvmn.sonivm.util.TimeDateUtil;
 
 public class SonivmMainWindow extends JFrame {
 	private static final long serialVersionUID = -3402450540379541023L;
@@ -76,6 +75,7 @@ public class SonivmMainWindow extends JFrame {
 	private final ImageIcon lastFMConnected;
 	private final ImageIcon lastFMDisconnected;
 	private final JTextField tfSearch;
+	private final JButton btnSearchClear;
 	private final JButton btnSearchNextMatch;
 	private final JButton btnSearchPreviousMatch;
 	private final JLabel lblSearchMatchesCount;
@@ -200,6 +200,7 @@ public class SonivmMainWindow extends JFrame {
 		btnSearchNextMatch = new JButton("V");
 		btnSearchPreviousMatch = new JButton("^");
 		lblSearchMatchesCount = new JLabel("0");
+		btnSearchClear = new JButton("x");
 
 		cmbShuffleMode = new JComboBox<>(ShuffleMode.values());
 		cmbRepeatMode = new JComboBox<>(RepeatMode.values());
@@ -272,6 +273,7 @@ public class SonivmMainWindow extends JFrame {
 						.addSeparator(true)
 						.add(SwingUtil.withEmptyBorder(new JLabel("Search:"), 0, 4, 0, 0))
 						.add(tfSearch)
+						.add(btnSearchClear)
 						.add(SwingUtil.withEmptyBorder(new JLabel("Matches:"), 0, 4, 0, 0))
 						.add(SwingUtil.withEmptyBorder(lblSearchMatchesCount, 0, 2, 0, 4))
 						.add(btnSearchNextMatch)
@@ -307,16 +309,16 @@ public class SonivmMainWindow extends JFrame {
 		this.getContentPane().add(volumeSlider, BorderLayout.EAST);
 		this.getContentPane().add(bottomPanel, BorderLayout.SOUTH);
 
-		this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		this.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 
 		registerActionsWithController(controller);
-
-		this.addWindowListener(new WindowAdapter() {
-			@Override
-			public void windowClosing(WindowEvent wndEvent) {
-				controller.onWindowClose();
-			}
-		});
+		//
+		// this.addWindowListener(new WindowAdapter() {
+		// @Override
+		// public void windowClosing(WindowEvent wndEvent) {
+		// controller.onQuit();
+		// }
+		// });
 	}
 
 	private void registerActionsWithController(SonivmController controller) {
@@ -393,6 +395,15 @@ public class SonivmMainWindow extends JFrame {
 			}
 		});
 
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.META_DOWN_MASK), "Search");
+		actionMap.put("Search", new AbstractAction() {
+			private static final long serialVersionUID = 8828376654199394308L;
+
+			public void actionPerformed(ActionEvent e) {
+				tfSearch.requestFocus();
+			}
+		});
+
 		cmbRepeatMode.addActionListener(actEvent -> controller.onRepeatModeSwitch((RepeatMode) cmbRepeatMode.getSelectedItem()));
 		cmbShuffleMode.addActionListener(actEvent -> controller.onShuffleModeSwitch((ShuffleMode) cmbShuffleMode.getSelectedItem()));
 
@@ -413,6 +424,7 @@ public class SonivmMainWindow extends JFrame {
 
 		btnSearchNextMatch.addActionListener(actEvent -> controller.onSearchNextMatch());
 		btnSearchPreviousMatch.addActionListener(actEvent -> controller.onSearchPreviousMatch());
+		btnSearchClear.addActionListener(actEvent -> tfSearch.setText(""));
 	}
 
 	public JTable getPlayQueueTable() {
@@ -450,9 +462,9 @@ public class SonivmMainWindow extends JFrame {
 	public void setCurrentPlayTimeDisplay(int playedSeconds, int totalSeconds) {
 		int remainingSeconds = totalSeconds - playedSeconds;
 		lblPlayTimeRemaining.setText(
-				"-" + TimeUnitUtil.prettyPrintFromSeconds(remainingSeconds) + " / " + TimeUnitUtil.prettyPrintFromSeconds(totalSeconds));
+				"-" + TimeDateUtil.prettyPrintFromSeconds(remainingSeconds) + " / " + TimeDateUtil.prettyPrintFromSeconds(totalSeconds));
 		lblPlayTimeElapsed
-				.setText(TimeUnitUtil.prettyPrintFromSeconds(playedSeconds) + " / " + TimeUnitUtil.prettyPrintFromSeconds(totalSeconds));
+				.setText(TimeDateUtil.prettyPrintFromSeconds(playedSeconds) + " / " + TimeDateUtil.prettyPrintFromSeconds(totalSeconds));
 	}
 
 	public void updateNowPlaying(PlaybackQueueEntry trackInfo) {
@@ -461,8 +473,8 @@ public class SonivmMainWindow extends JFrame {
 		if (trackInfo != null) {
 			if (trackInfo.isCueSheetTrack()) {
 				fileInfo = "CUE track " + trackInfo.getTrackNumber() + " ("
-						+ TimeUnitUtil.prettyPrintFromSeconds(trackInfo.getCueSheetTrackStartTimeMillis() / 1000) + " - "
-						+ TimeUnitUtil.prettyPrintFromSeconds(trackInfo.getCueSheetTrackFinishTimeMillis() / 1000) + "ms)" + " of "
+						+ TimeDateUtil.prettyPrintFromSeconds(trackInfo.getCueSheetTrackStartTimeMillis() / 1000) + " - "
+						+ TimeDateUtil.prettyPrintFromSeconds(trackInfo.getCueSheetTrackFinishTimeMillis() / 1000) + "ms)" + " of "
 						+ trackInfo.getTargetFileFullPath();
 			} else {
 				fileInfo = trackInfo.getTargetFileFullPath();

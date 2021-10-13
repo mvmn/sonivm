@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import x.mvmn.sonivm.util.StringUtil;
 
 @Data
 @Builder
@@ -79,7 +80,26 @@ public class PlaybackQueueEntry {
 		if (trackMetadata == null) {
 			return targetFileName;
 		} else {
-			return String.format("%1$s \"%2$s\" (%4$s) - %3$s", getArtist(), getAlbum(), getTitle(), getDate());
+			StringBuilder sb = new StringBuilder();
+			String artist = getArtist();
+			String album = getAlbum();
+			String title = getTitle();
+			String date = getDate();
+			if (artist != null && !artist.isBlank()) {
+				sb.append(artist).append(" ");
+				if (album != null && !album.isBlank()) {
+					sb.append("\"").append(album).append("\" ");
+				}
+				if (date != null) {
+					sb.append("(").append(date).append(") ");
+				}
+				if (sb.length() > 0) {
+					sb.append("- ").append(StringUtil.blankForNull(title));
+				}
+			}
+			// String.format("%1$s \"%2$s\" %4$s - %3$s", getArtist(), getAlbum(), getTitle(), StringUtil.blankForNull(getDate()))
+			// .replaceAll("[ ]+", " ")
+			return sb.toString();
 		}
 	}
 

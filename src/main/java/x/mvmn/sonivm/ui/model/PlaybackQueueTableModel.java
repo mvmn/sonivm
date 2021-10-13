@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
-import x.mvmn.sonivm.util.TimeUnitUtil;
+import x.mvmn.sonivm.util.TimeDateUtil;
 
 @Component
 public class PlaybackQueueTableModel extends AbstractTableModel {
@@ -51,7 +51,7 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 		switch (column) {
 			default:
 			case 0:
-				return (currentQueuePlayPosition == row ? "> " : "") + (row + 1);
+				return (currentQueuePlayPosition == row ? "-> " : "") + (row + 1);
 			case 1:
 				return entry.getTrackNumber() != null ? String.valueOf(entry.getTrackNumber()) : "";
 			case 2:
@@ -61,7 +61,7 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 			case 4:
 				return entry.getAlbum();
 			case 5:
-				return entry.getDuration() != null ? TimeUnitUtil.prettyPrintFromSeconds(entry.getDuration()) : "";
+				return entry.getDuration() != null ? TimeDateUtil.prettyPrintFromSeconds(entry.getDuration()) : "";
 			case 6:
 				return entry.getDate();
 			case 7:
@@ -77,8 +77,6 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	public int getIndexOfHighlightedRow() {
 		return playQueueService.getCurrentQueuePosition();
 	}
-
-
 
 	public boolean isSearchMatched(Integer row) {
 		return this.searchMatchedRows.contains(row);

@@ -1,20 +1,26 @@
 package x.mvmn.sonivm.ui.util.swing;
 
 import java.awt.BorderLayout;
+import java.awt.CheckboxMenuItem;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.LayoutManager;
+import java.awt.Menu;
+import java.awt.MenuItem;
 import java.awt.Toolkit;
 import java.awt.Window;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.lang.reflect.InvocationTargetException;
 import java.text.NumberFormat;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -379,5 +385,40 @@ public class SwingUtil {
 	public static JComponent withEmptyBorder(JComponent cmp, int top, int left, int bottom, int right) {
 		cmp.setBorder(BorderFactory.createEmptyBorder(top, left, bottom, right));
 		return cmp;
+	}
+
+	public static MenuItem menuItem(String text, ActionListener handler) {
+		MenuItem menuItem = new MenuItem(text);
+		menuItem.addActionListener(handler);
+		return menuItem;
+	}
+
+	public static CheckboxMenuItem checkboxMenuItem(String text, boolean state, ItemListener handler) {
+		CheckboxMenuItem menuItem = new CheckboxMenuItem(text, state);
+		menuItem.addItemListener(handler);
+		return menuItem;
+	}
+
+	public static <T> Menu radiobuttonsSubmenu(String name, Map<String, T> options, T currentVal, Consumer<T> onOptionSelect) {
+		Menu menu = new Menu(name);
+
+		for (Map.Entry<String, T> option : options.entrySet()) {
+			CheckboxMenuItem menuItem = new CheckboxMenuItem(option.getKey(), option.getValue().equals(currentVal));
+			menuItem.addItemListener(event -> {
+				T selectedValue = null;
+				for (int i = 0; i < menu.getItemCount(); i++) {
+					CheckboxMenuItem cbmi = (CheckboxMenuItem) menu.getItem(i);
+					boolean match = cbmi == menuItem;
+					cbmi.setState(match);
+					if (match) {
+						selectedValue = options.get(cbmi.getLabel());
+					}
+				}
+				onOptionSelect.accept(selectedValue);
+			});
+			menu.add(menuItem);
+		}
+
+		return menu;
 	}
 }

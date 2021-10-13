@@ -1,9 +1,15 @@
 package x.mvmn.sonivm;
 
-import java.awt.Image;
+import java.awt.Desktop;
+import java.awt.SystemTray;
+import java.awt.Taskbar;
+import java.awt.TrayIcon;
+import java.awt.desktop.QuitEvent;
+import java.awt.desktop.QuitHandler;
+import java.awt.desktop.QuitResponse;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.lang.reflect.Method;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.ConsoleHandler;
@@ -17,7 +23,6 @@ import javax.imageio.ImageIO;
 import javax.sound.sampled.AudioSystem;
 import javax.swing.ButtonGroup;
 import javax.swing.JMenuBar;
-import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
@@ -47,11 +52,16 @@ public class SonivmLauncher implements Runnable {
 
 	private static final Logger LOGGER = Logger.getLogger(SonivmLauncher.class.getCanonicalName());
 
+	public static BufferedImage sonivmIcon;
+
 	@Autowired
 	private SonivmController sonivmController;
 
 	@Autowired
 	private SonivmMainWindow mainWindow;
+
+	@Autowired
+	private TrayIcon sonivmTrayIcon;
 
 	@Autowired
 	private PreferencesService preferencesService;
@@ -66,7 +76,14 @@ public class SonivmLauncher implements Runnable {
 		// Make sure macOS closes all Swing windows on app quit
 		System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS");
 
-		initTaskbarIcon();
+		try {
+			sonivmIcon = ImageIO.read(SonivmLauncher.class.getResourceAsStream("/sonivm_logo.png"));
+		} catch (IOException e) {
+			LOGGER.log(Level.SEVERE, "Failed to read Sonivm icon image", e);
+			sonivmIcon = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
+		}
+
+		SwingUtil.runOnEDT(() -> initTaskbarIcon(), true);
 
 		// Install FlatLaF look&feels
 		SwingUtil.installLookAndFeels(true, FlatLightLaf.class, FlatIntelliJLaf.class, FlatDarkLaf.class, FlatDarculaLaf.class);
@@ -96,28 +113,44 @@ public class SonivmLauncher implements Runnable {
 
 	private static void initTaskbarIcon() {
 		try {
-			BufferedImage image = ImageIO.read(SonivmLauncher.class.getResourceAsStream("/sonivm_logo.png"));
-			Class<?> util = Class.forName("com.apple.eawt.Application");
-			Method getApplication = util.getMethod("getApplication", new Class[0]);
-			Object application = getApplication.invoke(util);
-			Method setDockIconImage = util.getMethod("setDockIconImage", new Class[] { Image.class });
-			setDockIconImage.invoke(application, image);
+			// Class<?> util = Class.forName("com.apple.eawt.Application");
+			// Method getApplication = util.getMethod("getApplication", new Class[0]);
+			// Object application = getApplication.invoke(util);
+			// Method setDockIconImage = util.getMethod("setDockIconImage", new Class[] { Image.class });
+			// setDockIconImage.invoke(application, sonivmIcon);
 
-			// Taskbar.getTaskbar().setIconImage(image); // Requires Java 1.9+
+			Taskbar.getTaskbar().setIconImage(sonivmIcon); // Requires Java 1.9+
 		} catch (Throwable t) {
-			LOGGER.log(Level.WARNING, "Failed to load and set main window and taskbar icon.", t);
+			LOGGER.log(Level.WARNING, "Failed to load and set main macOS doc icon.", t);
 		}
 	}
 
 	public void run() {
+		mainWindow.setIconImage(sonivmIcon);
 		mainWindow.setJMenuBar(initMenuBar(getAudioDevicesPlusDefault()));
 		SwingUtil.prefSizeRatioOfScreenSize(mainWindow, 3f / 4f);
 		sonivmController.onBeforeUiPack();
 		mainWindow.pack();
 		SwingUtil.moveToScreenCenter(mainWindow);
 		sonivmController.onBeforeUiSetVisible();
+		SwingUtil.runOnEDT(() -> {
+			try {
+				SystemTray.getSystemTray().add(sonivmTrayIcon);
+			} catch (Throwable t) {
+				LOGGER.log(Level.SEVERE, "Failed to add system tray icon", t);
+			}
+		}, false);
 
-		SwingUtilities.invokeLater(() -> mainWindow.setVisible(true));
+		Desktop desktop = Desktop.getDesktop();
+		desktop.setQuitHandler(new QuitHandler() {
+			@Override
+			public void handleQuitRequestWith(QuitEvent e, QuitResponse response) {
+				sonivmController.onQuit();
+				response.performQuit();
+			}
+		});
+
+		SwingUtil.runOnEDT(() -> mainWindow.setVisible(true), false);
 	}
 
 	private JMenuBar initMenuBar(List<AudioDeviceOption> audioDevices) {
