@@ -141,14 +141,18 @@ public class SonivmLauncher implements Runnable {
 			}
 		}, false);
 
-		Desktop desktop = Desktop.getDesktop();
-		desktop.setQuitHandler(new QuitHandler() {
-			@Override
-			public void handleQuitRequestWith(QuitEvent e, QuitResponse response) {
-				sonivmController.onQuit();
-				response.performQuit();
-			}
-		});
+		try {
+			Desktop desktop = Desktop.getDesktop();
+			desktop.setQuitHandler(new QuitHandler() {
+				@Override
+				public void handleQuitRequestWith(QuitEvent e, QuitResponse response) {
+					sonivmController.onQuit();
+					response.performQuit();
+				}
+			});
+		} catch (Throwable t) {
+			LOGGER.log(Level.WARNING, "Failed to register quit handler", t);
+		}
 
 		SwingUtil.runOnEDT(() -> mainWindow.setVisible(true), false);
 	}

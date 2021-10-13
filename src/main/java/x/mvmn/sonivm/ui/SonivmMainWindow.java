@@ -396,6 +396,7 @@ public class SonivmMainWindow extends JFrame {
 		});
 
 		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.META_DOWN_MASK), "Search");
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "Search");
 		actionMap.put("Search", new AbstractAction() {
 			private static final long serialVersionUID = 8828376654199394308L;
 
