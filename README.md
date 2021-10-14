@@ -13,6 +13,7 @@ Features:
 - Smart repeat
 - Smart shuffle (with a smarter party shuffle coming later)
 - Search in play queue
+- Minimize to System Tray
 
 Planned features:
 - Music library management
