@@ -1,15 +1,14 @@
 package x.mvmn.sonivm;
 
-import java.awt.Desktop;
+import java.awt.Image;
 import java.awt.SystemTray;
-import java.awt.Taskbar;
 import java.awt.TrayIcon;
-import java.awt.desktop.QuitEvent;
-import java.awt.desktop.QuitHandler;
-import java.awt.desktop.QuitResponse;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.ConsoleHandler;
@@ -113,13 +112,15 @@ public class SonivmLauncher implements Runnable {
 
 	private static void initTaskbarIcon() {
 		try {
-			// Class<?> util = Class.forName("com.apple.eawt.Application");
-			// Method getApplication = util.getMethod("getApplication", new Class[0]);
-			// Object application = getApplication.invoke(util);
-			// Method setDockIconImage = util.getMethod("setDockIconImage", new Class[] { Image.class });
-			// setDockIconImage.invoke(application, sonivmIcon);
+			Class<?> util = Class.forName("com.apple.eawt.Application");
+			Method getApplication = util.getMethod("getApplication", new Class[0]);
+			Object application = getApplication.invoke(util);
+			Method setDockIconImage = util.getMethod("setDockIconImage", new Class[] { Image.class });
+			setDockIconImage.invoke(application, sonivmIcon);
 
-			Taskbar.getTaskbar().setIconImage(sonivmIcon); // Requires Java 1.9+
+			// Taskbar.getTaskbar().setIconImage(sonivmIcon); // Requires Java 1.9+
+		} catch (ClassNotFoundException cnfe) {
+			LOGGER.info("Not setting Apple-specific dock image - looks like this is not macOS");
 		} catch (Throwable t) {
 			LOGGER.log(Level.WARNING, "Failed to load and set main macOS doc icon.", t);
 		}
@@ -142,14 +143,42 @@ public class SonivmLauncher implements Runnable {
 		}, false);
 
 		try {
-			Desktop desktop = Desktop.getDesktop();
-			desktop.setQuitHandler(new QuitHandler() {
-				@Override
-				public void handleQuitRequestWith(QuitEvent e, QuitResponse response) {
-					sonivmController.onQuit();
-					response.performQuit();
-				}
-			});
+			Class<?> quitHandlerClass = Class.forName("com.apple.eawt.QuitHandler");
+			Object quitHandler = Proxy.newProxyInstance(SonivmLauncher.class.getClassLoader(), new Class[] { quitHandlerClass },
+					new InvocationHandler() {
+
+						@Override
+						public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+							try {
+								sonivmController.onQuit();
+								LOGGER.info("Calling macOS specific QuitResponse.performQuit()");
+								Object quitResponse = args[1];
+								Method performQuitMethod = quitResponse.getClass().getMethod("performQuit");
+								performQuitMethod.invoke(quitResponse);
+							} catch (Throwable t) {
+								LOGGER.log(Level.SEVERE, "Error in quit handler", t);
+							}
+							return null;
+						}
+					});
+
+			Class<?> util = Class.forName("com.apple.eawt.Application");
+			Method getApplication = util.getMethod("getApplication", new Class[0]);
+			Object application = getApplication.invoke(util);
+			Method setQuitHandler = util.getMethod("setQuitHandler", new Class[] { quitHandlerClass });
+			setQuitHandler.invoke(application, quitHandler);
+
+			// Requires Java 1.9+
+			// Desktop desktop = Desktop.getDesktop();
+			// desktop.setQuitHandler(new QuitHandler() {
+			// @Override
+			// public void handleQuitRequestWith(QuitEvent e, QuitResponse response) {
+			// sonivmController.onQuit();
+			// response.performQuit();
+			// }
+			// });
+		} catch (ClassNotFoundException cnfe) {
+			LOGGER.info("Not registering Apple-specific quit handler - looks like this is not macOS");
 		} catch (Throwable t) {
 			LOGGER.log(Level.WARNING, "Failed to register quit handler", t);
 		}

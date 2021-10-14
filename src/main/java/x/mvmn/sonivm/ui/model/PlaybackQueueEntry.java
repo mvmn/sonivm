@@ -85,18 +85,22 @@ public class PlaybackQueueEntry {
 			String album = getAlbum();
 			String title = getTitle();
 			String date = getDate();
-			if (artist != null && !artist.isBlank()) {
+			if (artist != null && !artist.trim().isEmpty()) {
 				sb.append(artist).append(" ");
-				if (album != null && !album.isBlank()) {
+				if (album != null && !album.trim().isEmpty()) {
 					sb.append("\"").append(album).append("\" ");
 				}
 				if (date != null) {
 					sb.append("(").append(date).append(") ");
 				}
-				if (sb.length() > 0) {
-					sb.append("- ").append(StringUtil.blankForNull(title));
-				}
 			}
+			if (title == null || title.trim().isEmpty()) {
+				title = targetFileName;
+			}
+			if (sb.length() > 0) {
+				sb.append("- ");
+			}
+			sb.append(StringUtil.blankForNull(title));
 			// String.format("%1$s \"%2$s\" %4$s - %3$s", getArtist(), getAlbum(), getTitle(), StringUtil.blankForNull(getDate()))
 			// .replaceAll("[ ]+", " ")
 			return sb.toString();

@@ -340,14 +340,17 @@ public class SoniumControllerImpl implements SonivmController {
 
 	@Override
 	public void onQuit() {
+		LOGGER.info("Quit requested - shutting down");
 		SwingUtil.runOnEDT(() -> {
 			try {
 				SystemTray.getSystemTray().remove(sonivmTrayIcon);
+				LOGGER.info("Removed tray icon");
 			} catch (Throwable t) {
 				LOGGER.log(Level.SEVERE, "Failed to remove tray icon", t);
 			}
 			mainWindow.setVisible(false);
 			mainWindow.dispose();
+			LOGGER.info("Hid and disposed main window");
 		}, true);
 
 		LOGGER.info("Shutting down audio service.");
