@@ -12,6 +12,7 @@ import java.awt.dnd.DropTarget;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
@@ -184,7 +185,7 @@ public class SonivmMainWindow extends JFrame {
 		btnStop = new JButton("[x]");
 		btnNextTrack = new JButton(">>");
 		btnPreviousTrack = new JButton("<<");
-		lblStatus = new JLabel("Stopped");
+		lblStatus = new JLabel("");
 		lblNowPlayingTrack = new JLabel("");
 		lblPlayTimeElapsed = new JLabel("00:00 / 00:00");
 		lblPlayTimeRemaining = new JLabel("-00:00 / 00:00");
@@ -360,12 +361,11 @@ public class SonivmMainWindow extends JFrame {
 			}
 		});
 
-		int condition = JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT;
-		InputMap inputMap = tblPlayQueue.getInputMap(condition);
-		ActionMap actionMap = tblPlayQueue.getActionMap();
-		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "Delete");
-		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), "Delete");
-		actionMap.put("Delete", new AbstractAction() {
+		InputMap playQueueInputMap = tblPlayQueue.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+		ActionMap playQueueActionMap = tblPlayQueue.getActionMap();
+		playQueueInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "Delete");
+		playQueueInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), "Delete");
+		playQueueActionMap.put("Delete", new AbstractAction() {
 			private static final long serialVersionUID = 8828376654199394308L;
 
 			public void actionPerformed(ActionEvent e) {
@@ -375,9 +375,9 @@ public class SonivmMainWindow extends JFrame {
 				}
 			}
 		});
-		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "Select");
-		actionMap.put("Select", new AbstractAction() {
-			private static final long serialVersionUID = 8828376654199394308L;
+		playQueueInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "Select");
+		playQueueActionMap.put("Select", new AbstractAction() {
+			private static final long serialVersionUID = -7676623322223996235L;
 
 			public void actionPerformed(ActionEvent e) {
 				int selectedRow = tblPlayQueue.getSelectedRow();
@@ -386,22 +386,44 @@ public class SonivmMainWindow extends JFrame {
 				}
 			}
 		});
-		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "PlayPause");
-		actionMap.put("PlayPause", new AbstractAction() {
-			private static final long serialVersionUID = 8828376654199394308L;
+		playQueueInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "PlayPause");
+		playQueueActionMap.put("PlayPause", new AbstractAction() {
+			private static final long serialVersionUID = -7847322452952450909L;
 
 			public void actionPerformed(ActionEvent e) {
 				controller.onPlayPause();
 			}
 		});
 
-		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.META_DOWN_MASK), "Search");
-		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "Search");
-		actionMap.put("Search", new AbstractAction() {
-			private static final long serialVersionUID = 8828376654199394308L;
+		playQueueInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.META_DOWN_MASK), "Search");
+		playQueueInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "Search");
+		playQueueActionMap.put("Search", new AbstractAction() {
+			private static final long serialVersionUID = 5857284418121701865L;
 
 			public void actionPerformed(ActionEvent e) {
 				tfSearch.requestFocus();
+			}
+		});
+
+		playQueueInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.META_DOWN_MASK), "Shuffle");
+		playQueueInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_DOWN_MASK), "Shuffle");
+		playQueueActionMap.put("Shuffle", new AbstractAction() {
+			private static final long serialVersionUID = -7025932371730605861L;
+
+			public void actionPerformed(ActionEvent e) {
+				int selected = cmbShuffleMode.getSelectedIndex();
+				cmbShuffleMode.setSelectedIndex((selected >= cmbShuffleMode.getItemCount() - 1) ? 0 : ++selected);
+			}
+		});
+
+		playQueueInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.META_DOWN_MASK), "Repeat");
+		playQueueInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK), "Repeat");
+		playQueueActionMap.put("Repeat", new AbstractAction() {
+			private static final long serialVersionUID = -3186564264286994224L;
+
+			public void actionPerformed(ActionEvent e) {
+				int selected = cmbRepeatMode.getSelectedIndex();
+				cmbRepeatMode.setSelectedIndex((selected >= cmbRepeatMode.getItemCount() - 1) ? 0 : ++selected);
 			}
 		});
 
@@ -421,6 +443,70 @@ public class SonivmMainWindow extends JFrame {
 
 			@Override
 			public void changedUpdate(DocumentEvent e) {}
+		});
+
+		InputMap searchInputMap = tfSearch.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+		ActionMap searchActionMap = tfSearch.getActionMap();
+		searchInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.META_DOWN_MASK), "Shuffle");
+		searchInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_E, InputEvent.CTRL_DOWN_MASK), "Shuffle");
+		searchActionMap.put("Shuffle", new AbstractAction() {
+			private static final long serialVersionUID = -7025932371730605861L;
+
+			public void actionPerformed(ActionEvent e) {
+				int selected = cmbShuffleMode.getSelectedIndex();
+				cmbShuffleMode.setSelectedIndex((selected >= cmbShuffleMode.getItemCount() - 1) ? 0 : ++selected);
+			}
+		});
+
+		searchInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.META_DOWN_MASK), "Repeat");
+		searchInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK), "Repeat");
+		searchActionMap.put("Repeat", new AbstractAction() {
+			private static final long serialVersionUID = -3186564264286994224L;
+
+			public void actionPerformed(ActionEvent e) {
+				int selected = cmbRepeatMode.getSelectedIndex();
+				cmbRepeatMode.setSelectedIndex((selected >= cmbRepeatMode.getItemCount() - 1) ? 0 : ++selected);
+			}
+		});
+
+		searchInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "Select");
+		searchActionMap.put("Select", new AbstractAction() {
+			private static final long serialVersionUID = -7676623322223996235L;
+
+			public void actionPerformed(ActionEvent e) {
+				int selectedRow = tblPlayQueue.getSelectedRow();
+				if (selectedRow >= 0 && selectedRow < tblPlayQueue.getRowCount()) {
+					controller.onTrackSelect(selectedRow);
+				}
+			}
+		});
+
+		tfSearch.addKeyListener(new KeyListener() {
+
+			@Override
+			public void keyTyped(KeyEvent e) {}
+
+			@Override
+			public void keyReleased(KeyEvent e) {
+				int code = e.getKeyCode();
+				switch (code) {
+					case KeyEvent.VK_UP: {
+						controller.onSearchPreviousMatch();
+						break;
+					}
+
+					case KeyEvent.VK_DOWN: {
+						controller.onSearchNextMatch();
+						break;
+					}
+				}
+
+			}
+
+			@Override
+			public void keyPressed(KeyEvent e) {
+
+			}
 		});
 
 		btnSearchNextMatch.addActionListener(actEvent -> controller.onSearchNextMatch());
