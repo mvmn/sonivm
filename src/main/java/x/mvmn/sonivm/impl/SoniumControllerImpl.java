@@ -43,6 +43,7 @@ import x.mvmn.sonivm.ui.SonivmMainWindow;
 import x.mvmn.sonivm.ui.SonivmTrayIconPopupMenu;
 import x.mvmn.sonivm.ui.model.AudioDeviceOption;
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
+import x.mvmn.sonivm.ui.model.PlaybackQueueEntryCompareBiPredicate;
 import x.mvmn.sonivm.ui.model.RepeatMode;
 import x.mvmn.sonivm.ui.model.ShuffleMode;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
@@ -169,7 +170,9 @@ public class SoniumControllerImpl implements SonivmController {
 				PlaybackQueueEntry currentTrack = playbackQueueService.getEntryByIndex(currentTrackQueuePos);
 				switch (shuffleState) {
 					case ALBUM: {
-						int[] matchingTrackIndexes = playbackQueueService.findTracks(track -> currentTrack.albumMatches(track));
+						int[] matchingTrackIndexes = playbackQueueService
+								.findTracks(track -> currentTrack.trackPropertiesEqual(track, PlaybackQueueEntry::getAlbum)
+										&& currentTrack.trackPropertiesEqual(track, PlaybackQueueEntry::getArtist));
 						if (matchingTrackIndexes.length < 1) {
 							tryPlayFromStartOfQueue();
 						} else {
@@ -179,7 +182,19 @@ public class SoniumControllerImpl implements SonivmController {
 						return;
 					}
 					case ARTIST: {
-						int[] matchingTrackIndexes = playbackQueueService.findTracks(track -> currentTrack.artistMatches(track));
+						int[] matchingTrackIndexes = playbackQueueService
+								.findTracks(track -> currentTrack.trackPropertiesEqual(track, PlaybackQueueEntry::getArtist));
+						if (matchingTrackIndexes.length < 1) {
+							tryPlayFromStartOfQueue();
+						} else {
+							switchToTrack(
+									matchingTrackIndexes[new Random(System.currentTimeMillis()).nextInt(matchingTrackIndexes.length)]);
+						}
+						return;
+					}
+					case GENRE: {
+						int[] matchingTrackIndexes = playbackQueueService
+								.findTracks(track -> currentTrack.trackPropertiesEqual(track, PlaybackQueueEntry::getGenre));
 						if (matchingTrackIndexes.length < 1) {
 							tryPlayFromStartOfQueue();
 						} else {
@@ -203,12 +218,14 @@ public class SoniumControllerImpl implements SonivmController {
 					int startOfRange = 0;
 					switch (repeatState) {
 						case ALBUM:
-							IntRange albumRange = playbackQueueService.detectTrackRange(currentTrackQueuePos, false);
+							IntRange albumRange = playbackQueueService.detectTrackRange(currentTrackQueuePos,
+									PlaybackQueueEntryCompareBiPredicate.BY_ARTIST_AND_ALBUM);
 							startOfRange = albumRange.getFrom();
 							endOfRange = albumRange.getTo();
 						break;
 						case ARTIST:
-							IntRange artistRange = playbackQueueService.detectTrackRange(currentTrackQueuePos, true);
+							IntRange artistRange = playbackQueueService.detectTrackRange(currentTrackQueuePos,
+									PlaybackQueueEntryCompareBiPredicate.BY_ARTIST);
 							startOfRange = artistRange.getFrom();
 							endOfRange = artistRange.getTo();
 						break;

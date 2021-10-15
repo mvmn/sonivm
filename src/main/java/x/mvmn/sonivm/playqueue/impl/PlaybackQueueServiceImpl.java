@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -248,7 +249,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	}
 
 	@Override
-	public IntRange detectTrackRange(int currentPosition, boolean byArtist) {
+	public IntRange detectTrackRange(int currentPosition, BiPredicate<PlaybackQueueEntry, PlaybackQueueEntry> condition) {
 		synchronized (DATA_LOCK_OBJ) {
 			int trackCount = data.size();
 			if (trackCount > 0) {
@@ -256,7 +257,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 				int start = currentPosition;
 				while (start > 0) {
 					PlaybackQueueEntry prevTrack = data.get(start - 1);
-					if (!(byArtist ? currentTrack.artistMatches(prevTrack) : currentTrack.albumMatches(prevTrack))) {
+					if (!condition.test(currentTrack, prevTrack)) {
 						break;
 					} else {
 						start--;
@@ -265,7 +266,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 				int end = currentPosition;
 				while (end < trackCount - 1) {
 					PlaybackQueueEntry nextTrack = data.get(end + 1);
-					if (!(byArtist ? currentTrack.artistMatches(nextTrack) : currentTrack.albumMatches(nextTrack))) {
+					if (!condition.test(currentTrack, nextTrack)) {
 						break;
 					} else {
 						end++;

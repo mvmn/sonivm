@@ -1,7 +1,7 @@
 package x.mvmn.sonivm.ui.model;
 
 public enum ShuffleMode {
-	OFF, PLAYLIST, ARTIST, ALBUM;
+	OFF, PLAYLIST, ARTIST, ALBUM, GENRE;
 
 	public String toString() {
 		String name = this.name();

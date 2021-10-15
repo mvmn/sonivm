@@ -2,6 +2,7 @@ package x.mvmn.sonivm.playqueue;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
 import x.mvmn.sonivm.model.IntRange;
@@ -41,5 +42,5 @@ public interface PlaybackQueueService {
 
 	int[] findTracks(Predicate<PlaybackQueueEntry> matches);
 
-	IntRange detectTrackRange(int currentPosition, boolean byArtist);
+	IntRange detectTrackRange(int currentPosition, BiPredicate<PlaybackQueueEntry, PlaybackQueueEntry> condition);
 }

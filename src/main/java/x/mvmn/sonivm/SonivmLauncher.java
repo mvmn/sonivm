@@ -108,6 +108,9 @@ public class SonivmLauncher implements Runnable {
 		rootLogger.setLevel(Level.INFO);
 		rootLogger.addHandler(handler);
 		handler.setLevel(Level.INFO);
+
+		Logger lastFMRootLogger = Logger.getLogger("de.umass.lastfm");
+		lastFMRootLogger.setLevel(Level.WARNING);
 	}
 
 	private static void initTaskbarIcon() {

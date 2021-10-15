@@ -1,6 +1,7 @@
 package x.mvmn.sonivm.ui.model;
 
 import java.beans.Transient;
+import java.util.List;
 import java.util.function.Function;
 
 import lombok.AllArgsConstructor;
@@ -107,18 +108,20 @@ public class PlaybackQueueEntry {
 		}
 	}
 
-	public boolean artistMatches(PlaybackQueueEntry other) {
-		return propertyEquals(this, other, PlaybackQueueEntry::getArtist);
+	public boolean propertiesMatch(PlaybackQueueEntry other, List<Function<PlaybackQueueEntry, String>> propertyExtractors) {
+		boolean result = !propertyExtractors.isEmpty();
+		for (Function<PlaybackQueueEntry, String> propertyExtractor : propertyExtractors) {
+			if (!trackPropertiesEqual(propertyExtractor.apply(this), propertyExtractor.apply(other))) {
+				result = false;
+				break;
+			}
+		}
+		return result;
 	}
 
-	public boolean albumMatches(PlaybackQueueEntry other) {
-		return propertyEquals(this, other, PlaybackQueueEntry::getAlbum);
-	}
-
-	private static boolean propertyEquals(PlaybackQueueEntry entryA, PlaybackQueueEntry entryB,
-			Function<PlaybackQueueEntry, String> propertyExtractor) {
-		String valA = propertyExtractor.apply(entryA);
-		String valB = propertyExtractor.apply(entryB);
+	public boolean trackPropertiesEqual(PlaybackQueueEntry other, Function<PlaybackQueueEntry, String> propertyExtractor) {
+		String valA = propertyExtractor.apply(this);
+		String valB = propertyExtractor.apply(other);
 		return trackPropertiesEqual(valA, valB);
 	}
 
