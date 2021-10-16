@@ -19,8 +19,8 @@ import x.mvmn.sonivm.util.EncryptionUtil.KeyAndNonce;
 public class PreferencesServiceImpl implements PreferencesService {
 	private static final Logger LOGGER = Logger.getLogger(PreferencesServiceImpl.class.getCanonicalName());
 
-	private static final String DEFAULT_KEY = "9e89b44de1ff37c5246ad0af18406454";
-	private static final String DEFAULT_SECRET = "147320ea9b8930fe196a4231da50ada4";
+	private static final String DEFAULT_ENCRYPTION_KEY = "9e89b44de1ff37c5246ad0af18406454";
+	private static final String DEFAULT_ENCRYPTION_SECRET = "147320ea9b8930fe196a4231da50ada4";
 
 	private static final String KEY_ENCPWD = "scrobblerencpwd";
 	private static final String KEY_USER = "lastfmusername";
@@ -30,6 +30,7 @@ public class PreferencesServiceImpl implements PreferencesService {
 	private static final String KEY_PERCENTAGE_TO_SCROBBLE_AT = "scrobbleatpercent";
 	private static final String KEY_LOOK_AND_FEEL = "lookandfeel";
 	private static final String KEY_PLAYQUEUE_COLUMN_WIDTHS = "playqueuecolumnwidths";
+	private static final String KEY_PLAYQUEUE_COLUMN_POSITIONS = "playqueuecolumnpositions";
 
 	private final Preferences prefs;
 	private final KeyAndNonce keyAndNonce;
@@ -76,7 +77,7 @@ public class PreferencesServiceImpl implements PreferencesService {
 
 	@Override
 	public String getApiKey() {
-		return prefs.get(KEY_LASTFMAPIKEY, DEFAULT_KEY);
+		return prefs.get(KEY_LASTFMAPIKEY, DEFAULT_ENCRYPTION_KEY);
 	}
 
 	@Override
@@ -86,7 +87,7 @@ public class PreferencesServiceImpl implements PreferencesService {
 
 	@Override
 	public String getApiSecret() {
-		return prefs.get(KEY_LASTFMAPISECRET, DEFAULT_SECRET);
+		return prefs.get(KEY_LASTFMAPISECRET, DEFAULT_ENCRYPTION_SECRET);
 	}
 
 	@Override
@@ -123,7 +124,26 @@ public class PreferencesServiceImpl implements PreferencesService {
 
 	@Override
 	public int[] getPlayQueueColumnWidths() {
-		String value = prefs.get(KEY_PLAYQUEUE_COLUMN_WIDTHS, null);
+		return getIntArrayProperty(KEY_PLAYQUEUE_COLUMN_WIDTHS, null);
+	}
+
+	@Override
+	public void setPlayQueueColumnWidths(int[] widths) {
+		setIntArrayProperty(KEY_PLAYQUEUE_COLUMN_WIDTHS, widths);
+	}
+
+	@Override
+	public int[] getPlayQueueColumnPositions() {
+		return getIntArrayProperty(KEY_PLAYQUEUE_COLUMN_POSITIONS, null);
+	}
+
+	@Override
+	public void setPlayQueueColumnPositions(int[] colPos) {
+		setIntArrayProperty(KEY_PLAYQUEUE_COLUMN_POSITIONS, colPos);
+	}
+
+	protected int[] getIntArrayProperty(String prefKey, String defaultVal) {
+		String value = prefs.get(prefKey, defaultVal);
 		if (value == null) {
 			return null;
 		} else {
@@ -131,8 +151,7 @@ public class PreferencesServiceImpl implements PreferencesService {
 		}
 	}
 
-	@Override
-	public void setPlayQueueColumnWidths(int[] widths) {
-		prefs.put(KEY_PLAYQUEUE_COLUMN_WIDTHS, IntStream.of(widths).mapToObj(String::valueOf).collect(Collectors.joining(",")));
+	protected void setIntArrayProperty(String prefKey, int[] values) {
+		prefs.put(prefKey, IntStream.of(values).mapToObj(String::valueOf).collect(Collectors.joining(",")));
 	}
 }

@@ -31,4 +31,8 @@ public interface PreferencesService {
 	int[] getPlayQueueColumnWidths();
 
 	void setPlayQueueColumnWidths(int[] widths);
+
+	int[] getPlayQueueColumnPositions();
+
+	void setPlayQueueColumnPositions(int[] colPos);
 }

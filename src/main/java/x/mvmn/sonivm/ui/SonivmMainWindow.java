@@ -109,7 +109,11 @@ public class SonivmMainWindow extends JFrame {
 
 				boolean isHighlighted = row == playbackQueueTableModel.getIndexOfHighlightedRow();
 				renderJLabel.setFont(isHighlighted ? tblPlayQueue.getFont().deriveFont(Font.BOLD) : tblPlayQueue.getFont());
-				renderJLabel.setHorizontalAlignment(column == 0 || column == 1 || column == 5 || column == 6 ? JLabel.RIGHT : JLabel.LEFT);
+				int originalColumnIndex = tblPlayQueue.convertColumnIndexToModel(column);
+				renderJLabel.setHorizontalAlignment(
+						originalColumnIndex == 0 || originalColumnIndex == 1 || originalColumnIndex == 5 || originalColumnIndex == 6
+								? JLabel.RIGHT
+								: JLabel.LEFT);
 
 				Color fgRegular = table.getForeground();
 				Color bgRegular = table.getBackground();
@@ -120,7 +124,8 @@ public class SonivmMainWindow extends JFrame {
 				// From DefaultTableCellRenderer
 				JTable.DropLocation dropLocation = table.getDropLocation();
 				if (dropLocation != null && !dropLocation.isInsertRow() && !dropLocation.isInsertColumn() && dropLocation.getRow() == row
-						&& dropLocation.getColumn() == column) {
+				// && dropLocation.getColumn() == column
+				) {
 					isSelected = true;
 					fgSelected = lookupInUIDefaults("Table.dropCellForeground", fgSelected);
 					bgSelected = lookupInUIDefaults("Table.dropCellBackground", bgSelected);

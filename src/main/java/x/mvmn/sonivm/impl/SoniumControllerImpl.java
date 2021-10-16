@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.annotation.PostConstruct;
+import javax.swing.JTable;
 import javax.swing.table.TableColumnModel;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -389,7 +390,7 @@ public class SoniumControllerImpl implements SonivmController {
 			}
 		}
 
-		savePlayQueueColumnWidths();
+		savePlayQueueColumnsState();
 		savePlayQueueContents();
 
 		// System.exit(0);
@@ -427,10 +428,11 @@ public class SoniumControllerImpl implements SonivmController {
 		return new File(new File(System.getProperty("sonivm_home_folder")), "queue.json");
 	}
 
-	private void savePlayQueueColumnWidths() {
+	private void savePlayQueueColumnsState() {
 		LOGGER.info("Saving UI state.");
 		try {
-			TableColumnModel columnModel = mainWindow.getPlayQueueTable().getColumnModel();
+			JTable tblPlayQueue = mainWindow.getPlayQueueTable();
+			TableColumnModel columnModel = tblPlayQueue.getColumnModel();
 			int[] columnWidths = new int[columnModel.getColumnCount()];
 			int totalWidth = 0;
 			for (int i = 0; i < columnModel.getColumnCount(); i++) {
@@ -442,6 +444,12 @@ public class SoniumControllerImpl implements SonivmController {
 				columnWidths[i] = (columnWidths[i] * 10000) / totalWidth;
 			}
 			preferencesService.setPlayQueueColumnWidths(columnWidths);
+
+			int[] columnPositions = new int[columnModel.getColumnCount()];
+			for (int i = 0; i < columnModel.getColumnCount(); i++) {
+				columnPositions[i] = tblPlayQueue.convertColumnIndexToView(i);
+			}
+			preferencesService.setPlayQueueColumnPositions(columnPositions);
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to store column width for playback queue table", e);
 		}
@@ -707,14 +715,30 @@ public class SoniumControllerImpl implements SonivmController {
 
 	@Override
 	public void onBeforeUiSetVisible() {
-		restorePlayQueueColumnWidths();
+		restorePlayQueueColumnsState();
 		lastFmScrobbleTaskExecutor.execute(() -> reSubmitFailedLastFMSubmissions());
 	}
 
-	private void restorePlayQueueColumnWidths() {
+	private void restorePlayQueueColumnsState() {
+		try {
+			int[] playQueueColumnPositions = preferencesService.getPlayQueueColumnPositions();
+			if (playQueueColumnPositions != null && playQueueColumnPositions.length > 0) {
+				SwingUtil.runOnEDT(() -> {
+					JTable tblPlayQueue = mainWindow.getPlayQueueTable();
+					TableColumnModel columnModel = tblPlayQueue.getColumnModel();
+
+					for (int i = 0; i < columnModel.getColumnCount() && i < playQueueColumnPositions.length; i++) {
+						columnModel.moveColumn(tblPlayQueue.convertColumnIndexToView(i), playQueueColumnPositions[i]);
+					}
+				}, true);
+			}
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to read+apply column positions for playback queue table", e);
+		}
+
 		try {
 			int[] playQueueColumnWidths = preferencesService.getPlayQueueColumnWidths();
-			if (playQueueColumnWidths != null) {
+			if (playQueueColumnWidths != null && playQueueColumnWidths.length > 0) {
 				SwingUtil.runOnEDT(() -> {
 					TableColumnModel columnModel = mainWindow.getPlayQueueTable().getColumnModel();
 
