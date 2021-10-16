@@ -34,12 +34,13 @@ import de.umass.lastfm.scrobble.ScrobbleResult;
 import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.audio.PlaybackEvent;
+import x.mvmn.sonivm.eq.SonivmEqualizerService;
+import x.mvmn.sonivm.eq.model.EqualizerState;
 import x.mvmn.sonivm.lastfm.LastFMQueueService;
 import x.mvmn.sonivm.model.IntRange;
 import x.mvmn.sonivm.playqueue.PlaybackQueueFileImportService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
-import x.mvmn.sonivm.ui.SonivmEqualizerService;
 import x.mvmn.sonivm.ui.EqualizerWindow;
 import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
@@ -90,7 +91,7 @@ public class SoniumControllerImpl implements SonivmController {
 	private SonivmTrayIconPopupMenu trayIconPopupMenu;
 
 	@Autowired
-	private SonivmEqualizerService equalizerListener;
+	private SonivmEqualizerService equalizerService;
 
 	private volatile AudioFileInfo currentAudioFileInfo;
 	private volatile PlaybackQueueEntry currentTrackInfo;
@@ -403,6 +404,7 @@ public class SoniumControllerImpl implements SonivmController {
 
 		savePlayQueueColumnsState();
 		savePlayQueueContents();
+		saveEqState();
 
 		// System.exit(0);
 	}
@@ -522,10 +524,10 @@ public class SoniumControllerImpl implements SonivmController {
 				LOGGER.info("On new track start: " + event.getAudioMetadata());
 				handleStartTrackPlay(event.getAudioMetadata());
 				if (event.getEqControls() != null) {
-					equalizerListener.setEqControls(event.getEqControls(),
+					equalizerService.setEqControls(event.getEqControls(),
 							event.getAudioMetadata().getAudioFileFormat().getFormat().getChannels());
 				} else {
-					equalizerListener.setEqControls(null, 0);
+					equalizerService.setEqControls(null, 0);
 				}
 			break;
 			case DATALINE_CHANGE:
@@ -732,6 +734,7 @@ public class SoniumControllerImpl implements SonivmController {
 
 	@Override
 	public void onBeforeUiSetVisible() {
+		restoreEqState();
 		restorePlayQueueColumnsState();
 		lastFmScrobbleTaskExecutor.execute(() -> reSubmitFailedLastFMSubmissions());
 	}
@@ -889,6 +892,37 @@ public class SoniumControllerImpl implements SonivmController {
 			SwingUtil.showAndBringToFront(eqWindow);
 		} else {
 			eqWindow.setVisible(false);
+		}
+	}
+
+	private void restoreEqState() {
+		try {
+			LOGGER.info("Restoring EQ state");
+			EqualizerState eqState = EqualizerState.builder()
+					.enabled(preferencesService.isEqEnabled())
+					.gain(preferencesService.getEqGain())
+					.bands(preferencesService.getEqBands())
+					.build();
+			System.out.println(eqState);
+			// equalizerService.setState(eqState);
+			eqWindow.setState(eqState);
+			LOGGER.info("Restoring EQ state succeeded");
+		} catch (Throwable t) {
+			LOGGER.log(Level.WARNING, "Failed to restore EQ state", t);
+		}
+	}
+
+	private void saveEqState() {
+		try {
+			LOGGER.info("Storing EQ state");
+			EqualizerState eqState = equalizerService.getCurrentState();
+			System.out.println(eqState);
+			preferencesService.setEqEnabled(eqState.isEnabled());
+			preferencesService.setEqGain(eqState.getGain());
+			preferencesService.setEqBands(eqState.getBands());
+			LOGGER.info("Storing EQ state succeeded");
+		} catch (Throwable t) {
+			LOGGER.log(Level.WARNING, "Failed to save EQ state", t);
 		}
 	}
 }

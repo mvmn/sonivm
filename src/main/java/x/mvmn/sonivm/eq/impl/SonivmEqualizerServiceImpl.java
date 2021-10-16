@@ -1,11 +1,12 @@
-package x.mvmn.sonivm.impl;
+package x.mvmn.sonivm.eq.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import davaguine.jeq.core.IIRControls;
 import x.mvmn.sonivm.audio.AudioService;
-import x.mvmn.sonivm.ui.SonivmEqualizerService;
+import x.mvmn.sonivm.eq.SonivmEqualizerService;
+import x.mvmn.sonivm.eq.model.EqualizerState;
 import x.mvmn.sonivm.util.Tuple2;
 
 @Service
@@ -15,6 +16,8 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 	private volatile int lastGainValue = 300;
 	// TODO: inject band count
 	private volatile int[] lastBandValues = new int[] { 500, 500, 500, 500, 500, 500, 500, 500, 500, 500 };
+	private volatile boolean eqEnabled = false;
+
 	@Autowired
 	private AudioService audioService;
 
@@ -68,6 +71,22 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 
 	@Override
 	public void onEqualizerEnableToggle(boolean equalizerEnabled) {
+		eqEnabled = equalizerEnabled;
 		audioService.setUseEqualizer(equalizerEnabled);
+	}
+
+	@Override
+	public EqualizerState getCurrentState() {
+		return EqualizerState.builder().enabled(eqEnabled).gain(lastGainValue).bands(lastBandValues).build();
+	}
+
+	@Override
+	public void setState(EqualizerState eqState) {
+		onEqualizerEnableToggle(eqState.isEnabled());
+		onGainChange(eqState.getGain());
+		int[] bandStates = eqState.getBands();
+		for (int i = 0; i < bandStates.length; i++) {
+			onBandChange(i, bandStates[i]);
+		}
 	}
 }

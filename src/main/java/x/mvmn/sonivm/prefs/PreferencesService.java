@@ -35,4 +35,16 @@ public interface PreferencesService {
 	int[] getPlayQueueColumnPositions();
 
 	void setPlayQueueColumnPositions(int[] colPos);
+
+	int[] getEqBands();
+
+	void setEqBands(int[] eqBands);
+
+	boolean isEqEnabled();
+
+	void setEqEnabled(boolean eqEnabled);
+
+	int getEqGain();
+
+	void setEqGain(int eqGain);
 }

@@ -16,6 +16,8 @@ import javax.swing.JSlider;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+import x.mvmn.sonivm.eq.SonivmEqualizerService;
+import x.mvmn.sonivm.eq.model.EqualizerState;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 
 public class EqualizerWindow extends JFrame {
@@ -212,5 +214,14 @@ public class EqualizerWindow extends JFrame {
 
 	protected void onBandChange(int bandNumber) {
 		changeListener.onBandChange(bandNumber, bandSliders[bandNumber].getValue());
+	}
+
+	public void setState(EqualizerState eqState) {
+		cbEnabled.setSelected(eqState.isEnabled());
+		gainSlider.setValue(eqState.getGain());
+		int[] bandSliderStates = eqState.getBands();
+		for (int i = 0; i < bandSliders.length; i++) {
+			bandSliders[i].setValue(bandSliderStates[i]);
+		}
 	}
 }

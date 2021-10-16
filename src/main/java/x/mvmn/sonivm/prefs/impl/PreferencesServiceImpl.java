@@ -32,6 +32,10 @@ public class PreferencesServiceImpl implements PreferencesService {
 	private static final String KEY_PLAYQUEUE_COLUMN_WIDTHS = "playqueuecolumnwidths";
 	private static final String KEY_PLAYQUEUE_COLUMN_POSITIONS = "playqueuecolumnpositions";
 
+	private static final String KEY_EQ_ENABLED = "eqenabled";
+	private static final String KEY_EQ_GAIN = "eqgain";
+	private static final String KEY_EQ_BANDS_VALUES = "eqbandsvalues";
+
 	private final Preferences prefs;
 	private final KeyAndNonce keyAndNonce;
 
@@ -140,6 +144,44 @@ public class PreferencesServiceImpl implements PreferencesService {
 	@Override
 	public void setPlayQueueColumnPositions(int[] colPos) {
 		setIntArrayProperty(KEY_PLAYQUEUE_COLUMN_POSITIONS, colPos);
+	}
+
+	@Override
+	public int[] getEqBands() {
+		int[] result = getIntArrayProperty(KEY_EQ_BANDS_VALUES, null);
+		// TODO: band count
+		return result != null ? result : new int[] { 500, 500, 500, 500, 500, 500, 500, 500, 500, 500 };
+	}
+
+	@Override
+	public void setEqBands(int[] eqBands) {
+		setIntArrayProperty(KEY_EQ_BANDS_VALUES, eqBands);
+	}
+
+	@Override
+	public boolean isEqEnabled() {
+		return Boolean.valueOf(prefs.get(KEY_EQ_ENABLED, "false"));
+	}
+
+	@Override
+	public void setEqEnabled(boolean eqEnabled) {
+		prefs.put(KEY_EQ_ENABLED, Boolean.toString(eqEnabled));
+	}
+
+	@Override
+	public int getEqGain() {
+		String eqGainStr = prefs.get(KEY_EQ_GAIN, "300");
+		try {
+			return Integer.parseInt(eqGainStr);
+		} catch (NumberFormatException nfe) {
+			LOGGER.warning("Number format exception for preference " + KEY_EQ_GAIN + " value " + eqGainStr);
+			return 300;
+		}
+	}
+
+	@Override
+	public void setEqGain(int eqGain) {
+		prefs.put(KEY_EQ_GAIN, Integer.toString(eqGain));
 	}
 
 	protected int[] getIntArrayProperty(String prefKey, String defaultVal) {
