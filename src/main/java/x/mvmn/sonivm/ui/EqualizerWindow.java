@@ -33,7 +33,7 @@ public class EqualizerWindow extends JFrame {
 	public EqualizerWindow(String title, int bandCount) {
 		super(title);
 
-		this.cbEnabled = new JCheckBox("EQ on", true);
+		this.cbEnabled = new JCheckBox("EQ on", false);
 		cbEnabled.addActionListener(actEvent -> changeListener.onEqualizerEnableToggle(cbEnabled.isSelected()));
 
 		btnReset = new JButton("Reset");

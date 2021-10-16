@@ -882,4 +882,13 @@ public class SoniumControllerImpl implements SonivmController {
 			mainWindow.selectTrack(row);
 		}
 	}
+
+	@Override
+	public void toggleShowEqualizer() {
+		if (!eqWindow.isVisible()) {
+			SwingUtil.showAndBringToFront(eqWindow);
+		} else {
+			eqWindow.setVisible(false);
+		}
+	}
 }

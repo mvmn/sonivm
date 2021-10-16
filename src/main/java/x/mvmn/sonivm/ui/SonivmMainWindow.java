@@ -82,6 +82,7 @@ public class SonivmMainWindow extends JFrame {
 	private final JButton btnSearchPreviousMatch;
 	private final JLabel lblSearchMatchesCount;
 	private final JLabel lblQueueSize;
+	private final JButton btnToggleShowEq;
 
 	private volatile boolean seekSliderIsDragged;
 
@@ -215,6 +216,8 @@ public class SonivmMainWindow extends JFrame {
 		cmbShuffleMode.setFocusable(false);
 		cmbRepeatMode.setFocusable(false);
 
+		btnToggleShowEq = new JButton("EQ");
+
 		seekSlider = new JSlider(0, 0);
 		seekSlider.setEnabled(false);
 		seekSlider.setFocusable(false);
@@ -251,6 +254,7 @@ public class SonivmMainWindow extends JFrame {
 								.add(cmbRepeatMode)
 								.add(lblShuffle)
 								.add(cmbShuffleMode)
+								.add(btnToggleShowEq)
 								.build())
 						.build())
 				.build();
@@ -371,6 +375,8 @@ public class SonivmMainWindow extends JFrame {
 		btnStop.addActionListener(event -> controller.onStop());
 		btnNextTrack.addActionListener(event -> controller.onNextTrack());
 		btnPreviousTrack.addActionListener(event -> controller.onPreviousTrack());
+
+		btnToggleShowEq.addActionListener(actEvent -> controller.toggleShowEqualizer());
 
 		tblPlayQueue.addMouseListener(new MouseAdapter() {
 			public void mousePressed(MouseEvent mouseEvent) {

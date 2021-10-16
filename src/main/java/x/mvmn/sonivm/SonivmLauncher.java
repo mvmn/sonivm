@@ -132,8 +132,9 @@ public class SonivmLauncher implements Runnable {
 
 	public void run() {
 		mainWindow.setIconImage(sonivmIcon);
-		mainWindow.setJMenuBar(initMenuBar(getAudioDevicesPlusDefault()));
-		eqWindow.setJMenuBar(initMenuBar(getAudioDevicesPlusDefault()));
+		List<AudioDeviceOption> audioDevices = getAudioDevicesPlusDefault();
+		mainWindow.setJMenuBar(initMenuBar(audioDevices));
+		eqWindow.setJMenuBar(initMenuBar(audioDevices));
 		SwingUtil.prefSizeRatioOfScreenSize(mainWindow, 3f / 4f);
 		sonivmController.onBeforeUiPack();
 		mainWindow.pack();
@@ -189,7 +190,7 @@ public class SonivmLauncher implements Runnable {
 		}
 
 		SwingUtil.runOnEDT(() -> mainWindow.setVisible(true), false);
-		SwingUtil.runOnEDT(() -> eqWindow.setVisible(true), false);
+		// SwingUtil.runOnEDT(() -> eqWindow.setVisible(true), false);
 	}
 
 	private JMenuBar initMenuBar(List<AudioDeviceOption> audioDevices) {
@@ -291,7 +292,16 @@ public class SonivmLauncher implements Runnable {
 						.build());
 		menuBuilderLogLEvel.build();
 
-		return menuBuilder.build().build();
+		return menuBuilder.build()
+				.menu("Windows")
+				.item("Sonivm")
+				.actr(actEvent -> SwingUtil.showAndBringToFront(mainWindow))
+				.build()
+				.item("Equalizer")
+				.actr(actEvent -> SwingUtil.showAndBringToFront(eqWindow))
+				.build()
+				.build()
+				.build();
 	}
 
 	private List<AudioDeviceOption> getAudioDevicesPlusDefault() {

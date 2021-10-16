@@ -421,4 +421,10 @@ public class SwingUtil {
 
 		return menu;
 	}
+
+	public static void showAndBringToFront(Window window) {
+		window.setVisible(true);
+		window.toFront();
+		window.requestFocus();
+	}
 }

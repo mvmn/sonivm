@@ -68,6 +68,6 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 
 	@Override
 	public void onEqualizerEnableToggle(boolean equalizerEnabled) {
-		audioService.setDisableEqualizer(!equalizerEnabled);
+		audioService.setUseEqualizer(equalizerEnabled);
 	}
 }

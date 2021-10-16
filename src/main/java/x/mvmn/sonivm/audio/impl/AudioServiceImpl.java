@@ -54,7 +54,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private final ExecutorService playbackEventListenerExecutor = Executors.newFixedThreadPool(1);
 
 	private volatile boolean force16BitPCMConversion = true;
-	private volatile boolean disableEqualizer = false;
+	private volatile boolean useEqualizer = false;
 
 	private volatile boolean shutdownRequested = false;
 	private volatile State state = State.STOPPED;
@@ -103,7 +103,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						if (State.PLAYING == state) {
 							int readBytes = -1;
 							byte[] buffer = playbackBuffer;
-							readBytes = (disableEqualizer ? currentNormalizedStream : currentEqInputStream).read(buffer);
+							readBytes = (useEqualizer ? currentEqInputStream : currentNormalizedStream).read(buffer);
 							if (readBytes < buffer.length) {
 								// TODO: prepare next track
 							}
@@ -514,12 +514,12 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	}
 
 	@Override
-	public boolean isDisableEqualizer() {
-		return disableEqualizer;
+	public boolean isUseEqualizer() {
+		return useEqualizer;
 	}
 
 	@Override
-	public void setDisableEqualizer(boolean disableEqualizer) {
-		this.disableEqualizer = disableEqualizer;
+	public void setUseEqualizer(boolean useEqualizer) {
+		this.useEqualizer = useEqualizer;
 	}
 }

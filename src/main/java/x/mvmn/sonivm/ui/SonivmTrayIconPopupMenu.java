@@ -34,17 +34,9 @@ public class SonivmTrayIconPopupMenu {
 
 	@PostConstruct
 	public void init() {
-		miNowPlaying.addActionListener(actEvent -> {
-			mainWindow.setVisible(true);
-			mainWindow.toFront();
-			mainWindow.requestFocus();
-		});
+		miNowPlaying.addActionListener(actEvent -> SwingUtil.showAndBringToFront(mainWindow));
+		miEqualizer.addActionListener(actEvent -> SwingUtil.showAndBringToFront(equalizerWindow));
 
-		miEqualizer.addActionListener(actEvent -> {
-			equalizerWindow.setVisible(true);
-			equalizerWindow.toFront();
-			equalizerWindow.requestFocus();
-		});
 		miPreviousTrack.addActionListener(actEvent -> controller.onPreviousTrack());
 		miPlayPause.addActionListener(actEvent -> controller.onPlayPause());
 		miStop.addActionListener(actEvent -> controller.onStop());
