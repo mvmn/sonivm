@@ -4,6 +4,7 @@ import java.beans.Transient;
 import java.util.List;
 import java.util.function.Function;
 
+import de.umass.lastfm.scrobble.ScrobbleData;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -81,31 +82,34 @@ public class PlaybackQueueEntry {
 		if (trackMetadata == null) {
 			return targetFileName;
 		} else {
-			StringBuilder sb = new StringBuilder();
-			String artist = getArtist();
-			String album = getAlbum();
-			String title = getTitle();
-			String date = getDate();
-			if (artist != null && !artist.trim().isEmpty()) {
-				sb.append(artist).append(" ");
-				if (album != null && !album.trim().isEmpty()) {
-					sb.append("\"").append(album).append("\" ");
-				}
-				if (date != null) {
-					sb.append("(").append(date).append(") ");
-				}
-			}
-			if (title == null || title.trim().isEmpty()) {
-				title = targetFileName;
-			}
-			if (sb.length() > 0) {
-				sb.append("- ");
-			}
-			sb.append(StringUtil.blankForNull(title));
-			// String.format("%1$s \"%2$s\" %4$s - %3$s", getArtist(), getAlbum(), getTitle(), StringUtil.blankForNull(getDate()))
-			// .replaceAll("[ ]+", " ")
-			return sb.toString();
+			return toDisplayStr(targetFileName, getArtist(), getAlbum(), getTitle(), getDate());
 		}
+	}
+
+	public static String toDisplayStr(ScrobbleData scrobbleData) {
+		// TODO: Refactor out of here
+		return toDisplayStr(scrobbleData.getTrack(), scrobbleData.getArtist(), scrobbleData.getAlbum(), scrobbleData.getTrack(), null);
+	}
+
+	private static String toDisplayStr(String fileName, String artist, String album, String title, String date) {
+		StringBuilder sb = new StringBuilder();
+		if (artist != null && !artist.trim().isEmpty()) {
+			sb.append(artist).append(" ");
+			if (album != null && !album.trim().isEmpty()) {
+				sb.append("\"").append(album).append("\" ");
+			}
+			if (date != null) {
+				sb.append("(").append(date).append(") ");
+			}
+		}
+		if (title == null || title.trim().isEmpty()) {
+			title = fileName;
+		}
+		if (sb.length() > 0) {
+			sb.append("- ");
+		}
+		sb.append(StringUtil.blankForNull(title));
+		return sb.toString();
 	}
 
 	public boolean propertiesMatch(PlaybackQueueEntry other, List<Function<PlaybackQueueEntry, String>> propertyExtractors) {

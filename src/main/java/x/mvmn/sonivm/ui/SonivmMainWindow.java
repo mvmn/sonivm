@@ -524,6 +524,7 @@ public class SonivmMainWindow extends JFrame {
 
 	public void updateStatus(String status) {
 		this.lblStatus.setText(status);
+		this.lblStatus.setToolTipText(status);
 	}
 
 	public void setPlayPauseButtonState(boolean playing) {
@@ -579,8 +580,9 @@ public class SonivmMainWindow extends JFrame {
 		this.cmbShuffleMode.setSelectedItem(shuffleMode);
 	}
 
-	public void updateLastFMStatus(boolean ok) {
+	public void updateLastFMStatus(boolean ok, String statusText) {
 		this.lastFMStatusIcon.setIcon(ok ? lastFMConnected : lastFMDisconnected);
+		this.lastFMStatusIcon.setToolTipText(statusText);
 	}
 
 	public void setSearchMatchedRows(List<Integer> rows) {

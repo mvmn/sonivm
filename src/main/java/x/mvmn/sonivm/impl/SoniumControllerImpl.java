@@ -49,6 +49,7 @@ import x.mvmn.sonivm.ui.model.ShuffleMode;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.SonivmShutdownListener;
 import x.mvmn.sonivm.util.StringUtil;
+import x.mvmn.sonivm.util.Tuple2;
 
 @Component
 public class SoniumControllerImpl implements SonivmController {
@@ -328,6 +329,7 @@ public class SoniumControllerImpl implements SonivmController {
 			mainWindow.setCurrentPlayTimeDisplay(0, 0);
 			mainWindow.updateNowPlaying(null);
 			trayIconPopupMenu.updateNowPlaying(null);
+			mainWindow.updateStatus("");
 		}, false);
 	}
 
@@ -525,6 +527,9 @@ public class SoniumControllerImpl implements SonivmController {
 			}
 			mainWindow.updateNowPlaying(trackInfo);
 			trayIconPopupMenu.updateNowPlaying(trackInfo);
+			mainWindow.updateStatus(audioInfo.getAudioFileFormat() != null
+					? audioInfo.getAudioFileFormat().getFormat().toString().replaceAll(",\\s*$", "").replaceAll(",\\s*,", ",")
+					: "");
 		}, false);
 		if (scrobblingEnabled) {
 			lastFmSetNowPlaying(this.currentTrackInfo);
@@ -535,25 +540,31 @@ public class SoniumControllerImpl implements SonivmController {
 		lastFmScrobbleTaskExecutor.execute(() -> {
 			ScrobbleData scrobbleData = toScrobbleData(trackInfo);
 			boolean success = false;
+			String status = "";
 			try {
 				Session session = getLastFMSession();
 				if (session != null) {
 					LOGGER.info("Setting LastFM now playing state to " + scrobbleData);
 					ScrobbleResult scrobbleResult = Track.updateNowPlaying(scrobbleData, session);
 					if (!scrobbleResult.isSuccessful()) {
-						LOGGER.info("LastFM update now playing failed: " + scrobbleResult.getErrorCode() + " "
-								+ scrobbleResult.getErrorMessage());
+						status = "LastFM update now playing failed: " + scrobbleResult.getErrorCode() + " "
+								+ scrobbleResult.getErrorMessage();
+						LOGGER.info(status);
 					} else {
 						success = true;
+						status = "Set LastFM now playing to " + trackInfo.toDisplayStr();
 					}
 				} else {
 					LOGGER.info("Skipping update now playing in LastFM - no session.");
 				}
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "Failed to update now playing in LastFM", e);
+				status = "Failed to update now playing in LastFM: " + e.getClass().getSimpleName() + " "
+						+ StringUtil.blankForNull(e.getMessage());
 			}
 			boolean finalSuccess = success;
-			SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(finalSuccess), false);
+			String finalStatus = status;
+			SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(finalSuccess, finalStatus), false);
 
 			if (success) {
 				reSubmitFailedLastFMSubmissions();
@@ -564,41 +575,52 @@ public class SoniumControllerImpl implements SonivmController {
 	private void lastFmScrobble(PlaybackQueueEntry trackInfo) {
 		lastFmScrobbleTaskExecutor.execute(() -> {
 			ScrobbleData scrobbleData = toScrobbleData(trackInfo);
-			boolean success = doScrobbleTrack(scrobbleData);
-			if (!success) {
+			Tuple2<Boolean, String> result = doScrobbleTrack(scrobbleData);
+			if (!result.getA()) {
 				lastFMQueueService.queueTrack(scrobbleData);
 			}
-			SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(success), false);
+			SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(result.getA(), result.getB()), false);
 		});
 	}
 
 	private void reSubmitFailedLastFMSubmissions() {
 		try {
-			lastFMQueueService.processQueuedTracks(tracks -> tracks.forEach(this::doScrobbleTrack), 100);
+			lastFMQueueService.processQueuedTracks(tracks -> {
+				for (ScrobbleData track : tracks) {
+					Tuple2<Boolean, String> result = this.doScrobbleTrack(track);
+					if (!result.getA()) {
+						throw new RuntimeException("Failed to re-scrobble track " + track + ": " + result.getB());
+					}
+				}
+			}, 100);
 		} catch (Throwable t) {
-			LOGGER.log(Level.SEVERE, "Failed to re-submit LastFM track", t);
+			LOGGER.log(Level.SEVERE, "Failed to re-submit LastFM tracks", t);
 		}
 	}
 
-	private boolean doScrobbleTrack(ScrobbleData scrobbleData) {
+	private Tuple2<Boolean, String> doScrobbleTrack(ScrobbleData scrobbleData) {
 		boolean success = false;
+		String status = "";
 		try {
 			Session session = getLastFMSession();
 			if (session != null) {
 				LOGGER.info("Scrobbling LastFM track played " + scrobbleData);
 				ScrobbleResult scrobbleResult = Track.scrobble(scrobbleData, session);
 				if (!scrobbleResult.isSuccessful()) {
-					LOGGER.info("LastFM scrobbling failed: " + scrobbleResult.getErrorCode() + " " + scrobbleResult.getErrorMessage());
+					status = "LastFM scrobbling failed: " + scrobbleResult.getErrorCode() + " " + scrobbleResult.getErrorMessage();
+					LOGGER.info(status);
 				} else {
 					success = true;
+					status = "Scrobbled to LastFM " + PlaybackQueueEntry.toDisplayStr(scrobbleData);
 				}
 			} else {
 				LOGGER.info("Skipping scrobbling track in LastFM - no session.");
 			}
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to scrobble track in LastFM", e);
+			status = "Failed to scrobble track in LastFM: " + e.getClass().getSimpleName() + " " + StringUtil.blankForNull(e.getMessage());
 		}
-		return success;
+		return Tuple2.<Boolean, String> builder().a(success).b(status).build();
 	}
 
 	private Session getLastFMSession() throws Exception {
@@ -618,10 +640,11 @@ public class SoniumControllerImpl implements SonivmController {
 					}
 					lastFMSession.set(result);
 					LOGGER.info("Successfully established LastFM session");
-					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(true), false);
+					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(true, "Established LastFM session"), false);
 				} catch (Exception e) {
 					LOGGER.log(Level.WARNING, "Failed to establish LastFM session", e);
-					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(false), false);
+					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(false, "Failed to establish LastFM session: "
+							+ e.getClass().getSimpleName() + " " + StringUtil.blankForNull(e.getMessage())), false);
 				}
 			}
 		}

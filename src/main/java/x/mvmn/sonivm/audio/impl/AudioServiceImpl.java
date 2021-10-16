@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
+import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -187,6 +188,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 					FFAudioFileReader ffAudioFileReader = new FFAudioFileReader();
 					File file = new File(filePath);
 					if (file.exists()) {
+						AudioFileFormat audioFileFormat = ffAudioFileReader.getAudioFileFormat(file);
 						FFAudioInputStream currentFFAudioInputStream = (FFAudioInputStream) ffAudioFileReader.getAudioInputStream(file);
 						this.currentFFAudioInputStream = currentFFAudioInputStream;
 						this.currentStreamIsSeekable = currentFFAudioInputStream.isSeekable();
@@ -208,6 +210,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						}
 						AudioFileInfo fileMetadata = AudioFileInfo.builder()
 								.filePath(filePath)
+								.audioFileFormat(audioFileFormat)
 								.seekable(currentFFAudioInputStream.isSeekable())
 								.durationSeconds(lengthInSeconds != null ? lengthInSeconds.intValue() : -1)
 								.build();
