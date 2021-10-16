@@ -61,7 +61,7 @@ public class EqualizerWindow extends JFrame {
 			});
 		}
 
-		gainSlider = new JSlider(JSlider.VERTICAL, 0, 1000, 500);
+		gainSlider = new JSlider(JSlider.VERTICAL, 0, 1000, 300);
 		gainSlider.addChangeListener(changeEvent -> this.onGainChange());
 		gainSlider.addMouseListener(new MouseAdapter() {
 			@Override

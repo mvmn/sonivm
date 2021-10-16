@@ -15,6 +15,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -307,6 +308,21 @@ public class SonivmMainWindow extends JFrame {
 		DropTarget dropTarget = new PlaybackQueueDropTarget(controller, tblPlayQueue);
 		// tblPlayQueue.setDropTarget(dropTarget);
 		scrollTblPlayQueue.setDropTarget(dropTarget);
+
+		MouseListener onNowPlayingDoubleClick = new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getClickCount() == 2) {
+					// TODO: refactor this dirty hack - send event of double click and let queue service handle the scroll
+					int nowPlayingQueuePos = playbackQueueTableModel.getIndexOfHighlightedRow();
+					if (nowPlayingQueuePos > -1) {
+						scrollToTrack(nowPlayingQueuePos);
+					}
+				}
+			}
+		};
+		lblNowPlayingTrack.addMouseListener(onNowPlayingDoubleClick);
+		nowPlayingText.addMouseListener(onNowPlayingDoubleClick);
 
 		this.getContentPane().setLayout(new BorderLayout());
 		this.getContentPane().add(topPanel, BorderLayout.NORTH);

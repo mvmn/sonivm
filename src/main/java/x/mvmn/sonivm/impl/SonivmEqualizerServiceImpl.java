@@ -12,7 +12,7 @@ import x.mvmn.sonivm.util.Tuple2;
 public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 
 	private volatile Tuple2<IIRControls, Integer> eqControlsAndChannelsCount;
-	private volatile int lastGainValue = 500;
+	private volatile int lastGainValue = 300;
 	// TODO: inject band count
 	private volatile int[] lastBandValues = new int[] { 500, 500, 500, 500, 500, 500, 500, 500, 500, 500 };
 	@Autowired
