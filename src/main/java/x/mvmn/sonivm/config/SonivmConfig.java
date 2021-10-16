@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Scope;
 
 import x.mvmn.sonivm.SonivmLauncher;
 import x.mvmn.sonivm.prefs.PreferencesService;
+import x.mvmn.sonivm.ui.EqualizerWindow;
 import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
 import x.mvmn.sonivm.ui.SonivmTrayIconPopupMenu;
@@ -34,6 +35,12 @@ public class SonivmConfig {
 		initLookAndFeel(appPreferencesService);
 
 		return new SonivmMainWindow(appVersion, sonivmController, playbackQueueTableModel);
+	}
+
+	@Bean
+	@Scope("singleton")
+	public EqualizerWindow equalizerWindow() {
+		return new EqualizerWindow(appVersion + " equalizer", 10);
 	}
 
 	@Bean

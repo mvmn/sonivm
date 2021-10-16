@@ -39,6 +39,8 @@ import x.mvmn.sonivm.model.IntRange;
 import x.mvmn.sonivm.playqueue.PlaybackQueueFileImportService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
+import x.mvmn.sonivm.ui.SonivmEqualizerService;
+import x.mvmn.sonivm.ui.EqualizerWindow;
 import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
 import x.mvmn.sonivm.ui.SonivmTrayIconPopupMenu;
@@ -70,6 +72,9 @@ public class SoniumControllerImpl implements SonivmController {
 	private SonivmMainWindow mainWindow;
 
 	@Autowired
+	private EqualizerWindow eqWindow;
+
+	@Autowired
 	private PreferencesService preferencesService;
 
 	@Autowired
@@ -83,6 +88,9 @@ public class SoniumControllerImpl implements SonivmController {
 
 	@Autowired
 	private SonivmTrayIconPopupMenu trayIconPopupMenu;
+
+	@Autowired
+	private SonivmEqualizerService equalizerListener;
 
 	private volatile AudioFileInfo currentAudioFileInfo;
 	private volatile PlaybackQueueEntry currentTrackInfo;
@@ -371,6 +379,9 @@ public class SoniumControllerImpl implements SonivmController {
 			mainWindow.setVisible(false);
 			mainWindow.dispose();
 			LOGGER.info("Hid and disposed main window");
+			eqWindow.setVisible(false);
+			eqWindow.dispose();
+			LOGGER.info("Hid and disposed equalizer window");
 		}, true);
 
 		LOGGER.info("Shutting down audio service.");
@@ -510,6 +521,12 @@ public class SoniumControllerImpl implements SonivmController {
 			case START:
 				LOGGER.info("On new track start: " + event.getAudioMetadata());
 				handleStartTrackPlay(event.getAudioMetadata());
+				if (event.getEqControls() != null) {
+					equalizerListener.setEqControls(event.getEqControls(),
+							event.getAudioMetadata().getAudioFileFormat().getFormat().getChannels());
+				} else {
+					equalizerListener.setEqControls(null, 0);
+				}
 			break;
 			case DATALINE_CHANGE:
 			// Control[] controls = event.getDataLineControls();

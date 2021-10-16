@@ -32,6 +32,7 @@ import org.springframework.stereotype.Service;
 import com.tagtraum.ffsampledsp.FFAudioFileReader;
 import com.tagtraum.ffsampledsp.FFAudioInputStream;
 
+import davaguine.jeq.spi.EqualizerInputStream;
 import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.audio.PlaybackEvent;
@@ -52,11 +53,15 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private final Queue<AudioServiceTask> taskQueue = new ConcurrentLinkedQueue<>();
 	private final ExecutorService playbackEventListenerExecutor = Executors.newFixedThreadPool(1);
 
+	private volatile boolean force16BitPCMConversion = true;
+	private volatile boolean disableEqualizer = false;
+
 	private volatile boolean shutdownRequested = false;
 	private volatile State state = State.STOPPED;
 
 	private volatile FFAudioInputStream currentFFAudioInputStream;
-	private volatile AudioInputStream currentPcmStream;
+	private volatile AudioInputStream currentNormalizedStream;
+	private volatile EqualizerInputStream currentEqInputStream;
 	private volatile SourceDataLine currentSourceDataLine;
 	private volatile byte[] playbackBuffer;
 
@@ -98,7 +103,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						if (State.PLAYING == state) {
 							int readBytes = -1;
 							byte[] buffer = playbackBuffer;
-							readBytes = currentPcmStream.read(buffer);
+							readBytes = (disableEqualizer ? currentNormalizedStream : currentEqInputStream).read(buffer);
 							if (readBytes < buffer.length) {
 								// TODO: prepare next track
 							}
@@ -189,15 +194,24 @@ public class AudioServiceImpl implements AudioService, Runnable {
 					File file = new File(filePath);
 					if (file.exists()) {
 						AudioFileFormat audioFileFormat = ffAudioFileReader.getAudioFileFormat(file);
-						FFAudioInputStream currentFFAudioInputStream = (FFAudioInputStream) ffAudioFileReader.getAudioInputStream(file);
-						this.currentFFAudioInputStream = currentFFAudioInputStream;
-						this.currentStreamIsSeekable = currentFFAudioInputStream.isSeekable();
+						FFAudioInputStream ffAudioInputStream = (FFAudioInputStream) ffAudioFileReader.getAudioInputStream(file);
+						this.currentFFAudioInputStream = ffAudioInputStream;
+						this.currentStreamIsSeekable = ffAudioInputStream.isSeekable();
 
-						// AudioFormat targetAudioFormat = new AudioFormat(44100, 24, 2, true, true);
-						// AudioInputStream currentPcmStream = AudioSystem.getAudioInputStream(targetAudioFormat, currentFFAudioInputStream);
-						AudioInputStream currentPcmStream = AudioSystem.getAudioInputStream(AudioFormat.Encoding.PCM_SIGNED,
-								currentFFAudioInputStream);
-						this.currentPcmStream = currentPcmStream;
+						AudioFormat targetAudioFormat = new AudioFormat(44100, 16, 2, true, false);
+						AudioInputStream normalizedStream;
+						if (force16BitPCMConversion) {
+							normalizedStream = AudioSystem.getAudioInputStream(targetAudioFormat, ffAudioInputStream);
+						} else {
+							normalizedStream = AudioSystem.getAudioInputStream(AudioFormat.Encoding.PCM_SIGNED, ffAudioInputStream);
+						}
+						EqualizerInputStream eqInputStream = null;
+						// if (!disableEqualizer) {
+						eqInputStream = new EqualizerInputStream(normalizedStream, 10);
+						// normalizedStream = eqInputStream;
+						// }
+						this.currentEqInputStream = eqInputStream;
+						this.currentNormalizedStream = normalizedStream;
 
 						Integer lengthInSeconds = AudioFileUtil.getAudioFileDurationInMilliseconds(file);
 						if (lengthInSeconds != null) {
@@ -205,26 +219,26 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						} else {
 							LOGGER.fine(
 									"Can't determine file duration from format parameters - calculating from number of frames and framerate.");
-							lengthInSeconds = (int) (currentFFAudioInputStream.getFrameLength()
-									/ currentFFAudioInputStream.getFormat().getFrameRate());
+							lengthInSeconds = (int) (ffAudioInputStream.getFrameLength() / ffAudioInputStream.getFormat().getFrameRate());
 						}
 						AudioFileInfo fileMetadata = AudioFileInfo.builder()
 								.filePath(filePath)
 								.audioFileFormat(audioFileFormat)
-								.seekable(currentFFAudioInputStream.isSeekable())
+								.seekable(ffAudioInputStream.isSeekable())
 								.durationSeconds(lengthInSeconds != null ? lengthInSeconds.intValue() : -1)
 								.build();
 
 						SourceDataLine currentSourceDataLine;
 						currentSourceDataLine = selectedAudioDevice != null
-								? AudioSystem.getSourceDataLine(currentPcmStream.getFormat(), selectedAudioDevice)
-								: AudioSystem.getSourceDataLine(currentPcmStream.getFormat());
-						currentSourceDataLine.open(currentPcmStream.getFormat());
+								? AudioSystem.getSourceDataLine(normalizedStream.getFormat(), selectedAudioDevice)
+								: AudioSystem.getSourceDataLine(normalizedStream.getFormat());
+						currentSourceDataLine.open(normalizedStream.getFormat());
 						currentSourceDataLine.start();
 						this.currentSourceDataLine = currentSourceDataLine;
 
 						doUpdateVolume();
-						this.playbackBuffer = new byte[Math.max(128, currentPcmStream.getFormat().getFrameSize()) * 64];
+						// this.playbackBuffer = new byte[Math.max(128, normalizedStream.getFormat().getFrameSize()) * 64];
+						this.playbackBuffer = new byte[4410 * 16];
 						this.playbackStartPositionMillisec = 0;
 						this.startingDataLineMillisecondsPosition = 0;
 						this.previousDataLineMillisecondsPosition = 0;
@@ -238,7 +252,11 @@ public class AudioServiceImpl implements AudioService, Runnable {
 								.type(PlaybackEvent.Type.DATALINE_CHANGE)
 								.dataLineControls(currentSourceDataLine.getControls())
 								.build());
-						executeListenerActions(PlaybackEvent.builder().type(PlaybackEvent.Type.START).audioMetadata(fileMetadata).build());
+						executeListenerActions(PlaybackEvent.builder()
+								.type(PlaybackEvent.Type.START)
+								.eqControls(currentEqInputStream != null ? currentEqInputStream.getControls() : null)
+								.audioMetadata(fileMetadata)
+								.build());
 					} else {
 						executeListenerActions(
 								PlaybackEvent.builder().type(PlaybackEvent.Type.ERROR).errorType(ErrorType.FILE_NOT_FOUND).build());
@@ -282,9 +300,9 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						LOGGER.fine("On-the-fly switching audio device to " + audioDeviceName);
 					}
 					SourceDataLine newSourceDataLine = mixerInfo != null
-							? AudioSystem.getSourceDataLine(currentPcmStream.getFormat(), selectedAudioDevice)
-							: AudioSystem.getSourceDataLine(currentPcmStream.getFormat());
-					newSourceDataLine.open(currentPcmStream.getFormat());
+							? AudioSystem.getSourceDataLine(currentNormalizedStream.getFormat(), selectedAudioDevice)
+							: AudioSystem.getSourceDataLine(currentNormalizedStream.getFormat());
+					newSourceDataLine.open(currentNormalizedStream.getFormat());
 					newSourceDataLine.start();
 					this.currentSourceDataLine.close();
 					this.currentSourceDataLine = newSourceDataLine;
@@ -313,7 +331,11 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private void doStop() throws Exception {
 		LOGGER.fine("Performing doStop()");
 		this.currentSourceDataLine.close();
-		this.currentPcmStream.close();
+		EqualizerInputStream eqInputStream = this.currentEqInputStream;
+		if (eqInputStream != null) {
+			eqInputStream.close();
+		}
+		this.currentNormalizedStream.close();
 		this.currentFFAudioInputStream.close();
 		this.playbackBuffer = null;
 		this.previousDataLineMillisecondsPosition = 0L;
@@ -489,5 +511,15 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	@Override
 	public boolean isStopped() {
 		return State.STOPPED == this.state;
+	}
+
+	@Override
+	public boolean isDisableEqualizer() {
+		return disableEqualizer;
+	}
+
+	@Override
+	public void setDisableEqualizer(boolean disableEqualizer) {
+		this.disableEqualizer = disableEqualizer;
 	}
 }

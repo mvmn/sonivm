@@ -2,6 +2,7 @@ package x.mvmn.sonivm.audio;
 
 import javax.sound.sampled.Control;
 
+import davaguine.jeq.core.IIRControls;
 import lombok.Builder;
 import lombok.Data;
 
@@ -19,6 +20,7 @@ public class PlaybackEvent {
 	private final Type type;
 	private final AudioFileInfo audioMetadata;
 	private final Control[] dataLineControls;
+	private final IIRControls eqControls;
 	private final Long playbackPositionMilliseconds;
 	private final Long playbackDeltaMilliseconds;
 	private final String error;

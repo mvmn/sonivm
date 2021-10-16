@@ -36,6 +36,7 @@ import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 
 import x.mvmn.sonivm.prefs.PreferencesService;
+import x.mvmn.sonivm.ui.EqualizerWindow;
 import x.mvmn.sonivm.ui.JMenuBarBuilder;
 import x.mvmn.sonivm.ui.JMenuBarBuilder.JMenuBuilder;
 import x.mvmn.sonivm.ui.SonivmController;
@@ -58,6 +59,9 @@ public class SonivmLauncher implements Runnable {
 
 	@Autowired
 	private SonivmMainWindow mainWindow;
+
+	@Autowired
+	private EqualizerWindow eqWindow;
 
 	@Autowired
 	private TrayIcon sonivmTrayIcon;
@@ -108,9 +112,6 @@ public class SonivmLauncher implements Runnable {
 		rootLogger.setLevel(Level.INFO);
 		rootLogger.addHandler(handler);
 		handler.setLevel(Level.INFO);
-
-		Logger lastFMRootLogger = Logger.getLogger("de.umass.lastfm");
-		lastFMRootLogger.setLevel(Level.WARNING);
 	}
 
 	private static void initTaskbarIcon() {
@@ -132,6 +133,7 @@ public class SonivmLauncher implements Runnable {
 	public void run() {
 		mainWindow.setIconImage(sonivmIcon);
 		mainWindow.setJMenuBar(initMenuBar(getAudioDevicesPlusDefault()));
+		eqWindow.setJMenuBar(initMenuBar(getAudioDevicesPlusDefault()));
 		SwingUtil.prefSizeRatioOfScreenSize(mainWindow, 3f / 4f);
 		sonivmController.onBeforeUiPack();
 		mainWindow.pack();
@@ -187,6 +189,7 @@ public class SonivmLauncher implements Runnable {
 		}
 
 		SwingUtil.runOnEDT(() -> mainWindow.setVisible(true), false);
+		SwingUtil.runOnEDT(() -> eqWindow.setVisible(true), false);
 	}
 
 	private JMenuBar initMenuBar(List<AudioDeviceOption> audioDevices) {

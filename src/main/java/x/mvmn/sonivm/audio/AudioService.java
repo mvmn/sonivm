@@ -36,4 +36,8 @@ public interface AudioService {
 	boolean isPlaying();
 
 	boolean isStopped();
+
+	boolean isDisableEqualizer();
+
+	void setDisableEqualizer(boolean disableEqualizer);
 }

@@ -16,6 +16,7 @@ public class SonivmTrayIconPopupMenu {
 
 	private final PopupMenu popupMenu = new PopupMenu();
 	private final MenuItem miNowPlaying = new MenuItem("Stopped");
+	private final MenuItem miEqualizer = new MenuItem("Equalizer");
 
 	private final MenuItem miPreviousTrack = new MenuItem("<< Previous track");
 	private final MenuItem miPlayPause = new MenuItem("-> Play");
@@ -24,6 +25,9 @@ public class SonivmTrayIconPopupMenu {
 
 	@Autowired
 	private SonivmMainWindow mainWindow;
+
+	@Autowired
+	private EqualizerWindow equalizerWindow;
 
 	@Autowired
 	private SonivmController controller;
@@ -35,12 +39,19 @@ public class SonivmTrayIconPopupMenu {
 			mainWindow.toFront();
 			mainWindow.requestFocus();
 		});
+
+		miEqualizer.addActionListener(actEvent -> {
+			equalizerWindow.setVisible(true);
+			equalizerWindow.toFront();
+			equalizerWindow.requestFocus();
+		});
 		miPreviousTrack.addActionListener(actEvent -> controller.onPreviousTrack());
 		miPlayPause.addActionListener(actEvent -> controller.onPlayPause());
 		miStop.addActionListener(actEvent -> controller.onStop());
 		miNextTrack.addActionListener(actEvent -> controller.onNextTrack());
 
 		popupMenu.add(miNowPlaying);
+		popupMenu.add(miEqualizer);
 		popupMenu.addSeparator();
 		popupMenu.add(miPreviousTrack);
 		popupMenu.add(miPlayPause);

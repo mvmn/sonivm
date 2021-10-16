@@ -41,7 +41,7 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 	private static final Logger LOGGER = Logger.getLogger(PlaybackQueueFileImportServiceImpl.class.getCanonicalName());
 
 	// TODO: Make configurable via prefs
-	private static final Set<String> supportedExtensions = Stream.of("flac", "ogg", "mp3", "m4a").collect(Collectors.toSet());
+	private static final Set<String> supportedExtensions = Stream.of("flac", "ogg", "mp3", "m4a", "wav").collect(Collectors.toSet());
 
 	@Autowired
 	private PlaybackQueueService playbackQueueService;
@@ -261,7 +261,6 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 	public void onSonivmShutdown() {
 		LOGGER.info("Shutting down tag reading task executor.");
 		tagReadingTaskExecutor.shutdownNow();
-		System.out.println("Setting shutdown flag");
 		shutdownRequested = true;
 	}
 }
