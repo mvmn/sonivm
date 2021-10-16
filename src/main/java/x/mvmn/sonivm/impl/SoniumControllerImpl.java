@@ -432,8 +432,14 @@ public class SoniumControllerImpl implements SonivmController {
 		try {
 			TableColumnModel columnModel = mainWindow.getPlayQueueTable().getColumnModel();
 			int[] columnWidths = new int[columnModel.getColumnCount()];
+			int totalWidth = 0;
 			for (int i = 0; i < columnModel.getColumnCount(); i++) {
-				columnWidths[i] = columnModel.getColumn(i).getWidth();
+				int width = columnModel.getColumn(i).getWidth();
+				totalWidth += width;
+				columnWidths[i] = width;
+			}
+			for (int i = 0; i < columnWidths.length; i++) {
+				columnWidths[i] = (columnWidths[i] * 10000) / totalWidth;
 			}
 			preferencesService.setPlayQueueColumnWidths(columnWidths);
 		} catch (Exception e) {
@@ -711,8 +717,15 @@ public class SoniumControllerImpl implements SonivmController {
 			if (playQueueColumnWidths != null) {
 				SwingUtil.runOnEDT(() -> {
 					TableColumnModel columnModel = mainWindow.getPlayQueueTable().getColumnModel();
+
+					int totalWidth = 0;
+					for (int i = 0; i < columnModel.getColumnCount(); i++) {
+						totalWidth += columnModel.getColumn(i).getWidth();
+					}
+
 					for (int i = 0; i < columnModel.getColumnCount() && i < playQueueColumnWidths.length; i++) {
-						columnModel.getColumn(i).setPreferredWidth(playQueueColumnWidths[i]);
+						long width10k = playQueueColumnWidths[i] * totalWidth;
+						columnModel.getColumn(i).setPreferredWidth((int) (width10k / 10000));
 					}
 				}, true);
 			}
