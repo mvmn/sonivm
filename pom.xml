@@ -99,11 +99,12 @@
 						<phase>package</phase>
 						<configuration>
 							<tasks>
-								<echo file="${project.build.directory}/run.sh"
+								<echo file="${project.build.directory}/${project.artifactId}.sh"
 									append="false">
+									cd&#032;&quot;$(dirname&#032;&quot;$0&quot;)&quot;
 									java&#032;-jar&#032;${project.artifactId}-${project.version}.jar&#032;-Xmx720m
 								</echo>
-								<echo file="${project.build.directory}/run.bat"
+								<echo file="${project.build.directory}/${project.artifactId}.bat"
 									append="false">
 									java&#032;-jar&#032;${project.artifactId}-${project.version}.jar&#032;-Xmx720m
 								</echo>
