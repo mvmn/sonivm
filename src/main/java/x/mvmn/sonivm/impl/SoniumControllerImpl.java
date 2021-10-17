@@ -903,7 +903,6 @@ public class SoniumControllerImpl implements SonivmController {
 					.gain(preferencesService.getEqGain())
 					.bands(preferencesService.getEqBands())
 					.build();
-			System.out.println(eqState);
 			// equalizerService.setState(eqState);
 			eqWindow.setState(eqState);
 			LOGGER.info("Restoring EQ state succeeded");
@@ -916,7 +915,6 @@ public class SoniumControllerImpl implements SonivmController {
 		try {
 			LOGGER.info("Storing EQ state");
 			EqualizerState eqState = equalizerService.getCurrentState();
-			System.out.println(eqState);
 			preferencesService.setEqEnabled(eqState.isEnabled());
 			preferencesService.setEqGain(eqState.getGain());
 			preferencesService.setEqBands(eqState.getBands());

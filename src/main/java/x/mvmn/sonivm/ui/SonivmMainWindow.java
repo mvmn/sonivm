@@ -8,7 +8,6 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.dnd.DropTarget;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -34,10 +33,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
-import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.JTree;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.UIManager;
@@ -63,7 +60,7 @@ public class SonivmMainWindow extends JFrame {
 	private final JLabel lblPlayTimeRemaining;
 	// private final JLabel lblPlayTimeTotal;
 	private final JTable tblPlayQueue;
-	private final JTree treeTrackLibrary;
+	// private final JTree treeTrackLibrary;
 	private final JButton btnPlayPause;
 	private final JButton btnStop;
 	private final JButton btnNextTrack;
@@ -186,7 +183,7 @@ public class SonivmMainWindow extends JFrame {
 		// rightRendererForDate.setHorizontalAlignment(JLabel.RIGHT);
 		// tblPlayQueue.getColumnModel().getColumn(6).setCellRenderer(rightRendererForDate);
 
-		treeTrackLibrary = new JTree();
+		// treeTrackLibrary = new JTree();
 
 		btnPlayPause = new JButton("->");
 		btnStop = new JButton("[x]");
@@ -300,18 +297,23 @@ public class SonivmMainWindow extends JFrame {
 		lblPlayTimeRemaining.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 8));
 		lblNowPlayingTrack.setFont(lblNowPlayingTrack.getFont().deriveFont(Font.BOLD));
 
+		JLabel lblDropTarget = new JLabel("add to queue", JLabel.CENTER);
+		lblDropTarget.setToolTipText("Drag&drop here to add/move to the end of the playback queue");
+		lblDropTarget.setBorder(BorderFactory.createEtchedBorder());
+
 		JScrollPane scrollTblPlayQueue = new JScrollPane(tblPlayQueue);
-		@SuppressWarnings("unused")
-		JSplitPane spLibraryAndPlayQueue = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, false, new JScrollPane(treeTrackLibrary),
-				scrollTblPlayQueue);
+		// @SuppressWarnings("unused")
+		// JSplitPane spLibraryAndPlayQueue = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, false, new JScrollPane(treeTrackLibrary),
+		// scrollTblPlayQueue);
 
 		tblPlayQueue.setDragEnabled(true);
 		tblPlayQueue.setDropMode(DropMode.USE_SELECTION);
 		tblPlayQueue.setTransferHandler(new PlayQueueTableDnDTransferHandler(tblPlayQueue, controller));
 
-		DropTarget dropTarget = new PlaybackQueueDropTarget(controller, tblPlayQueue);
+		// DropTarget dropTarget = new PlaybackQueueDropTarget(controller, tblPlayQueue);
 		// tblPlayQueue.setDropTarget(dropTarget);
-		scrollTblPlayQueue.setDropTarget(dropTarget);
+		scrollTblPlayQueue.setDropTarget(new PlaybackQueueDropTarget(controller, tblPlayQueue));
+		lblDropTarget.setDropTarget(new PlaybackQueueDropTarget(controller, tblPlayQueue));
 
 		MouseListener onNowPlayingDoubleClick = new MouseAdapter() {
 			@Override
@@ -331,7 +333,11 @@ public class SonivmMainWindow extends JFrame {
 		this.getContentPane().setLayout(new BorderLayout());
 		this.getContentPane().add(topPanel, BorderLayout.NORTH);
 		// this.getContentPane().add(spLibraryAndPlayQueue, BorderLayout.CENTER);
-		this.getContentPane().add(scrollTblPlayQueue, BorderLayout.CENTER);
+		this.getContentPane()
+				.add(SwingUtil.panel(BorderLayout::new)
+						.add(scrollTblPlayQueue, BorderLayout.CENTER)
+						.add(lblDropTarget, BorderLayout.SOUTH)
+						.build(), BorderLayout.CENTER);
 		this.getContentPane().add(volumeSlider, BorderLayout.EAST);
 		this.getContentPane().add(bottomPanel, BorderLayout.SOUTH);
 
@@ -377,6 +383,7 @@ public class SonivmMainWindow extends JFrame {
 		btnPreviousTrack.addActionListener(event -> controller.onPreviousTrack());
 
 		btnToggleShowEq.addActionListener(actEvent -> controller.toggleShowEqualizer());
+		btnToggleShowEq.setFocusable(false);
 
 		tblPlayQueue.addMouseListener(new MouseAdapter() {
 			public void mousePressed(MouseEvent mouseEvent) {

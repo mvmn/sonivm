@@ -1,5 +1,6 @@
 package x.mvmn.sonivm;
 
+import java.awt.Desktop;
 import java.awt.Image;
 import java.awt.SystemTray;
 import java.awt.TrayIcon;
@@ -124,30 +125,29 @@ public class SonivmLauncher implements Runnable {
 
 			// Taskbar.getTaskbar().setIconImage(sonivmIcon); // Requires Java 1.9+
 		} catch (ClassNotFoundException cnfe) {
-			LOGGER.info("Not setting Apple-specific dock image - looks like this is not macOS");
+			LOGGER.info("Not macOS, or on Java9+ - can't register dock icon image Java8/macOS style due to class not found: "
+					+ cnfe.getMessage() + ". Trying Java9+ way.");
+			initTaskbarIconJava9();
 		} catch (Throwable t) {
-			LOGGER.log(Level.WARNING, "Failed to load and set main macOS doc icon.", t);
+			LOGGER.log(Level.WARNING, "Failed to set main macOS doc icon.", t);
 		}
 	}
 
-	public void run() {
-		mainWindow.setIconImage(sonivmIcon);
-		List<AudioDeviceOption> audioDevices = getAudioDevicesPlusDefault();
-		mainWindow.setJMenuBar(initMenuBar(audioDevices));
-		eqWindow.setJMenuBar(initMenuBar(audioDevices));
-		SwingUtil.prefSizeRatioOfScreenSize(mainWindow, 3f / 4f);
-		sonivmController.onBeforeUiPack();
-		mainWindow.pack();
-		SwingUtil.moveToScreenCenter(mainWindow);
-		sonivmController.onBeforeUiSetVisible();
-		SwingUtil.runOnEDT(() -> {
-			try {
-				SystemTray.getSystemTray().add(sonivmTrayIcon);
-			} catch (Throwable t) {
-				LOGGER.log(Level.SEVERE, "Failed to add system tray icon", t);
-			}
-		}, false);
+	private static void initTaskbarIconJava9() {
+		try {
+			Class<?> util = Class.forName("java.awt.Taskbar");
+			Method getTaskbar = util.getMethod("getTaskbar", new Class[0]);
+			Object taskbarInstance = getTaskbar.invoke(null);
+			Method setIconImage = util.getMethod("setIconImage", new Class[] { Image.class });
+			setIconImage.invoke(taskbarInstance, sonivmIcon);
+		} catch (ClassNotFoundException cnfe) {
+			LOGGER.info("Class not found on performing java.awt.Taskbar.getTaskbar().setIconImage: " + cnfe.getMessage());
+		} catch (Throwable t) {
+			LOGGER.log(Level.WARNING, "Failed to set taskbar icon.", t);
+		}
+	}
 
+	private void initQuitHandler() {
 		try {
 			Class<?> quitHandlerClass = Class.forName("com.apple.eawt.QuitHandler");
 			Object quitHandler = Proxy.newProxyInstance(SonivmLauncher.class.getClassLoader(), new Class[] { quitHandlerClass },
@@ -173,9 +173,41 @@ public class SonivmLauncher implements Runnable {
 			Object application = getApplication.invoke(util);
 			Method setQuitHandler = util.getMethod("setQuitHandler", new Class[] { quitHandlerClass });
 			setQuitHandler.invoke(application, quitHandler);
+		} catch (ClassNotFoundException cnfe) {
+			LOGGER.info("Not macOS, or on Java9+ - can't register quit handler Java8/macOS style due to class not found: "
+					+ cnfe.getMessage() + ". Trying Java9+ way.");
+			initQuitHandlerJava9();
+		} catch (Throwable t) {
+			LOGGER.log(Level.WARNING, "Failed to register quit handler", t);
+		}
+	}
 
-			// Requires Java 1.9+
-			// Desktop desktop = Desktop.getDesktop();
+	private void initQuitHandlerJava9() {
+		// Requires Java 1.9+
+		try {
+			Class<?> quitHandlerClass = Class.forName("java.awt.desktop.QuitHandler");
+			Desktop desktop = Desktop.getDesktop();
+			Method setQuitHandler = desktop.getClass().getMethod("setQuitHandler", new Class[] { quitHandlerClass });
+
+			Object quitHandler = Proxy.newProxyInstance(SonivmLauncher.class.getClassLoader(), new Class[] { quitHandlerClass },
+					new InvocationHandler() {
+
+						@Override
+						public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+							try {
+								sonivmController.onQuit();
+								LOGGER.info("Calling QuitResponse.performQuit()");
+								Object quitResponse = args[1];
+								Method performQuitMethod = quitResponse.getClass().getMethod("performQuit");
+								performQuitMethod.invoke(quitResponse);
+							} catch (Throwable t) {
+								LOGGER.log(Level.SEVERE, "Error in quit handler", t);
+							}
+							return null;
+						}
+					});
+			setQuitHandler.invoke(desktop, quitHandler);
+
 			// desktop.setQuitHandler(new QuitHandler() {
 			// @Override
 			// public void handleQuitRequestWith(QuitEvent e, QuitResponse response) {
@@ -183,11 +215,30 @@ public class SonivmLauncher implements Runnable {
 			// response.performQuit();
 			// }
 			// });
-		} catch (ClassNotFoundException cnfe) {
-			LOGGER.info("Not registering Apple-specific quit handler - looks like this is not macOS");
 		} catch (Throwable t) {
-			LOGGER.log(Level.WARNING, "Failed to register quit handler", t);
+			LOGGER.log(Level.WARNING, "Failed to register Java9 quit handler", t);
 		}
+	}
+
+	public void run() {
+		mainWindow.setIconImage(sonivmIcon);
+		List<AudioDeviceOption> audioDevices = getAudioDevicesPlusDefault();
+		mainWindow.setJMenuBar(initMenuBar(audioDevices));
+		eqWindow.setJMenuBar(initMenuBar(audioDevices));
+		SwingUtil.prefSizeRatioOfScreenSize(mainWindow, 3f / 4f);
+		sonivmController.onBeforeUiPack();
+		mainWindow.pack();
+		SwingUtil.moveToScreenCenter(mainWindow);
+		sonivmController.onBeforeUiSetVisible();
+		SwingUtil.runOnEDT(() -> {
+			try {
+				SystemTray.getSystemTray().add(sonivmTrayIcon);
+			} catch (Throwable t) {
+				LOGGER.log(Level.SEVERE, "Failed to add system tray icon", t);
+			}
+		}, false);
+
+		initQuitHandler();
 
 		SwingUtil.runOnEDT(() -> mainWindow.setVisible(true), false);
 		// SwingUtil.runOnEDT(() -> eqWindow.setVisible(true), false);

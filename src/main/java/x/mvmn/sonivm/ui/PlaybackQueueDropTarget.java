@@ -35,11 +35,11 @@ public final class PlaybackQueueDropTarget extends DropTarget {
 	public synchronized void drop(DropTargetDropEvent dtde) {
 
 		Point point = dtde.getLocation();
-		int row = tblPlayQueue.rowAtPoint(point);
+		int row = this.getComponent() == tblPlayQueue ? tblPlayQueue.rowAtPoint(point) : -1;
 
 		Transferable transferable = dtde.getTransferable();
 		if (dtde.isDataFlavorSupported(PlayQueueTableDnDTransferHandler.DATA_FLAVOR_STRING_ROW_INDEXES_RANGE)) {
-			dtde.acceptDrop(DnDConstants.ACTION_LINK);
+			dtde.acceptDrop(DnDConstants.ACTION_COPY);
 			try {
 				IntRange intRange = (IntRange) transferable
 						.getTransferData(PlayQueueTableDnDTransferHandler.DATA_FLAVOR_STRING_ROW_INDEXES_RANGE);
@@ -52,7 +52,7 @@ public final class PlaybackQueueDropTarget extends DropTarget {
 				LOGGER.log(Level.WARNING, "IO error on playback queue table drag-n-drop.", e);
 			}
 		} else if (dtde.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
-			dtde.acceptDrop(DnDConstants.ACTION_LINK);
+			dtde.acceptDrop(DnDConstants.ACTION_COPY);
 			try {
 				@SuppressWarnings("unchecked")
 				List<File> fileList = (List<File>) transferable.getTransferData(DataFlavor.javaFileListFlavor);
