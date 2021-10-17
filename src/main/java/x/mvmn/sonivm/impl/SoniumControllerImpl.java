@@ -34,6 +34,7 @@ import de.umass.lastfm.scrobble.ScrobbleResult;
 import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.audio.PlaybackEvent;
+import x.mvmn.sonivm.audio.PlaybackEvent.ErrorType;
 import x.mvmn.sonivm.eq.SonivmEqualizerService;
 import x.mvmn.sonivm.eq.model.EqualizerState;
 import x.mvmn.sonivm.lastfm.LastFMQueueService;
@@ -473,6 +474,10 @@ public class SoniumControllerImpl implements SonivmController {
 		switch (event.getType()) {
 			case ERROR:
 				LOGGER.log(Level.WARNING, "Playback error occurred: " + event.getErrorType() + " " + event.getError());
+				SwingUtil.runOnEDT(() -> mainWindow.updateStatus("Playback error " + event.getErrorType() + " " + event.getError()), false);
+				if (event.getErrorType() == ErrorType.FILE_NOT_FOUND || event.getErrorType() == ErrorType.FILE_FORMAT_ERROR) {
+					onTrackFinished();
+				}
 			break;
 			case FINISH:
 				// this.currentAudioFileInfo = null;

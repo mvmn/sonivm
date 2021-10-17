@@ -258,8 +258,11 @@ public class AudioServiceImpl implements AudioService, Runnable {
 								.audioMetadata(fileMetadata)
 								.build());
 					} else {
-						executeListenerActions(
-								PlaybackEvent.builder().type(PlaybackEvent.Type.ERROR).errorType(ErrorType.FILE_NOT_FOUND).build());
+						executeListenerActions(PlaybackEvent.builder()
+								.type(PlaybackEvent.Type.ERROR)
+								.errorType(ErrorType.FILE_NOT_FOUND)
+								.error(file.getAbsolutePath())
+								.build());
 					}
 				}
 			break;
