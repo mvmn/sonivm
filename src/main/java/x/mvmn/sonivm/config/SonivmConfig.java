@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
-import x.mvmn.sonivm.SonivmLauncher;
+import x.mvmn.sonivm.Sonivm;
 import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.ui.EqualizerWindow;
 import x.mvmn.sonivm.ui.SonivmController;
@@ -46,7 +46,7 @@ public class SonivmConfig {
 	@Bean
 	@Scope("singleton")
 	public TrayIcon sonivmTrayIcon(@Autowired SonivmTrayIconPopupMenu sonivmTrayIconPopupMenu) {
-		TrayIcon trayIcon = new TrayIcon(SonivmLauncher.sonivmIcon);
+		TrayIcon trayIcon = new TrayIcon(Sonivm.sonivmIcon);
 		trayIcon.setImageAutoSize(true);
 		trayIcon.setPopupMenu(sonivmTrayIconPopupMenu.getUIComponent());
 		return trayIcon;

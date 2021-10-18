@@ -49,9 +49,9 @@ import x.mvmn.sonivm.util.Pair;
 
 @SpringBootApplication
 @Component
-public class SonivmLauncher implements Runnable {
+public class Sonivm implements Runnable {
 
-	private static final Logger LOGGER = Logger.getLogger(SonivmLauncher.class.getCanonicalName());
+	private static final Logger LOGGER = Logger.getLogger(Sonivm.class.getCanonicalName());
 
 	public static BufferedImage sonivmIcon;
 
@@ -81,7 +81,7 @@ public class SonivmLauncher implements Runnable {
 		System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS");
 
 		try {
-			sonivmIcon = ImageIO.read(SonivmLauncher.class.getResourceAsStream("/sonivm_logo.png"));
+			sonivmIcon = ImageIO.read(Sonivm.class.getResourceAsStream("/sonivm_logo.png"));
 		} catch (IOException e) {
 			LOGGER.log(Level.SEVERE, "Failed to read Sonivm icon image", e);
 			sonivmIcon = new BufferedImage(64, 64, BufferedImage.TYPE_INT_ARGB);
@@ -102,7 +102,7 @@ public class SonivmLauncher implements Runnable {
 		System.setProperty("sonivm_home_folder", appHomeFolder.getAbsolutePath());
 
 		// Run the app
-		SonivmLauncher launcher = SpringApplication.run(SonivmLauncher.class, args).getBean(SonivmLauncher.class);
+		Sonivm launcher = SpringApplication.run(Sonivm.class, args).getBean(Sonivm.class);
 		SwingUtil.runOnEDT(() -> launcher.run(), false);
 	}
 
@@ -150,7 +150,7 @@ public class SonivmLauncher implements Runnable {
 	private void initQuitHandler() {
 		try {
 			Class<?> quitHandlerClass = Class.forName("com.apple.eawt.QuitHandler");
-			Object quitHandler = Proxy.newProxyInstance(SonivmLauncher.class.getClassLoader(), new Class[] { quitHandlerClass },
+			Object quitHandler = Proxy.newProxyInstance(Sonivm.class.getClassLoader(), new Class[] { quitHandlerClass },
 					new InvocationHandler() {
 
 						@Override
@@ -189,7 +189,7 @@ public class SonivmLauncher implements Runnable {
 			Desktop desktop = Desktop.getDesktop();
 			Method setQuitHandler = desktop.getClass().getMethod("setQuitHandler", new Class[] { quitHandlerClass });
 
-			Object quitHandler = Proxy.newProxyInstance(SonivmLauncher.class.getClassLoader(), new Class[] { quitHandlerClass },
+			Object quitHandler = Proxy.newProxyInstance(Sonivm.class.getClassLoader(), new Class[] { quitHandlerClass },
 					new InvocationHandler() {
 
 						@Override

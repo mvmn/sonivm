@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 
-import x.mvmn.sonivm.SonivmLauncher;
+import x.mvmn.sonivm.Sonivm;
 import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.util.EncryptionUtil;
 import x.mvmn.sonivm.util.EncryptionUtil.KeyAndNonce;
@@ -50,7 +50,7 @@ public class PreferencesServiceImpl implements PreferencesService {
 	}
 
 	protected Preferences getPreferences() {
-		return Preferences.userNodeForPackage(SonivmLauncher.class);
+		return Preferences.userNodeForPackage(Sonivm.class);
 	}
 
 	@Override
