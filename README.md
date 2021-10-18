@@ -2,7 +2,7 @@
 Sonivm audio player
 
 Desktop GUI audio player, based on these amazing FOSS LGPL libraries 
-- Audio: FFSampleDSP https://www.tagtraum.com/ffsampledsp/ (which is based on FFMPEG)
+- Audio: FFSampledSP https://www.tagtraum.com/ffsampledsp/ (which is based on FFMPEG)
 - Tags: JAudioTagger http://www.jthink.net/jaudiotagger/
 - Equalizer: JEQ https://github.com/whamtet/jeq / https://sourceforge.net/projects/jeq/
 
