@@ -631,4 +631,12 @@ public class SonivmMainWindow extends JFrame {
 	public String getSearchText() {
 		return tfSearch.getText();
 	}
+
+	public void setShuffleMode(ShuffleMode shuffleMode) {
+		this.cmbShuffleMode.setSelectedItem(shuffleMode);
+	}
+
+	public void setRepeatMode(RepeatMode repeatMode) {
+		this.cmbRepeatMode.setSelectedItem(repeatMode);
+	}
 }

@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 
 import x.mvmn.sonivm.Sonivm;
 import x.mvmn.sonivm.prefs.PreferencesService;
+import x.mvmn.sonivm.ui.model.RepeatMode;
+import x.mvmn.sonivm.ui.model.ShuffleMode;
 import x.mvmn.sonivm.util.EncryptionUtil;
 import x.mvmn.sonivm.util.EncryptionUtil.KeyAndNonce;
 
@@ -23,14 +25,20 @@ public class PreferencesServiceImpl implements PreferencesService {
 	private static final String DEFAULT_ENCRYPTION_SECRET = "147320ea9b8930fe196a4231da50ada4";
 
 	private static final String KEY_ENCPWD = "scrobblerencpwd";
-	private static final String KEY_USER = "lastfmusername";
-	private static final String KEY_PASS = "lastfmpassword";
+
+	private static final String KEY_LASTFM_USER = "lastfmusername";
+	private static final String KEY_LASTFM_PASS = "lastfmpassword";
 	private static final String KEY_LASTFMAPIKEY = "lastfmapikey";
 	private static final String KEY_LASTFMAPISECRET = "lastfmapisecret";
 	private static final String KEY_PERCENTAGE_TO_SCROBBLE_AT = "scrobbleatpercent";
+
 	private static final String KEY_LOOK_AND_FEEL = "lookandfeel";
+
 	private static final String KEY_PLAYQUEUE_COLUMN_WIDTHS = "playqueuecolumnwidths";
 	private static final String KEY_PLAYQUEUE_COLUMN_POSITIONS = "playqueuecolumnpositions";
+
+	private static final String KEY_SHUFFLE_MODE = "shufflemode";
+	private static final String KEY_REPEAT_MODE = "repeatmode";
 
 	private static final String KEY_EQ_ENABLED = "eqenabled";
 	private static final String KEY_EQ_GAIN = "eqgain";
@@ -55,17 +63,17 @@ public class PreferencesServiceImpl implements PreferencesService {
 
 	@Override
 	public String getUsername() {
-		return prefs.get(KEY_USER, null);
+		return prefs.get(KEY_LASTFM_USER, null);
 	}
 
 	@Override
 	public void setUsername(String value) {
-		prefs.put(KEY_USER, value);
+		prefs.put(KEY_LASTFM_USER, value);
 	}
 
 	@Override
 	public String getPassword() throws GeneralSecurityException {
-		String password = prefs.get(KEY_PASS, null);
+		String password = prefs.get(KEY_LASTFM_PASS, null);
 
 		if (password != null) {
 			password = EncryptionUtil.decrypt(password, keyAndNonce);
@@ -76,7 +84,7 @@ public class PreferencesServiceImpl implements PreferencesService {
 	@Override
 	public void setPassword(String value) throws GeneralSecurityException {
 		String password = EncryptionUtil.encrypt(value, keyAndNonce);
-		prefs.put(KEY_PASS, password);
+		prefs.put(KEY_LASTFM_PASS, password);
 	}
 
 	@Override
@@ -182,6 +190,26 @@ public class PreferencesServiceImpl implements PreferencesService {
 	@Override
 	public void setEqGain(int eqGain) {
 		prefs.put(KEY_EQ_GAIN, Integer.toString(eqGain));
+	}
+
+	@Override
+	public ShuffleMode getShuffleMode() {
+		return ShuffleMode.valueOf(prefs.get(KEY_SHUFFLE_MODE, ShuffleMode.OFF.name()));
+	}
+
+	@Override
+	public void setShuffleMode(ShuffleMode value) {
+		prefs.put(KEY_SHUFFLE_MODE, value.name());
+	}
+
+	@Override
+	public RepeatMode getRepeatMode() {
+		return RepeatMode.valueOf(prefs.get(KEY_REPEAT_MODE, RepeatMode.OFF.name()));
+	}
+
+	@Override
+	public void setRepeatMode(RepeatMode value) {
+		prefs.put(KEY_REPEAT_MODE, value.name());
 	}
 
 	protected int[] getIntArrayProperty(String prefKey, String defaultVal) {

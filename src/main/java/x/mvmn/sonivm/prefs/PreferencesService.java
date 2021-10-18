@@ -2,6 +2,9 @@ package x.mvmn.sonivm.prefs;
 
 import java.security.GeneralSecurityException;
 
+import x.mvmn.sonivm.ui.model.RepeatMode;
+import x.mvmn.sonivm.ui.model.ShuffleMode;
+
 public interface PreferencesService {
 
 	String getUsername();
@@ -47,4 +50,12 @@ public interface PreferencesService {
 	int getEqGain();
 
 	void setEqGain(int eqGain);
+
+	ShuffleMode getShuffleMode();
+
+	void setShuffleMode(ShuffleMode value);
+
+	RepeatMode getRepeatMode();
+
+	void setRepeatMode(RepeatMode value);
 }

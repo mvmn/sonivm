@@ -403,6 +403,13 @@ public class SoniumControllerImpl implements SonivmController {
 			}
 		}
 
+		try {
+			this.preferencesService.setShuffleMode(shuffleState);
+			this.preferencesService.setRepeatMode(repeatState);
+		} catch (Throwable t) {
+			LOGGER.log(Level.WARNING, "Failed to store shuffle/repeat preferences", t);
+		}
+
 		savePlayQueueColumnsState();
 		savePlayQueueContents();
 		saveEqState();
@@ -732,7 +739,19 @@ public class SoniumControllerImpl implements SonivmController {
 				int scrobblePercent = this.preferencesService.getPercentageToScrobbleAt(70);
 				this.scrobbleThresholdPercent = scrobblePercent;
 			} catch (Exception e) {
-				LOGGER.log(Level.WARNING, "asd", e);
+				LOGGER.log(Level.WARNING, "Failed to read LastFM preferences", e);
+			}
+
+			try {
+				ShuffleMode shuffleMode = this.preferencesService.getShuffleMode();
+				this.shuffleState = shuffleMode;
+				this.mainWindow.setShuffleMode(shuffleMode);
+
+				RepeatMode repeatMode = this.preferencesService.getRepeatMode();
+				this.repeatState = repeatMode;
+				this.mainWindow.setRepeatMode(repeatMode);
+			} catch (Exception e) {
+				LOGGER.log(Level.WARNING, "Failed to read shuffle and repeat preferences", e);
 			}
 		}).start();
 	}
