@@ -859,14 +859,13 @@ public class SoniumControllerImpl implements SonivmController {
 			if (text == null || text.trim().isEmpty()) {
 				searchMatches = Collections.emptyList();
 			} else {
-				String finalText = text.toLowerCase();
+				String finalText = StringUtil.stripAccents(text.toLowerCase());
 				searchMatches = IntStream
-						.of(playbackQueueService
-								.findTracks(queueEntry -> StringUtil.blankForNull(queueEntry.getArtist()).toLowerCase().contains(finalText)
-										|| StringUtil.blankForNull(queueEntry.getAlbum()).toLowerCase().contains(finalText)
-										|| StringUtil.blankForNull(queueEntry.getTitle()).toLowerCase().contains(finalText)
-										|| StringUtil.blankForNull(queueEntry.getDate()).toLowerCase().contains(finalText)
-										|| StringUtil.blankForNull(queueEntry.getGenre()).toLowerCase().contains(finalText)))
+						.of(playbackQueueService.findTracks(queueEntry -> normalizeForSearch(queueEntry.getArtist()).contains(finalText)
+								|| normalizeForSearch(queueEntry.getAlbum()).contains(finalText)
+								|| normalizeForSearch(queueEntry.getTitle()).contains(finalText)
+								|| normalizeForSearch(queueEntry.getDate()).contains(finalText)
+								|| normalizeForSearch(queueEntry.getGenre()).contains(finalText)))
 						.mapToObj(Integer::valueOf)
 						.collect(Collectors.toList());
 			}
@@ -876,6 +875,10 @@ public class SoniumControllerImpl implements SonivmController {
 				onSearchNextMatch();
 			}, false);
 		}).start();
+	}
+
+	private String normalizeForSearch(String val) {
+		return StringUtil.stripAccents(StringUtil.blankForNull(val).toLowerCase());
 	}
 
 	@Override

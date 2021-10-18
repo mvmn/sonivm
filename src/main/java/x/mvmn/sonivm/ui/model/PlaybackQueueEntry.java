@@ -136,6 +136,6 @@ public class PlaybackQueueEntry {
 		if (valB == null) {
 			valB = "";
 		}
-		return valA.trim().equalsIgnoreCase(valB.trim());
+		return StringUtil.stripAccents(valA.trim()).equalsIgnoreCase(StringUtil.stripAccents(valB.trim()));
 	}
 }

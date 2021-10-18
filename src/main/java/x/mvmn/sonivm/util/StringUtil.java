@@ -1,5 +1,7 @@
 package x.mvmn.sonivm.util;
 
+import java.text.Normalizer;
+
 public class StringUtil {
 
 	public static String blankForNull(String val) {
@@ -12,5 +14,9 @@ public class StringUtil {
 
 	public static String nullForEmpty(String val) {
 		return val != null && val.isEmpty() ? null : val;
+	}
+
+	public static String stripAccents(String val) {
+		return val == null ? null : Normalizer.normalize(val, Normalizer.Form.NFD).replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
 	}
 }
