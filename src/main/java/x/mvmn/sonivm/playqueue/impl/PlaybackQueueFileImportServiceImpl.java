@@ -26,6 +26,7 @@ import x.mvmn.sonivm.cue.CueData.CueDataTrackData;
 import x.mvmn.sonivm.cue.CueSheetParser;
 import x.mvmn.sonivm.playqueue.PlaybackQueueFileImportService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
+import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.tag.TagRetrievalService;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
@@ -40,9 +41,6 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 
 	private static final Logger LOGGER = Logger.getLogger(PlaybackQueueFileImportServiceImpl.class.getCanonicalName());
 
-	// TODO: Make configurable via prefs
-	private static final Set<String> supportedExtensions = Stream.of("flac", "ogg", "mp3", "m4a", "wav").collect(Collectors.toSet());
-
 	@Autowired
 	private PlaybackQueueService playbackQueueService;
 
@@ -51,6 +49,9 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 
 	@Autowired
 	private SonivmMainWindow sonivmMainWindow;
+
+	@Autowired
+	private PreferencesService preferencesService;
 
 	private final ExecutorService tagReadingTaskExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
@@ -78,6 +79,8 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 			if (!file.exists()) {
 				return 0;
 			}
+
+			Set<String> supportedExtensions = preferencesService.getSupportedFileExtensions();
 			if (file.isDirectory()) {
 				File[] filesInDirectory = file.listFiles();
 				Map<String, File> filesInDirByName = Stream.of(filesInDirectory)
@@ -129,7 +132,7 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 			String fileName = file.getName();
 			String extension = FilenameUtils.getExtension(fileName);
 
-			if ("cue".equalsIgnoreCase(extension)) {
+			if ("cue".equalsIgnoreCase(extension) && supportedExtensions.contains("cue")) {
 				List<PlaybackQueueEntry> tracksFromCueToAdd = new ArrayList<>();
 				processCueFile(file.getParentFile(), file, tracksFromCueToAdd);
 				if (!tracksFromCueToAdd.isEmpty()) {

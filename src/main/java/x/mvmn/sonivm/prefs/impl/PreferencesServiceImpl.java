@@ -2,6 +2,11 @@ package x.mvmn.sonivm.prefs.impl;
 
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Logger;
 import java.util.prefs.Preferences;
 import java.util.stream.Collectors;
@@ -20,6 +25,8 @@ import x.mvmn.sonivm.util.EncryptionUtil.KeyAndNonce;
 @Service
 public class PreferencesServiceImpl implements PreferencesService {
 	private static final Logger LOGGER = Logger.getLogger(PreferencesServiceImpl.class.getCanonicalName());
+
+	private static final String STRING_LIST_VALUES_SEPARATOR = "\r\n%SONIVMPREFSEPARATOR%\r\n";
 
 	private static final String DEFAULT_ENCRYPTION_KEY = "9e89b44de1ff37c5246ad0af18406454";
 	private static final String DEFAULT_ENCRYPTION_SECRET = "147320ea9b8930fe196a4231da50ada4";
@@ -43,6 +50,10 @@ public class PreferencesServiceImpl implements PreferencesService {
 	private static final String KEY_EQ_ENABLED = "eqenabled";
 	private static final String KEY_EQ_GAIN = "eqgain";
 	private static final String KEY_EQ_BANDS_VALUES = "eqbandsvalues";
+
+	private static final String KEY_SUPPORTED_FILE_EXTENSIONS = "supportedfileextensions";
+	private static final String DEFAULT_SUPPORTED_FILE_EXTENSIONS = Stream.of("cue", "flac", "ogg", "mp3", "m4a", "wav")
+			.collect(Collectors.joining(STRING_LIST_VALUES_SEPARATOR));
 
 	private final Preferences prefs;
 	private final KeyAndNonce keyAndNonce;
@@ -210,6 +221,35 @@ public class PreferencesServiceImpl implements PreferencesService {
 	@Override
 	public void setRepeatMode(RepeatMode value) {
 		prefs.put(KEY_REPEAT_MODE, value.name());
+	}
+
+	@Override
+	public Set<String> getSupportedFileExtensions() {
+		return getStringListProperty(KEY_SUPPORTED_FILE_EXTENSIONS, DEFAULT_SUPPORTED_FILE_EXTENSIONS).stream()
+				.collect(Collectors.toCollection(TreeSet::new));
+	}
+
+	@Override
+	public void setSupportedFileExtensions(Collection<String> extensions) {
+		extensions = extensions.stream().map(String::toLowerCase).collect(Collectors.toCollection(TreeSet::new));
+		setStringListProperty(KEY_SUPPORTED_FILE_EXTENSIONS, extensions);
+	}
+
+	protected List<String> getStringListProperty(String prefKey, String defaultVal) {
+		String value = prefs.get(prefKey, defaultVal);
+		if (value == null) {
+			return Collections.emptyList();
+		} else {
+			return Stream.of(value.split(STRING_LIST_VALUES_SEPARATOR)).collect(Collectors.toList());
+		}
+	}
+
+	protected void setStringListProperty(String prefKey, Collection<String> values) {
+		if (values != null && !values.isEmpty()) {
+			prefs.put(prefKey, values.stream().collect(Collectors.joining(STRING_LIST_VALUES_SEPARATOR)));
+		} else {
+			prefs.remove(prefKey);
+		}
 	}
 
 	protected int[] getIntArrayProperty(String prefKey, String defaultVal) {

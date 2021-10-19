@@ -427,4 +427,8 @@ public class SwingUtil {
 		window.toFront();
 		window.requestFocus();
 	}
+
+	public static void removeAllActionListeners(AbstractButton button) {
+		Stream.of(button.getActionListeners()).forEach(actListener -> button.removeActionListener(actListener));
+	}
 }

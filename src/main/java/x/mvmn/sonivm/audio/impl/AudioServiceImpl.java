@@ -26,6 +26,7 @@ import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.Mixer.Info;
 import javax.sound.sampled.SourceDataLine;
+import javax.sound.sampled.UnsupportedAudioFileException;
 
 import org.springframework.stereotype.Service;
 
@@ -463,7 +464,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		LOGGER.log(Level.SEVERE, "Playback error", t);
 		executeListenerActions(PlaybackEvent.builder()
 				.type(PlaybackEvent.Type.ERROR)
-				.errorType(ErrorType.PLAYBACK_ERROR)
+				.errorType(t instanceof UnsupportedAudioFileException ? ErrorType.FILE_FORMAT_ERROR : ErrorType.PLAYBACK_ERROR)
 				.error(t.getClass().getSimpleName() + " " + t.getMessage())
 				.build());
 	}

@@ -12,6 +12,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,6 +43,7 @@ import x.mvmn.sonivm.ui.JMenuBarBuilder;
 import x.mvmn.sonivm.ui.JMenuBarBuilder.JMenuBuilder;
 import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
+import x.mvmn.sonivm.ui.SupportedFileExtensionsDialog;
 import x.mvmn.sonivm.ui.UsernamePasswordDialog;
 import x.mvmn.sonivm.ui.model.AudioDeviceOption;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
@@ -302,6 +304,12 @@ public class Sonivm implements Runnable {
 						.actr(e -> sonivmController.onLastFMScrobblePercentageChange(scrobblePercentageOption))
 						.build());
 		menuBuilderLastFMScrobblePercentage.build().build();
+
+		menuBuilder.item("Supported file extensions...").actr(actEvent -> {
+			Set<String> supportedFileExtensions = preferencesService.getSupportedFileExtensions();
+			new SupportedFileExtensionsDialog().display(supportedFileExtensions,
+					newExtensions -> preferencesService.setSupportedFileExtensions(newExtensions));
+		}).build();
 
 		JMenuBuilder<JMenuBuilder<JMenuBarBuilder>> menuBuilderAudioDevice = menuBuilder.subMenu("AudioDevice");
 		ButtonGroup rbGroupAudioDevices = new ButtonGroup();

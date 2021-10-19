@@ -1,6 +1,8 @@
 package x.mvmn.sonivm.prefs;
 
 import java.security.GeneralSecurityException;
+import java.util.Collection;
+import java.util.Set;
 
 import x.mvmn.sonivm.ui.model.RepeatMode;
 import x.mvmn.sonivm.ui.model.ShuffleMode;
@@ -58,4 +60,8 @@ public interface PreferencesService {
 	RepeatMode getRepeatMode();
 
 	void setRepeatMode(RepeatMode value);
+
+	Set<String> getSupportedFileExtensions();
+
+	void setSupportedFileExtensions(Collection<String> extensions);
 }
