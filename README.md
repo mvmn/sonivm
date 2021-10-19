@@ -26,3 +26,5 @@ Planned features:
 - Gapeless playback for individual files
 - (If I can pull if off) Support of WinAmp 2 skins AKA “classic skins”
 - Other minor improvements (like saving/restoring UI location/size between restarts)
+
+Requires Java 8 (AKA Java 1.8) or above
