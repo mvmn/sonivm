@@ -177,7 +177,9 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 				playbackQueueService.signalUpdateInTrackInfo(queueEntry);
 				SwingUtil.runOnEDT(() -> sonivmMainWindow.updateStatus("Loaded tags for " + queueEntry.getTargetFileFullPath()), false);
 			} catch (Throwable t) {
-				LOGGER.log(Level.WARNING, "Failed to read tags for file " + queueEntry.getTargetFileFullPath(), t);
+				String message = "Failed to read tags for file " + queueEntry.getTargetFileFullPath();
+				LOGGER.log(Level.WARNING, message, t);
+				SwingUtil.runOnEDT(() -> sonivmMainWindow.updateStatus(message), false);
 			}
 		});
 	}

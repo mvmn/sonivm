@@ -65,6 +65,8 @@ public class SupportedFileExtensionsDialog extends JDialog {
 			for (int i = 0; i < model.getSize(); i++) {
 				result.add(model.getElementAt(i));
 			}
+			this.setVisible(false);
+			this.dispose();
 			okHandler.accept(result);
 		});
 		if (values != null) {
