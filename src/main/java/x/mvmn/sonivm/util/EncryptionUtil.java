@@ -14,6 +14,9 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
 public class EncryptionUtil {
 
 	private static final String CIPHER_NAME_AES = "AES";

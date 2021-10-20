@@ -3,6 +3,9 @@ package x.mvmn.sonivm.util;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
 public class TimeDateUtil {
 	private static final Pattern PTRN_DATE_STARTS_WITH_YEAR = Pattern.compile("^\\d{4}\\-.*");
 

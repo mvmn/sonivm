@@ -3,6 +3,9 @@ package x.mvmn.sonivm.util;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
 public class StackTraceUtil {
 
 	public static String toString(Throwable t) {
@@ -10,5 +13,4 @@ public class StackTraceUtil {
 		t.printStackTrace(new PrintWriter(strw));
 		return strw.toString();
 	}
-
 }

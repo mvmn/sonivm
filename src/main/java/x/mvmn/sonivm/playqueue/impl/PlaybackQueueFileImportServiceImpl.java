@@ -20,6 +20,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import x.mvmn.sonivm.SonivmShutdownListener;
 import x.mvmn.sonivm.cue.CueData;
 import x.mvmn.sonivm.cue.CueData.CueDataFileData;
 import x.mvmn.sonivm.cue.CueData.CueDataTrackData;
@@ -33,7 +34,6 @@ import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry.TrackMetadata;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.AudioFileUtil;
-import x.mvmn.sonivm.util.SonivmShutdownListener;
 import x.mvmn.sonivm.util.TimeDateUtil;
 
 @Service

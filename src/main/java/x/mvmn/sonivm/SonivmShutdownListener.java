@@ -1,4 +1,4 @@
-package x.mvmn.sonivm.util;
+package x.mvmn.sonivm;
 
 public interface SonivmShutdownListener {
 

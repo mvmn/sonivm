@@ -2,6 +2,9 @@ package x.mvmn.sonivm.util;
 
 import java.text.Normalizer;
 
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
 public class StringUtil {
 
 	public static String blankForNull(String val) {

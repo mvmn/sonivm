@@ -8,6 +8,9 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 
 import com.tagtraum.ffsampledsp.FFAudioFileReader;
 
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
 public class AudioFileUtil {
 
 	public static Integer getAudioFileDurationInMilliseconds(File audioFile) throws IOException {

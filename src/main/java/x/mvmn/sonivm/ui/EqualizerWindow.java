@@ -71,30 +71,30 @@ public class EqualizerWindow extends JFrame {
 		});
 		btnSave = new JButton("Save...");
 		btnSave.addActionListener(actEvent -> {
-			String presetName = JOptionPane.showInputDialog(this, "Enter preset name", "Save preset");
-			if (presetName != null) {
+			String presetName = JOptionPane.showInputDialog(this, "Enter preset name", "");
+			if (presetName != null && !presetName.trim().isEmpty()) {
 				eqService.onSavePreset(presetName, toPreset());
 			}
 		});
-		btnImport = new JButton("Import...");
+		btnImport = new JButton("Import EQF...");
 		btnImport.addActionListener(actEvent -> {
 			JFileChooser jfc = new JFileChooser();
+			jfc.setFileFilter(new FileNameExtensionFilter("WinAmp equilizer file (EQF)", "eqf"));
 			jfc.setMultiSelectionEnabled(false);
 			jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-			jfc.setFileFilter(new FileNameExtensionFilter("WinAmp equilizer preset file", "eqf"));
-			if (jfc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+			if (JFileChooser.APPROVE_OPTION == jfc.showOpenDialog(this)) {
 				eqService.onImportPreset(jfc.getSelectedFile(), this);
 			}
 		});
-		btnExport = new JButton("Export...");
+		btnExport = new JButton("Export EQF...");
 		btnExport.addActionListener(actEvent -> {
-			String presetName = JOptionPane.showInputDialog(this, "Enter preset name", "Export WinAmp EQF preset");
-			if (presetName != null) {
+			String presetName = JOptionPane.showInputDialog(this, "Enter preset name", "");
+			if (presetName != null && !presetName.trim().isEmpty()) {
 				JFileChooser jfc = new JFileChooser();
-				jfc.setFileFilter(new FileNameExtensionFilter("WinAmp equilizer preset file", "eqf"));
+				jfc.setFileFilter(new FileNameExtensionFilter("WinAmp equilizer file (EQF)", "eqf"));
 				jfc.setMultiSelectionEnabled(false);
 				jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-				if (jfc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+				if (JFileChooser.APPROVE_OPTION == jfc.showSaveDialog(this)) {
 					eqService.onExportPreset(jfc.getSelectedFile(), presetName, toPreset());
 				}
 			}

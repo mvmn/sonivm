@@ -31,6 +31,7 @@ import de.umass.lastfm.Session;
 import de.umass.lastfm.Track;
 import de.umass.lastfm.scrobble.ScrobbleData;
 import de.umass.lastfm.scrobble.ScrobbleResult;
+import x.mvmn.sonivm.SonivmShutdownListener;
 import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.audio.PlaybackEvent;
@@ -52,7 +53,6 @@ import x.mvmn.sonivm.ui.model.PlaybackQueueEntryCompareBiPredicate;
 import x.mvmn.sonivm.ui.model.RepeatMode;
 import x.mvmn.sonivm.ui.model.ShuffleMode;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
-import x.mvmn.sonivm.util.SonivmShutdownListener;
 import x.mvmn.sonivm.util.StringUtil;
 import x.mvmn.sonivm.util.Tuple2;
 

@@ -7,6 +7,9 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.io.FileUtils;
 
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
 public class FileHelper {
 
 	public static void appendToFile(File file, byte[] data) throws IOException {
