@@ -29,33 +29,33 @@ public class EqualizerPresetServiceImpl implements EqualizerPresetService {
 	static {
 		Map<String, EqualizerPreset> defaultPresets = new HashMap<>();
 		defaultPresets.put("* Normal *",
-				EqualizerPreset.builder().bands(new int[] { 500, 500, 500, 500, 500, 500, 500, 500, 500, 500 }).gain(300).build());
+				EqualizerPreset.builder().bands(new int[] { 500, 500, 500, 500, 500, 500, 500, 500, 500, 500 }).gain(500).build());
 		defaultPresets.put("Classical",
-				EqualizerPreset.builder().bands(new int[] { 500, 500, 500, 500, 500, 500, 700, 700, 700, 760 }).gain(300).build());
+				EqualizerPreset.builder().bands(new int[] { 500, 500, 500, 500, 500, 500, 700, 700, 700, 760 }).gain(500).build());
 		defaultPresets.put("Club",
-				EqualizerPreset.builder().bands(new int[] { 500, 500, 420, 340, 340, 340, 420, 500, 500, 500 }).gain(300).build());
+				EqualizerPreset.builder().bands(new int[] { 500, 500, 420, 340, 340, 340, 420, 500, 500, 500 }).gain(500).build());
 		defaultPresets.put("Dance",
-				EqualizerPreset.builder().bands(new int[] { 260, 340, 460, 500, 500, 660, 700, 700, 500, 500 }).gain(300).build());
+				EqualizerPreset.builder().bands(new int[] { 260, 340, 460, 500, 500, 660, 700, 700, 500, 500 }).gain(500).build());
 		defaultPresets.put("Full Bass",
-				EqualizerPreset.builder().bands(new int[] { 260, 260, 260, 360, 460, 620, 760, 780, 780, 780 }).gain(300).build());
+				EqualizerPreset.builder().bands(new int[] { 260, 260, 260, 360, 460, 620, 760, 780, 780, 780 }).gain(500).build());
 		defaultPresets.put("Full Bass Treble",
-				EqualizerPreset.builder().bands(new int[] { 340, 340, 500, 680, 620, 460, 280, 220, 180, 180 }).gain(300).build());
+				EqualizerPreset.builder().bands(new int[] { 340, 340, 500, 680, 620, 460, 280, 220, 180, 180 }).gain(500).build());
 		defaultPresets.put("Full Treble",
-				EqualizerPreset.builder().bands(new int[] { 780, 780, 780, 620, 420, 240, 80, 80, 80, 80 }).gain(300).build());
+				EqualizerPreset.builder().bands(new int[] { 780, 780, 780, 620, 420, 240, 80, 80, 80, 80 }).gain(500).build());
 		defaultPresets.put("Laptop",
-				EqualizerPreset.builder().bands(new int[] { 380, 220, 360, 600, 580, 460, 380, 240, 160, 140 }).gain(300).build());
+				EqualizerPreset.builder().bands(new int[] { 380, 220, 360, 600, 580, 460, 380, 240, 160, 140 }).gain(500).build());
 		defaultPresets.put("Live",
-				EqualizerPreset.builder().bands(new int[] { 660, 500, 400, 360, 340, 340, 400, 420, 420, 420 }).gain(300).build());
+				EqualizerPreset.builder().bands(new int[] { 660, 500, 400, 360, 340, 340, 400, 420, 420, 420 }).gain(500).build());
 		defaultPresets.put("Party",
-				EqualizerPreset.builder().bands(new int[] { 320, 320, 500, 500, 500, 500, 500, 500, 320, 320 }).gain(300).build());
+				EqualizerPreset.builder().bands(new int[] { 320, 320, 500, 500, 500, 500, 500, 500, 320, 320 }).gain(500).build());
 		defaultPresets.put("Pop",
-				EqualizerPreset.builder().bands(new int[] { 560, 380, 320, 300, 380, 540, 560, 560, 540, 540 }).gain(300).build());
+				EqualizerPreset.builder().bands(new int[] { 560, 380, 320, 300, 380, 540, 560, 560, 540, 540 }).gain(500).build());
 		defaultPresets.put("Reggae",
-				EqualizerPreset.builder().bands(new int[] { 480, 480, 500, 660, 480, 340, 340, 480, 480, 480 }).gain(300).build());
+				EqualizerPreset.builder().bands(new int[] { 480, 480, 500, 660, 480, 340, 340, 480, 480, 480 }).gain(500).build());
 		defaultPresets.put("Rock",
-				EqualizerPreset.builder().bands(new int[] { 320, 380, 640, 720, 560, 400, 280, 240, 240, 240 }).gain(300).build());
+				EqualizerPreset.builder().bands(new int[] { 320, 380, 640, 720, 560, 400, 280, 240, 240, 240 }).gain(500).build());
 		defaultPresets.put("Techno",
-				EqualizerPreset.builder().bands(new int[] { 300, 340, 480, 660, 640, 480, 300, 240, 240, 280 }).gain(300).build());
+				EqualizerPreset.builder().bands(new int[] { 300, 340, 480, 660, 640, 480, 300, 240, 240, 280 }).gain(500).build());
 		DEFAULT_PRESETS = Collections.unmodifiableMap(defaultPresets);
 	}
 

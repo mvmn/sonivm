@@ -189,12 +189,12 @@ public class PreferencesServiceImpl implements PreferencesService {
 
 	@Override
 	public int getEqGain() {
-		String eqGainStr = prefs.get(KEY_EQ_GAIN, "300");
+		String eqGainStr = prefs.get(KEY_EQ_GAIN, "500");
 		try {
 			return Integer.parseInt(eqGainStr);
 		} catch (NumberFormatException nfe) {
 			LOGGER.warning("Number format exception for preference " + KEY_EQ_GAIN + " value " + eqGainStr);
-			return 300;
+			return 500;
 		}
 	}
 

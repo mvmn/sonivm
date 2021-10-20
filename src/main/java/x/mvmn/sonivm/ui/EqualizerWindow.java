@@ -100,7 +100,7 @@ public class EqualizerWindow extends JFrame {
 		btnLoad = new JButton("Load >");
 		btnLoad.addActionListener(actEvent -> buildPresetsMenu().show(btnLoad, btnLoad.getWidth(), 0));
 
-		gainSlider = new JSlider(JSlider.VERTICAL, 0, 1000, 300);
+		gainSlider = new JSlider(JSlider.VERTICAL, 0, 1000, 500);
 		gainSlider.addChangeListener(changeEvent -> this.onGainChange());
 		SwingUtil.onDoubleClick(gainSlider, e -> gainSlider.setValue(500));
 		SwingUtil.makeJSliderMoveToClickPoistion(gainSlider);

@@ -23,7 +23,7 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 	private static final Logger LOGGER = Logger.getLogger(SonivmEqualizerServiceImpl.class.getCanonicalName());
 
 	private volatile Tuple2<IIRControls, Integer> eqControlsAndChannelsCount;
-	private volatile int lastGainValue = 300;
+	private volatile int lastGainValue = 500;
 	// TODO: inject band count
 	private volatile int[] lastBandValues = new int[] { 500, 500, 500, 500, 500, 500, 500, 500, 500, 500 };
 	private volatile boolean eqEnabled = false;
@@ -49,12 +49,12 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 		this.lastGainValue = valuePerMille;
 		Tuple2<IIRControls, Integer> eqControlsAndChannelsCount = this.eqControlsAndChannelsCount;
 		if (eqControlsAndChannelsCount != null) {
-			float preampMax = eqControlsAndChannelsCount.getA().getMaximumPreampValue();
-			float preampMin = eqControlsAndChannelsCount.getA().getMinimumPreampValue();
+			float preampMax = eqControlsAndChannelsCount.getA().getMaximumPreampDbValue();
+			float preampMin = eqControlsAndChannelsCount.getA().getMinimumPreampDbValue();
 			float range = preampMax - preampMin;
 			float newValue = preampMin + range / 1000 * valuePerMille;
 			for (int channel = 0; channel < eqControlsAndChannelsCount.getB(); channel++) {
-				eqControlsAndChannelsCount.getA().setPreampValue(channel, newValue);
+				eqControlsAndChannelsCount.getA().setPreampDbValue(channel, newValue);
 			}
 		}
 	}
@@ -64,12 +64,14 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 		this.lastBandValues[bandNumber] = valuePerMille;
 		Tuple2<IIRControls, Integer> eqControlsAndChannelsCount = this.eqControlsAndChannelsCount;
 		if (eqControlsAndChannelsCount != null) {
-			float max = eqControlsAndChannelsCount.getA().getMaximumBandValue();
-			float min = eqControlsAndChannelsCount.getA().getMinimumBandValue();
+			float max = eqControlsAndChannelsCount.getA().getMaximumBandDbValue();
+			float min = eqControlsAndChannelsCount.getA().getMinimumBandDbValue();
 			float range = max - min;
 			float newValue = min + range / 1000 * valuePerMille;
 			for (int channel = 0; channel < eqControlsAndChannelsCount.getB(); channel++) {
-				eqControlsAndChannelsCount.getA().setBandValue(bandNumber, channel, newValue);
+				eqControlsAndChannelsCount.getA()
+						.setBandValue(bandNumber, channel,
+								(float) (0.25220207857061455D * Math.exp(0.08017836180235399D * (double) newValue) - 0.2522020785283656D));
 			}
 		}
 	}
