@@ -249,6 +249,7 @@ public class EqualizerWindow extends JFrame {
 		this.pack();
 		int longestLabelWidth = bandLabels.stream().mapToInt(JLabel::getWidth).max().getAsInt();
 		bandLabels.forEach(lbl -> lbl.setPreferredSize(new Dimension(longestLabelWidth, lbl.getPreferredSize().height)));
+		bandLabels.forEach(lbl -> lbl.setMinimumSize(new Dimension(longestLabelWidth, lbl.getMinimumSize().height)));
 		this.pack();
 
 		this.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
