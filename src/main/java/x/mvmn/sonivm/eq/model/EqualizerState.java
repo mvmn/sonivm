@@ -1,14 +1,18 @@
 package x.mvmn.sonivm.eq.model;
 
-import lombok.Builder;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.SuperBuilder;
 
 @Data
-@RequiredArgsConstructor
-@Builder
-public class EqualizerState {
+@EqualsAndHashCode(callSuper = true)
+@SuperBuilder
+public class EqualizerState extends EqualizerPreset {
+
 	private final boolean enabled;
-	private final int gain;
-	private final int[] bands;
+
+	public EqualizerState(boolean enabled, int gain, int[] bands) {
+		super(gain, bands);
+		this.enabled = enabled;
+	}
 }

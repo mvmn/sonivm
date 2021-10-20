@@ -265,6 +265,18 @@ public class SwingUtil {
 		};
 	}
 
+	public static Component onDoubleClick(Component component, Consumer<MouseEvent> actEvent) {
+		component.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getClickCount() == 2) {
+					actEvent.accept(e);
+				}
+			}
+		});
+		return component;
+	}
+
 	public static class PanelBuilder {
 		private final JPanel panel;
 
