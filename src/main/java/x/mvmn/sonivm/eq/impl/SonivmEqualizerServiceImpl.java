@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.IntStream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,7 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 	private volatile Tuple2<IIRControls, Integer> eqControlsAndChannelsCount;
 	private volatile int lastGainValue = 500;
 	// TODO: inject band count
-	private volatile int[] lastBandValues = new int[] { 500, 500, 500, 500, 500, 500, 500, 500, 500, 500 };
+	private volatile int[] lastBandValues = IntStream.generate(() -> 500).limit(10).toArray();
 	private volatile boolean eqEnabled = false;
 
 	@Autowired
@@ -134,14 +135,22 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 			try {
 				equalizerPresetService.exportWinAmpEqfPreset(name, equalizerPreset, file);
 			} catch (Throwable t) {
-				LOGGER.log(Level.WARNING, "Failed to export preset to file " + file.getAbsolutePath(), t);
+				LOGGER.log(Level.WARNING, "Failed to export WinAmp EQF preset to file " + file.getAbsolutePath(), t);
 			}
 		}).start();
 	}
 
 	@Override
 	public void onImportPreset(File presetFile, EqualizerWindow eqWindow) {
-		equalizerPresetService.importWinAmpEqfPreset(presetFile);
+		new Thread(() -> {
+			try {
+				Tuple2<String, EqualizerPreset> presetWithName = equalizerPresetService.importWinAmpEqfPreset(presetFile);
+				equalizerPresetService.savePreset(presetWithName.getA(), presetWithName.getB());
+				SwingUtil.runOnEDT(() -> eqWindow.setPreset(presetWithName.getB()), false);
+			} catch (Throwable t) {
+				LOGGER.log(Level.WARNING, "Failed to import WinAmp EQF preset from file " + presetFile.getAbsolutePath(), t);
+			}
+		}).start();
 	}
 
 	@Override

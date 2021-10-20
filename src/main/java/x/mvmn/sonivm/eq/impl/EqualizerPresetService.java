@@ -8,6 +8,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 
 import x.mvmn.sonivm.eq.model.EqualizerPreset;
+import x.mvmn.sonivm.util.Tuple2;
 
 public interface EqualizerPresetService {
 
@@ -17,7 +18,7 @@ public interface EqualizerPresetService {
 
 	EqualizerPreset loadPreset(String name) throws JsonParseException, JsonMappingException, IOException;
 
-	EqualizerPreset importWinAmpEqfPreset(File eqfFile);
+	Tuple2<String, EqualizerPreset> importWinAmpEqfPreset(File eqfFile);
 
 	void exportWinAmpEqfPreset(String name, EqualizerPreset preset, File targetFolder);
 }

@@ -20,6 +20,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JSlider;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import x.mvmn.sonivm.eq.SonivmEqualizerService;
 import x.mvmn.sonivm.eq.model.EqualizerPreset;
@@ -80,15 +81,17 @@ public class EqualizerWindow extends JFrame {
 			JFileChooser jfc = new JFileChooser();
 			jfc.setMultiSelectionEnabled(false);
 			jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+			jfc.setFileFilter(new FileNameExtensionFilter("WinAmp equilizer preset file", "eqf"));
 			if (jfc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
 				eqService.onImportPreset(jfc.getSelectedFile(), this);
 			}
 		});
 		btnExport = new JButton("Export...");
 		btnExport.addActionListener(actEvent -> {
-			String presetName = JOptionPane.showInputDialog(this, "Enter preset name", "Save preset");
+			String presetName = JOptionPane.showInputDialog(this, "Enter preset name", "Export WinAmp EQF preset");
 			if (presetName != null) {
 				JFileChooser jfc = new JFileChooser();
+				jfc.setFileFilter(new FileNameExtensionFilter("WinAmp equilizer preset file", "eqf"));
 				jfc.setMultiSelectionEnabled(false);
 				jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 				if (jfc.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
@@ -235,16 +238,15 @@ public class EqualizerWindow extends JFrame {
 		}
 		this.getContentPane().setLayout(new BorderLayout());
 		this.getContentPane().add(eqPanel, BorderLayout.CENTER);
-		// this.getContentPane().add(cbEnabled, BorderLayout.NORTH);
 		this.getContentPane().add(btnReset, BorderLayout.SOUTH);
 		this.getContentPane()
-				.add(SwingUtil.panel(pnl -> new GridLayout(1, 3))
+				.add(SwingUtil.panel(pnl -> new GridLayout(2, 3))
 						.add(cbEnabled)
 						.add(btnSave)
 						.add(btnLoad)
-						// .add(new JLabel())
-						// .add(btnImport)
-						// .add(btnExport)
+						.add(new JLabel())
+						.add(btnImport)
+						.add(btnExport)
 						.build(), BorderLayout.NORTH);
 		this.pack();
 		int longestLabelWidth = bandLabels.stream().mapToInt(JLabel::getWidth).max().getAsInt();
