@@ -1,11 +1,14 @@
 package x.mvmn.sonivm.prefs;
 
+import java.awt.Dimension;
+import java.awt.Point;
 import java.security.GeneralSecurityException;
 import java.util.Collection;
 import java.util.Set;
 
 import x.mvmn.sonivm.ui.model.RepeatMode;
 import x.mvmn.sonivm.ui.model.ShuffleMode;
+import x.mvmn.sonivm.util.Tuple4;
 
 public interface PreferencesService {
 
@@ -64,4 +67,12 @@ public interface PreferencesService {
 	Set<String> getSupportedFileExtensions();
 
 	void setSupportedFileExtensions(Collection<String> extensions);
+
+	void saveMainWindowState(Tuple4<Boolean, String, Point, Dimension> windowState);
+
+	Tuple4<Boolean, String, Point, Dimension> getMainWindowState();
+
+	void saveEQWindowState(Tuple4<Boolean, String, Point, Dimension> windowState);
+
+	Tuple4<Boolean, String, Point, Dimension> getEQWindowState();
 }

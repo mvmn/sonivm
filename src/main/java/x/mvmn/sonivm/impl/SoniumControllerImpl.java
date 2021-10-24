@@ -1,7 +1,10 @@
 package x.mvmn.sonivm.impl;
 
+import java.awt.Dimension;
+import java.awt.Point;
 import java.awt.SystemTray;
 import java.awt.TrayIcon;
+import java.awt.Window;
 import java.io.File;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
@@ -55,6 +58,7 @@ import x.mvmn.sonivm.ui.model.ShuffleMode;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.StringUtil;
 import x.mvmn.sonivm.util.Tuple2;
+import x.mvmn.sonivm.util.Tuple4;
 
 @Component
 public class SoniumControllerImpl implements SonivmController {
@@ -371,6 +375,15 @@ public class SoniumControllerImpl implements SonivmController {
 	@Override
 	public void onQuit() {
 		LOGGER.info("Quit requested - shutting down");
+
+		try {
+			LOGGER.info("Storing window positions/sizes/visibility");
+			this.preferencesService.saveMainWindowState(SwingUtil.getWindowState(this.mainWindow));
+			this.preferencesService.saveEQWindowState(SwingUtil.getWindowState(this.eqWindow));
+		} catch (Throwable t) {
+			LOGGER.log(Level.WARNING, "Failed to store main and EQ window states", t);
+		}
+
 		SwingUtil.runOnEDT(() -> {
 			try {
 				SystemTray.getSystemTray().remove(sonivmTrayIcon);
@@ -759,8 +772,31 @@ public class SoniumControllerImpl implements SonivmController {
 	@Override
 	public void onBeforeUiSetVisible() {
 		restoreEqState();
+		restoreWindowsState();
 		restorePlayQueueColumnsState();
 		lastFmScrobbleTaskExecutor.execute(() -> reSubmitFailedLastFMSubmissions());
+	}
+
+	private void restoreWindowsState() {
+		LOGGER.info("Restoring window positions/sizes/visibility");
+		try {
+			Tuple4<Boolean, String, Point, Dimension> mainWindowState = preferencesService.getMainWindowState();
+			SwingUtil.runOnEDT(() -> applyWindowState(mainWindow, mainWindowState, true), true);
+			Tuple4<Boolean, String, Point, Dimension> eqWindowState = preferencesService.getEQWindowState();
+			SwingUtil.runOnEDT(() -> applyWindowState(eqWindow, eqWindowState, false), true);
+		} catch (Throwable t) {
+			LOGGER.log(Level.WARNING, "Failed to restore window states", t);
+		}
+	}
+
+	private void applyWindowState(Window window, Tuple4<Boolean, String, Point, Dimension> windowState, boolean visibleByDefault) {
+		if (windowState != null) {
+			SwingUtil.restoreWindowState(window, windowState);
+		} else {
+			window.pack();
+			SwingUtil.moveToScreenCenter(window);
+			window.setVisible(visibleByDefault);
+		}
 	}
 
 	private void restorePlayQueueColumnsState() {

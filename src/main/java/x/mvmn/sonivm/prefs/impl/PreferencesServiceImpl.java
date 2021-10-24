@@ -1,5 +1,7 @@
 package x.mvmn.sonivm.prefs.impl;
 
+import java.awt.Dimension;
+import java.awt.Point;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
@@ -7,6 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.Preferences;
 import java.util.stream.Collectors;
@@ -21,6 +24,7 @@ import x.mvmn.sonivm.ui.model.RepeatMode;
 import x.mvmn.sonivm.ui.model.ShuffleMode;
 import x.mvmn.sonivm.util.EncryptionUtil;
 import x.mvmn.sonivm.util.EncryptionUtil.KeyAndNonce;
+import x.mvmn.sonivm.util.Tuple4;
 
 @Service
 public class PreferencesServiceImpl implements PreferencesService {
@@ -54,6 +58,9 @@ public class PreferencesServiceImpl implements PreferencesService {
 	private static final String KEY_SUPPORTED_FILE_EXTENSIONS = "supportedfileextensions";
 	private static final String DEFAULT_SUPPORTED_FILE_EXTENSIONS = Stream.of("cue", "flac", "ogg", "mp3", "m4a", "wav")
 			.collect(Collectors.joining(STRING_LIST_VALUES_SEPARATOR));
+
+	private static final String KEY_MAIN_WINDOW_STATE = "mainwindowstate";
+	private static final String KEY_EQ_WINDOW_STATE = "eqwindowstate";
 
 	private final Preferences prefs;
 	private final KeyAndNonce keyAndNonce;
@@ -233,6 +240,61 @@ public class PreferencesServiceImpl implements PreferencesService {
 	public void setSupportedFileExtensions(Collection<String> extensions) {
 		extensions = extensions.stream().map(String::toLowerCase).collect(Collectors.toCollection(TreeSet::new));
 		setStringListProperty(KEY_SUPPORTED_FILE_EXTENSIONS, extensions);
+	}
+
+	@Override
+	public void saveMainWindowState(Tuple4<Boolean, String, Point, Dimension> windowState) {
+		this.saveWindowState(KEY_MAIN_WINDOW_STATE, windowState);
+	}
+
+	@Override
+	public Tuple4<Boolean, String, Point, Dimension> getMainWindowState() {
+		return this.restoreWindowState(KEY_MAIN_WINDOW_STATE);
+	}
+
+	@Override
+	public void saveEQWindowState(Tuple4<Boolean, String, Point, Dimension> windowState) {
+		this.saveWindowState(KEY_EQ_WINDOW_STATE, windowState);
+	}
+
+	@Override
+	public Tuple4<Boolean, String, Point, Dimension> getEQWindowState() {
+		return this.restoreWindowState(KEY_EQ_WINDOW_STATE);
+	}
+
+	protected Tuple4<Boolean, String, Point, Dimension> restoreWindowState(String key) {
+		String windowStateSerialized = prefs.get(key, null);
+		if (windowStateSerialized == null) {
+			return null;
+		}
+		try {
+			String[] parts = windowStateSerialized.split(";");
+			boolean visible = Boolean.valueOf(parts[0]);
+			String[] xAndY = parts[1].split(",");
+			int x = Integer.parseInt(xAndY[0]);
+			int y = Integer.parseInt(xAndY[1]);
+			Point location = new Point(x, y);
+			String[] widthAndHeight = parts[2].split(",");
+			int width = Integer.parseInt(widthAndHeight[0]);
+			int height = Integer.parseInt(widthAndHeight[1]);
+			Dimension size = new Dimension(width, height);
+
+			return Tuple4.<Boolean, String, Point, Dimension> builder()
+					.a(visible)
+					.b(parts.length > 3 ? parts[3] : "")
+					.c(location)
+					.d(size)
+					.build();
+		} catch (NumberFormatException nfe) {
+			LOGGER.log(Level.WARNING, "Failed to restore window state for key " + key + " - number format issue", nfe);
+			return null;
+		}
+	}
+
+	protected void saveWindowState(String key, Tuple4<Boolean, String, Point, Dimension> windowState) {
+		String windowStateSerialized = windowState.getA().toString() + ";" + windowState.getC().x + "," + windowState.getC().y + ";"
+				+ windowState.getD().width + "," + windowState.getD().height + ";" + windowState.getB();
+		prefs.put(key, windowStateSerialized);
 	}
 
 	protected List<String> getStringListProperty(String prefKey, String defaultVal) {

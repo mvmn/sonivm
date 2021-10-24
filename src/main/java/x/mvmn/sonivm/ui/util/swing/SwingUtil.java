@@ -6,10 +6,14 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Frame;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
 import java.awt.GridLayout;
 import java.awt.LayoutManager;
 import java.awt.Menu;
 import java.awt.MenuItem;
+import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.Window;
 import java.awt.event.ActionListener;
@@ -21,6 +25,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -48,6 +53,8 @@ import javax.swing.text.NumberFormatter;
 
 import x.mvmn.sonivm.ui.ExceptionDisplayer;
 import x.mvmn.sonivm.ui.ExceptionDisplayer.ErrorData;
+import x.mvmn.sonivm.util.Tuple2;
+import x.mvmn.sonivm.util.Tuple4;
 import x.mvmn.sonivm.util.UnsafeOperation;
 
 public class SwingUtil {
@@ -442,5 +449,76 @@ public class SwingUtil {
 
 	public static void removeAllActionListeners(AbstractButton button) {
 		Stream.of(button.getActionListeners()).forEach(actListener -> button.removeActionListener(actListener));
+	}
+
+	public static Tuple4<Boolean, String, Point, Dimension> getWindowState(Component window) {
+		Point locationGlobal = window.getLocation();
+		Dimension size = window.getSize();
+
+		GraphicsDevice containingDevice = Stream.of(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices())
+				.filter(display -> display.getDefaultConfiguration().getBounds().contains(locationGlobal))
+				.findAny()
+				.orElse(null);
+		if (containingDevice == null) {
+			throw new RuntimeException("None of the screens contain " + locationGlobal);
+		}
+
+		int screenSpecificX = Math.abs(containingDevice.getDefaultConfiguration().getBounds().x - locationGlobal.x);
+		int screenSpecificY = Math.abs(containingDevice.getDefaultConfiguration().getBounds().y - locationGlobal.y);
+
+		return Tuple4.<Boolean, String, Point, Dimension> builder()
+				.a(window.isVisible())
+				.b(containingDevice.getIDstring())
+				.c(new Point(screenSpecificX, screenSpecificY))
+				.d(size)
+				.build();
+	}
+
+	public static void restoreWindowState(Window window, Tuple4<Boolean, String, Point, Dimension> windowState) {
+		Optional<GraphicsDevice> screenOpt = Stream.of(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices())
+				.filter(dev -> windowState.getB().equals(dev.getIDstring()))
+				.findAny();
+
+		boolean sameScreen = screenOpt.isPresent();
+		GraphicsDevice screen = screenOpt.orElse(GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice());
+		Rectangle screenBounds = screen.getDefaultConfiguration().getBounds();
+
+		int x = windowState.getC().x;
+		int width = windowState.getD().width;
+		int y = windowState.getC().y;
+		int height = windowState.getD().height;
+		if (!sameScreen) {
+			// Original screen not available
+			{
+				Tuple2<Integer, Integer> xAndWidth = fit(screenBounds.width, x, width);
+				x = xAndWidth.getA();
+				width = xAndWidth.getB();
+			}
+			{
+				Tuple2<Integer, Integer> yAndHeight = fit(screenBounds.height, y, height);
+				y = yAndHeight.getA();
+				height = yAndHeight.getB();
+			}
+		}
+
+		window.setSize(new Dimension(width, height));
+		window.setLocation(x + screenBounds.x, y + screenBounds.y);
+		window.setVisible(windowState.getA());
+	}
+
+	private static Tuple2<Integer, Integer> fit(int totalSize, int location, int size) {
+		if (location + size > totalSize) {
+			// If won't fit
+			if (size > totalSize) {
+				// If we can't fit with original size at all - move all the way to the beginning and reduce size
+				location = 0;
+				size = totalSize;
+			} else {
+				// If we can fit with original size by moving toward the beginning
+				location = totalSize - size;
+			}
+		}
+		return Tuple2.<Integer, Integer> builder().a(location).b(size).build();
+
 	}
 }

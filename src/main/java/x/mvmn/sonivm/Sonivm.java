@@ -242,7 +242,7 @@ public class Sonivm implements Runnable {
 
 		initQuitHandler();
 
-		SwingUtil.runOnEDT(() -> mainWindow.setVisible(true), false);
+		// SwingUtil.runOnEDT(() -> mainWindow.setVisible(true), false);
 		// SwingUtil.runOnEDT(() -> eqWindow.setVisible(true), false);
 	}
 
