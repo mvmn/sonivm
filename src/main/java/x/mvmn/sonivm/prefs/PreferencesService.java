@@ -75,4 +75,8 @@ public interface PreferencesService {
 	void saveEQWindowState(Tuple4<Boolean, String, Point, Dimension> windowState);
 
 	Tuple4<Boolean, String, Point, Dimension> getEQWindowState();
+
+	boolean isAutoStop();
+
+	void setAutoStop(boolean autoStop);
 }

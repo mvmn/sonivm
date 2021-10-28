@@ -157,7 +157,11 @@ public class SoniumControllerImpl implements SonivmController {
 	}
 
 	private void onTrackFinished() {
-		doNextTrack(false);
+		if (mainWindow.isAutoStop()) {
+			doStop();
+		} else {
+			doNextTrack(false);
+		}
 	}
 
 	@Override
@@ -419,6 +423,7 @@ public class SoniumControllerImpl implements SonivmController {
 		try {
 			this.preferencesService.setShuffleMode(shuffleState);
 			this.preferencesService.setRepeatMode(repeatState);
+			this.preferencesService.setAutoStop(this.mainWindow.isAutoStop());
 		} catch (Throwable t) {
 			LOGGER.log(Level.WARNING, "Failed to store shuffle/repeat preferences", t);
 		}
@@ -763,8 +768,10 @@ public class SoniumControllerImpl implements SonivmController {
 				RepeatMode repeatMode = this.preferencesService.getRepeatMode();
 				this.repeatState = repeatMode;
 				this.mainWindow.setRepeatMode(repeatMode);
+
+				this.mainWindow.setAutoStop(this.preferencesService.isAutoStop());
 			} catch (Exception e) {
-				LOGGER.log(Level.WARNING, "Failed to read shuffle and repeat preferences", e);
+				LOGGER.log(Level.WARNING, "Failed to read shuffle/repeat/autostop preferences", e);
 			}
 		}).start();
 	}

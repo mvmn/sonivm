@@ -50,6 +50,7 @@ public class PreferencesServiceImpl implements PreferencesService {
 
 	private static final String KEY_SHUFFLE_MODE = "shufflemode";
 	private static final String KEY_REPEAT_MODE = "repeatmode";
+	private static final String KEY_AUTOSTOP = "autostop";
 
 	private static final String KEY_EQ_ENABLED = "eqenabled";
 	private static final String KEY_EQ_GAIN = "eqgain";
@@ -260,6 +261,16 @@ public class PreferencesServiceImpl implements PreferencesService {
 	@Override
 	public Tuple4<Boolean, String, Point, Dimension> getEQWindowState() {
 		return this.restoreWindowState(KEY_EQ_WINDOW_STATE);
+	}
+
+	@Override
+	public boolean isAutoStop() {
+		return Boolean.valueOf(prefs.get(KEY_AUTOSTOP, "false"));
+	}
+
+	@Override
+	public void setAutoStop(boolean autoStop) {
+		prefs.put(KEY_AUTOSTOP, Boolean.toString(autoStop));
 	}
 
 	protected Tuple4<Boolean, String, Point, Dimension> restoreWindowState(String key) {

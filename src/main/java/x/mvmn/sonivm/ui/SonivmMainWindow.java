@@ -26,6 +26,7 @@ import javax.swing.DropMode;
 import javax.swing.ImageIcon;
 import javax.swing.InputMap;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -80,6 +81,7 @@ public class SonivmMainWindow extends JFrame {
 	private final JLabel lblSearchMatchesCount;
 	private final JLabel lblQueueSize;
 	private final JButton btnToggleShowEq;
+	private final JCheckBox cbAutoStop;
 
 	private volatile boolean seekSliderIsDragged;
 
@@ -210,6 +212,9 @@ public class SonivmMainWindow extends JFrame {
 		cmbShuffleMode = new JComboBox<>(ShuffleMode.values());
 		cmbRepeatMode = new JComboBox<>(RepeatMode.values());
 
+		cbAutoStop = new JCheckBox("Auto-stop");
+		cbAutoStop.setFocusable(false);
+
 		cmbShuffleMode.setFocusable(false);
 		cmbRepeatMode.setFocusable(false);
 
@@ -247,6 +252,8 @@ public class SonivmMainWindow extends JFrame {
 						.addWest(nowPlayingText)
 						.addCenter(lblNowPlayingTrack)
 						.addEast(SwingUtil.panel(pnl -> new BoxLayout(pnl, BoxLayout.X_AXIS))
+								.add(cbAutoStop)
+								.addSeparator(true)
 								.add(lblRepeat)
 								.add(cmbRepeatMode)
 								.add(lblShuffle)
@@ -638,5 +645,13 @@ public class SonivmMainWindow extends JFrame {
 
 	public void setRepeatMode(RepeatMode repeatMode) {
 		this.cmbRepeatMode.setSelectedItem(repeatMode);
+	}
+
+	public boolean isAutoStop() {
+		return this.cbAutoStop.isSelected();
+	}
+
+	public void setAutoStop(boolean autoStop) {
+		this.cbAutoStop.setSelected(autoStop);
 	}
 }

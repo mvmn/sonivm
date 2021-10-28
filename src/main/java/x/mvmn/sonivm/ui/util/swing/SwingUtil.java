@@ -501,7 +501,7 @@ public class SwingUtil {
 			}
 		}
 
-		window.setSize(new Dimension(width, height));
+		window.setSize(width, height);
 		window.setLocation(x + screenBounds.x, y + screenBounds.y);
 		window.setVisible(windowState.getA());
 	}
