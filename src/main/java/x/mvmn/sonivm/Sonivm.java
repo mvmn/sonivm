@@ -241,9 +241,6 @@ public class Sonivm implements Runnable {
 		}, false);
 
 		initQuitHandler();
-
-		// SwingUtil.runOnEDT(() -> mainWindow.setVisible(true), false);
-		// SwingUtil.runOnEDT(() -> eqWindow.setVisible(true), false);
 	}
 
 	private JMenuBar initMenuBar(List<AudioDeviceOption> audioDevices) {

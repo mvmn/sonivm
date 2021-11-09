@@ -284,11 +284,7 @@ public class EqualizerWindow extends JFrame {
 
 	public void setState(EqualizerState eqState) {
 		cbEnabled.setSelected(eqState.isEnabled());
-		gainSlider.setValue(eqState.getGain());
-		int[] bandSliderStates = eqState.getBands();
-		for (int i = 0; i < bandSliders.length; i++) {
-			bandSliders[i].setValue(bandSliderStates[i]);
-		}
+		setPreset(eqState);
 	}
 
 	public void setPreset(EqualizerPreset preset) {

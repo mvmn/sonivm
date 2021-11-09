@@ -1,6 +1,8 @@
 package x.mvmn.sonivm.eq.impl;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.Collection;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -132,8 +134,8 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 	@Override
 	public void onExportPreset(File file, String name, EqualizerPreset equalizerPreset) {
 		new Thread(() -> {
-			try {
-				equalizerPresetService.exportWinAmpEqfPreset(name, equalizerPreset, file);
+			try (FileOutputStream fos = new FileOutputStream(file)) {
+				equalizerPresetService.exportWinAmpEqfPreset(name, equalizerPreset, fos);
 			} catch (Throwable t) {
 				LOGGER.log(Level.WARNING, "Failed to export WinAmp EQF preset to file " + file.getAbsolutePath(), t);
 			}
@@ -142,15 +144,17 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 
 	@Override
 	public void onImportPreset(File presetFile, EqualizerWindow eqWindow) {
-		new Thread(() -> {
-			try {
-				Tuple2<String, EqualizerPreset> presetWithName = equalizerPresetService.importWinAmpEqfPreset(presetFile);
-				equalizerPresetService.savePreset(presetWithName.getA(), presetWithName.getB());
-				SwingUtil.runOnEDT(() -> eqWindow.setPreset(presetWithName.getB()), false);
-			} catch (Throwable t) {
-				LOGGER.log(Level.WARNING, "Failed to import WinAmp EQF preset from file " + presetFile.getAbsolutePath(), t);
-			}
-		}).start();
+		if (presetFile.exists() && presetFile.length() == 299) {
+			new Thread(() -> {
+				try (FileInputStream fis = new FileInputStream(presetFile)) {
+					Tuple2<String, EqualizerPreset> presetWithName = equalizerPresetService.importWinAmpEqfPreset(fis);
+					equalizerPresetService.savePreset(presetWithName.getA(), presetWithName.getB());
+					SwingUtil.runOnEDT(() -> eqWindow.setPreset(presetWithName.getB()), false);
+				} catch (Throwable t) {
+					LOGGER.log(Level.WARNING, "Failed to import WinAmp EQF preset from file " + presetFile.getAbsolutePath(), t);
+				}
+			}).start();
+		}
 	}
 
 	@Override

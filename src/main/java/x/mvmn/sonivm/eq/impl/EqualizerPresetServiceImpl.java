@@ -2,6 +2,8 @@ package x.mvmn.sonivm.eq.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,6 +16,7 @@ import javax.annotation.PostConstruct;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -97,23 +100,20 @@ public class EqualizerPresetServiceImpl implements EqualizerPresetService {
 	}
 
 	@Override
-	public Tuple2<String, EqualizerPreset> importWinAmpEqfPreset(File eqfFile) {
+	public Tuple2<String, EqualizerPreset> importWinAmpEqfPreset(InputStream eqfInputStream) {
 		try {
-			if (eqfFile.exists() && eqfFile.length() == 299) {
-				byte[] content = FileUtils.readFileToByteArray(eqfFile);
-				return WinAmpEqualizerFileUtil.fromEQF(content);
-			}
-			return null;
+			byte[] content = IOUtils.toByteArray(eqfInputStream);
+			return WinAmpEqualizerFileUtil.fromEQF(content);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
 	@Override
-	public void exportWinAmpEqfPreset(String name, EqualizerPreset preset, File targetFile) {
+	public void exportWinAmpEqfPreset(String name, EqualizerPreset preset, OutputStream eqfOutputStream) {
 		try {
 			byte[] eqfContent = WinAmpEqualizerFileUtil.toEQF(preset, name);
-			FileUtils.writeByteArrayToFile(targetFile, eqfContent);
+			IOUtils.write(eqfContent, eqfOutputStream);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}

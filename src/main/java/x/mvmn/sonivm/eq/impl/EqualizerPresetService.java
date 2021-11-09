@@ -1,7 +1,8 @@
 package x.mvmn.sonivm.eq.impl;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Collection;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -18,7 +19,7 @@ public interface EqualizerPresetService {
 
 	EqualizerPreset loadPreset(String name) throws JsonParseException, JsonMappingException, IOException;
 
-	Tuple2<String, EqualizerPreset> importWinAmpEqfPreset(File eqfFile);
+	Tuple2<String, EqualizerPreset> importWinAmpEqfPreset(InputStream eqfInputStream);
 
-	void exportWinAmpEqfPreset(String name, EqualizerPreset preset, File targetFolder);
+	void exportWinAmpEqfPreset(String name, EqualizerPreset preset, OutputStream eqfOutputStream);
 }
