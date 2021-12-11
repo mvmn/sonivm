@@ -7,6 +7,7 @@ import java.awt.TrayIcon;
 import java.awt.Window;
 import java.io.File;
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -14,6 +15,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -898,17 +901,12 @@ public class SoniumControllerImpl implements SonivmController {
 	@Override
 	public void onSearchValueChange() {
 		String text = mainWindow.getSearchText();
+		boolean fullPhrase = mainWindow.isSearchFullPhrase();
 		new Thread(() -> {
 			if (text == null || text.trim().isEmpty()) {
 				searchMatches = Collections.emptyList();
 			} else {
-				String finalText = StringUtil.stripAccents(text.toLowerCase());
-				searchMatches = IntStream
-						.of(playbackQueueService.findTracks(queueEntry -> normalizeForSearch(queueEntry.getArtist()).contains(finalText)
-								|| normalizeForSearch(queueEntry.getAlbum()).contains(finalText)
-								|| normalizeForSearch(queueEntry.getTitle()).contains(finalText)
-								|| normalizeForSearch(queueEntry.getDate()).contains(finalText)
-								|| normalizeForSearch(queueEntry.getGenre()).contains(finalText)))
+				searchMatches = IntStream.of(playbackQueueService.findTracks(searchPredicate(text, fullPhrase)))
 						.mapToObj(Integer::valueOf)
 						.collect(Collectors.toList());
 			}
@@ -920,8 +918,39 @@ public class SoniumControllerImpl implements SonivmController {
 		}).start();
 	}
 
+	private Predicate<PlaybackQueueEntry> searchPredicate(String searchText, boolean searchFullPhrase) {
+		searchText = StringUtil.stripAccents(searchText.toLowerCase()).replaceAll("\\s+", " ").trim();
+		String[] searchTerms;
+		if (searchFullPhrase) {
+			searchTerms = new String[] { searchText };
+		} else {
+			searchTerms = searchText.split(" ");
+		}
+		return queueEntry -> queueEntryMatchesSearch(queueEntry, searchTerms);
+	}
+
+	private static final List<Function<PlaybackQueueEntry, String>> QUEUE_ENTRY_TO_SEARCH_FIELDS = Arrays.asList(
+			PlaybackQueueEntry::getArtist, PlaybackQueueEntry::getAlbum, PlaybackQueueEntry::getTitle, PlaybackQueueEntry::getDate,
+			PlaybackQueueEntry::getGenre);
+
+	private boolean queueEntryMatchesSearch(PlaybackQueueEntry queueEntry, String[] searchTerms) {
+		for (String term : searchTerms) {
+			boolean match = false;
+			for (Function<PlaybackQueueEntry, String> getFieldFunct : QUEUE_ENTRY_TO_SEARCH_FIELDS) {
+				if (normalizeForSearch(getFieldFunct.apply(queueEntry)).contains(term)) {
+					match = true;
+					break;
+				}
+			}
+			if (!match) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	private String normalizeForSearch(String val) {
-		return StringUtil.stripAccents(StringUtil.blankForNull(val).toLowerCase());
+		return StringUtil.stripAccents(StringUtil.blankForNull(val).toLowerCase()).replaceAll("\\s+", " ").trim();
 	}
 
 	@Override

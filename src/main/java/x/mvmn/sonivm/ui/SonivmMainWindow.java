@@ -75,6 +75,7 @@ public class SonivmMainWindow extends JFrame {
 	private final ImageIcon lastFMConnected;
 	private final ImageIcon lastFMDisconnected;
 	private final JTextField tfSearch;
+	private final JCheckBox cbSearchFullPhrase;
 	private final JButton btnSearchClear;
 	private final JButton btnSearchNextMatch;
 	private final JButton btnSearchPreviousMatch;
@@ -279,6 +280,8 @@ public class SonivmMainWindow extends JFrame {
 		lastFMStatusIcon.setIcon(lastFMDefault);
 		lastFMStatusIcon.setBorder(BorderFactory.createEmptyBorder(0, 2, 0, 0));
 
+		cbSearchFullPhrase = new JCheckBox("full phrase");
+
 		JPanel bottomPanel = SwingUtil.panel(BorderLayout::new)
 				.addCenter(lblStatus)
 				.addEast(SwingUtil.panel(pnl -> new BoxLayout(pnl, BoxLayout.X_AXIS))
@@ -289,6 +292,7 @@ public class SonivmMainWindow extends JFrame {
 						.add(SwingUtil.withEmptyBorder(new JLabel("Search:"), 0, 4, 0, 0))
 						.add(tfSearch)
 						.add(btnSearchClear)
+						.add(cbSearchFullPhrase)
 						.add(SwingUtil.withEmptyBorder(new JLabel("Matches:"), 0, 4, 0, 0))
 						.add(SwingUtil.withEmptyBorder(lblSearchMatchesCount, 0, 2, 0, 4))
 						.add(btnSearchNextMatch)
@@ -469,6 +473,8 @@ public class SonivmMainWindow extends JFrame {
 			public void changedUpdate(DocumentEvent e) {}
 		});
 
+		cbSearchFullPhrase.addItemListener(e -> controller.onSearchValueChange());
+
 		btnSearchNextMatch.addActionListener(actEvent -> controller.onSearchNextMatch());
 		btnSearchPreviousMatch.addActionListener(actEvent -> controller.onSearchPreviousMatch());
 		btnSearchClear.addActionListener(actEvent -> tfSearch.setText(""));
@@ -637,6 +643,10 @@ public class SonivmMainWindow extends JFrame {
 
 	public String getSearchText() {
 		return tfSearch.getText();
+	}
+
+	public boolean isSearchFullPhrase() {
+		return cbSearchFullPhrase.isSelected();
 	}
 
 	public void setShuffleMode(ShuffleMode shuffleMode) {
