@@ -591,7 +591,7 @@ public class SonivmMainWindow extends JFrame {
 			if (trackInfo.isCueSheetTrack()) {
 				fileInfo = "CUE track " + trackInfo.getTrackNumber() + " ("
 						+ TimeDateUtil.prettyPrintFromSeconds(trackInfo.getCueSheetTrackStartTimeMillis() / 1000) + " - "
-						+ TimeDateUtil.prettyPrintFromSeconds(trackInfo.getCueSheetTrackFinishTimeMillis() / 1000) + "ms)" + " of "
+						+ TimeDateUtil.prettyPrintFromSeconds(trackInfo.getCueSheetTrackFinishTimeMillis() / 1000) + ")" + " of "
 						+ trackInfo.getTargetFileFullPath();
 			} else {
 				fileInfo = trackInfo.getTargetFileFullPath();
