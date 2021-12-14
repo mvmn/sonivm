@@ -82,6 +82,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	@PostConstruct
 	public void startPlaybackThread() {
 		Thread playbackThread = new Thread(this);
+		playbackThread.setPriority(Thread.MAX_PRIORITY);
 		playbackThread.setDaemon(true);
 		playbackThread.start();
 	}
