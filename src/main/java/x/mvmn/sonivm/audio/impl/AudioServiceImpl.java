@@ -189,6 +189,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 			break;
 			case PLAY:
 				if (State.PAUSED == this.state) {
+					this.currentSourceDataLine.start();
 					this.state = State.PLAYING;
 				} else if (State.STOPPED == this.state) {
 					String filePath = task.getData();
@@ -240,7 +241,18 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 						doUpdateVolume();
 						// this.playbackBuffer = new byte[Math.max(128, normalizedStream.getFormat().getFrameSize()) * 64];
-						this.playbackBuffer = new byte[4410 * 16];
+						int bufferSize = currentSourceDataLine.available();
+						if (bufferSize < 4096) {
+							bufferSize = 4096;
+						}
+						if (bufferSize > 1024 * 1024) {
+							bufferSize = 1024 * 1024;
+						}
+						this.playbackBuffer = new byte[bufferSize];
+						// new byte[4410 * 16];
+						if (LOGGER.isLoggable(Level.FINER)) {
+							LOGGER.finer("Buffer size: " + this.playbackBuffer.length);
+						}
 						this.playbackStartPositionMillisec = 0;
 						this.startingDataLineMillisecondsPosition = 0;
 						this.previousDataLineMillisecondsPosition = 0;
@@ -329,12 +341,14 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 	protected void handlePauseRequest() {
 		if (State.PLAYING == this.state) {
+			this.currentSourceDataLine.stop();
 			this.state = State.PAUSED;
 		}
 	}
 
 	private void doStop() throws Exception {
 		LOGGER.fine("Performing doStop()");
+		this.currentSourceDataLine.stop();
 		this.currentSourceDataLine.close();
 		EqualizerInputStream eqInputStream = this.currentEqInputStream;
 		if (eqInputStream != null) {
