@@ -129,10 +129,12 @@ public class SoniumControllerImpl implements SonivmController {
 
 	@Override
 	public void onSeek(int value) {
-		if (currentTrackInfo.isCueSheetTrack()) {
-			audioService.seek(currentTrackInfo.getCueSheetTrackStartTimeMillis().intValue() + value * 100);
-		} else {
-			audioService.seek(value * 100);
+		if (currentTrackInfo != null) {
+			if (currentTrackInfo.isCueSheetTrack()) {
+				audioService.seek(currentTrackInfo.getCueSheetTrackStartTimeMillis().intValue() + value * 100);
+			} else {
+				audioService.seek(value * 100);
+			}
 		}
 	}
 
@@ -586,6 +588,7 @@ public class SoniumControllerImpl implements SonivmController {
 		this.currentTrackInfo = trackInfo;
 		playbackQueueService.signalUpdateInRow(queuePos);
 		SwingUtil.runOnEDT(() -> {
+			mainWindow.updateSeekSliderPosition(0);
 			if (audioInfo.isSeekable()) {
 				mainWindow.allowSeek(trackDurationSeconds * 10);
 			} else {

@@ -32,6 +32,7 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
 import javax.swing.JTable;
@@ -66,7 +67,8 @@ public class SonivmMainWindow extends JFrame {
 	private final JButton btnStop;
 	private final JButton btnNextTrack;
 	private final JButton btnPreviousTrack;
-	private final JSlider seekSlider;
+	// private final JSlider seekSlider;
+	private final JProgressBar seekSlider;
 	private final JSlider volumeSlider;
 	private final JComboBox<RepeatMode> cmbRepeatMode;
 	private final JComboBox<ShuffleMode> cmbShuffleMode;
@@ -84,7 +86,7 @@ public class SonivmMainWindow extends JFrame {
 	private final JButton btnToggleShowEq;
 	private final JCheckBox cbAutoStop;
 
-	private volatile boolean seekSliderIsDragged;
+	// private volatile boolean seekSliderIsDragged;
 
 	public SonivmMainWindow(String title, SonivmController controller, PlaybackQueueTableModel playbackQueueTableModel) {
 		super(title);
@@ -221,10 +223,12 @@ public class SonivmMainWindow extends JFrame {
 
 		btnToggleShowEq = new JButton("EQ");
 
-		seekSlider = new JSlider(0, 0);
-		seekSlider.setEnabled(false);
+		// seekSlider = new JSlider(0, 0);
+		// seekSlider.setEnabled(false);
+		seekSlider = new JProgressBar(0, 0);
+		seekSlider.setIndeterminate(false);
 		seekSlider.setFocusable(false);
-		SwingUtil.makeJSliderMoveToClickPoistion(seekSlider);
+		// SwingUtil.makeJSliderMoveToClickPoistion(seekSlider);
 
 		volumeSlider = new JSlider(JSlider.VERTICAL, 0, 100, 100);
 		volumeSlider.setFocusable(false);
@@ -366,27 +370,28 @@ public class SonivmMainWindow extends JFrame {
 
 	private void registerActionsWithController(SonivmController controller) {
 		volumeSlider.addChangeListener(event -> controller.onVolumeChange(volumeSlider.getValue()));
-		seekSlider.addChangeListener(event -> {
-			if (seekSliderIsDragged) {
-				controller.onSeek(seekSlider.getValue());
-			}
-		});
-		seekSlider.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mousePressed(MouseEvent e) {
-				seekSliderIsDragged = true;
-			}
-
-			@Override
-			public void mouseReleased(MouseEvent e) {
-				seekSliderIsDragged = false;
-			}
-
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				// controller.onSeek(seekSlider.getValue());
-			}
-		});
+		// seekSlider.addChangeListener(event -> {
+		// // if (seekSliderIsDragged) {
+		// controller.onSeek(seekSlider.getValue());
+		// // }
+		// });
+		// seekSlider.addMouseListener(new MouseAdapter() {
+		// @Override
+		// public void mousePressed(MouseEvent e) {
+		// seekSliderIsDragged = true;
+		// }
+		//
+		// @Override
+		// public void mouseReleased(MouseEvent e) {
+		// seekSliderIsDragged = false;
+		// }
+		//
+		// @Override
+		// public void mouseClicked(MouseEvent e) {
+		// // controller.onSeek(seekSlider.getValue());
+		// }
+		// });
+		SwingUtil.makeJProgressBarMoveToClickPosition(seekSlider, val -> controller.onSeek(val));
 
 		btnPlayPause.addActionListener(event -> controller.onPlayPause());
 		btnStop.addActionListener(event -> controller.onStop());
@@ -555,18 +560,24 @@ public class SonivmMainWindow extends JFrame {
 
 	public void allowSeek(int maxSliderValue) {
 		this.seekSlider.setMaximum(maxSliderValue);
-		this.seekSlider.setEnabled(true);
+		// this.seekSlider.setEnabled(true);
+		// this.seekSlider.setIndeterminate(false);
 	}
 
 	public void disallowSeek() {
+		this.seekSlider.setValue(0);
 		this.seekSlider.setMaximum(0);
-		this.seekSlider.setEnabled(false);
+		// this.seekSlider.setEnabled(false);
+		// this.seekSlider.setIndeterminate(true);
 	}
 
 	public void updateSeekSliderPosition(int sliderNewPosition) {
-		if (!seekSliderIsDragged) {
-			seekSlider.getModel().setValue(sliderNewPosition);
-		}
+		// if (!seekSliderIsDragged) {
+		seekSlider.setValue(sliderNewPosition);
+		seekSlider.invalidate();
+		seekSlider.revalidate();
+		seekSlider.repaint();
+		// }
 	}
 
 	public void updateStatus(String status) {

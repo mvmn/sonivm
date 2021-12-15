@@ -38,6 +38,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JFormattedTextField;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JSeparator;
 import javax.swing.JSlider;
 import javax.swing.LookAndFeel;
@@ -382,6 +383,16 @@ public class SwingUtil {
 						slider.setValue(ui.valueForXPosition(e.getX()));
 					break;
 				}
+			}
+		});
+	}
+
+	public static void makeJProgressBarMoveToClickPosition(JProgressBar progressBar, Consumer<Integer> action) {
+		progressBar.addMouseListener(new MouseAdapter() {
+			public void mouseClicked(MouseEvent e) {
+				int newValue = (int) Math.round(((double) e.getX() / (double) progressBar.getWidth()) * progressBar.getMaximum());
+				progressBar.setValue(newValue);
+				action.accept(newValue);
 			}
 		});
 	}
