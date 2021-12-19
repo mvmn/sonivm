@@ -25,13 +25,14 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 	protected final CopyOnWriteArrayList<Runnable> listerens = new CopyOnWriteArrayList<>();
 
 	public RasterUISlider(RasterGraphicsWindow parent, BufferedImage sliderBackground, BufferedImage sliderButtonReleased,
-			BufferedImage sliderButtonPressed, int x, int y, int range, boolean vertical) {
+			BufferedImage sliderButtonPressed, int x, int y, int range, int initialPosition, boolean vertical) {
 		super(parent, new BufferedImage(sliderBackground.getWidth(), sliderBackground.getHeight(), BufferedImage.TYPE_INT_ARGB), x, y);
 		this.sliderBackground = sliderBackground;
 		this.sliderButtonReleased = sliderButtonReleased;
 		this.sliderButtonPressed = sliderButtonPressed;
 		this.range = range;
 		this.vertical = vertical;
+		this.sliderPosition = initialPosition;
 		repaint();
 	}
 
