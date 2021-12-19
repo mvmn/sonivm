@@ -195,25 +195,27 @@ public class RasterGraphicsWindow extends JFrame {
 	public static void main(String args[]) throws Exception {
 		// String skin = "MetrixMetalDream";
 		// String skin = "Bento_Classified";
-		String skin = "base-2.91";
+		// String skin = "base-2.91";
+		// String skin = "Necromech";
+		String skin = "Usage Sacrificiel";
 		BufferedImage mainWindowBackgroundBmp = ImageIO.read(new File("/Users/mvmn/Downloads/winamp_skins/" + skin + "/MAIN.BMP"));
 
 		BufferedImage argbBackgroundImage = new BufferedImage(275, 116, BufferedImage.TYPE_INT_ARGB);
 		ImageUtil.drawOnto(argbBackgroundImage, mainWindowBackgroundBmp, 0, 0);
 
 		BufferedImage posBar = ImageIO.read(new File("/Users/mvmn/Downloads/winamp_skins/" + skin + "/POSBAR.BMP"));
-		BufferedImage handleReleased = posBar.getSubimage(248, 0, 29, 10);
-		BufferedImage handlePressed = posBar.getSubimage(278, 0, 29, 10);
+		BufferedImage handleReleased = posBar.getSubimage(248, 0, 29, posBar.getHeight());
+		BufferedImage handlePressed = posBar.getSubimage(278, 0, 29, posBar.getHeight());
 
 		BufferedImage buttonsBmp = ImageIO.read(new File("/Users/mvmn/Downloads/winamp_skins/" + skin + "/CBUTTONS.BMP"));
 
 		RasterGraphicsWindow w = new RasterGraphicsWindow(275, 116, argbBackgroundImage, new RectanglePointRange(0, 0, 275, 16),
 				new RectanglePointRange(260, 100, 275, 116));
-		RasterUISlider slider = w.addComponent(window -> new RasterUISlider(window, posBar.getSubimage(0, 0, 248, 10), handleReleased,
-				handlePressed, 16, 72, 219, 0, false));
+		RasterUISlider slider = w.addComponent(window -> new RasterUISlider(window, posBar.getSubimage(0, 0, 248, posBar.getHeight()),
+				handleReleased, handlePressed, 16, 72, 219, 0, false));
 		slider.addListener(() -> System.out.println("Seek: " + slider.getSliderPosition()));
 
-		// 136x36, 23x18, 23x16
+		// 136x36, 5buttons 23x18, 1 button 23x16
 		for (int i = 0; i < 5; i++) {
 			int x = i * 23;
 			RasterUIButton btn = w.addComponent(window -> new RasterUIButton(window, buttonsBmp.getSubimage(x, 0, 22, 18),
@@ -221,6 +223,9 @@ public class RasterGraphicsWindow extends JFrame {
 			final int btnNum = i + 1;
 			btn.addListener(() -> System.out.println("Pressed " + btnNum));
 		}
+		RasterUIButton btn = w.addComponent(window -> new RasterUIButton(window, buttonsBmp.getSubimage(114, 0, 22, 16),
+				buttonsBmp.getSubimage(114, 16, 22, 16), 136, 89));
+		btn.addListener(() -> System.out.println("Pressed eject"));
 
 		BufferedImage balanceSliderBmp = ImageIO.read(new File("/Users/mvmn/Downloads/winamp_skins/" + skin + "/BALANCE.BMP"));
 		BufferedImage[] balanceSliderBackgrounds = new BufferedImage[28];
@@ -228,8 +233,15 @@ public class RasterGraphicsWindow extends JFrame {
 			balanceSliderBackgrounds[i] = new BufferedImage(38, 13, BufferedImage.TYPE_INT_ARGB);
 			ImageUtil.drawOnto(balanceSliderBackgrounds[i], balanceSliderBmp.getSubimage(9, i * 15, 38, 13), 0, 0);
 		}
-		BufferedImage balanceReleased = balanceSliderBmp.getSubimage(15, 422, 14, balanceSliderBmp.getHeight() - 422);
-		BufferedImage balancePressed = balanceSliderBmp.getSubimage(0, 422, 14, balanceSliderBmp.getHeight() - 422);
+		BufferedImage balanceReleased;
+		BufferedImage balancePressed;
+		if (balanceSliderBmp.getHeight() - 422 > 0) {
+			balanceReleased = balanceSliderBmp.getSubimage(15, 422, 14, balanceSliderBmp.getHeight() - 422);
+			balancePressed = balanceSliderBmp.getSubimage(0, 422, 14, balanceSliderBmp.getHeight() - 422);
+		} else {
+			balanceReleased = new BufferedImage(14, 11, BufferedImage.TYPE_INT_ARGB);
+			balancePressed = new BufferedImage(14, 11, BufferedImage.TYPE_INT_ARGB);
+		}
 
 		ExtRasterUISlider balanceSlider = w
 				.addComponent(window -> new ExtRasterUISlider(window, balanceSliderBackgrounds, balanceReleased, balancePressed, 177, 57,
@@ -243,8 +255,15 @@ public class RasterGraphicsWindow extends JFrame {
 			ImageUtil.drawOnto(volumeSliderBackgrounds[i], volumeSliderBmp.getSubimage(0, i * 15, 68, 13), 0, 0);
 		}
 
-		BufferedImage volumeReleased = volumeSliderBmp.getSubimage(15, 422, 14, volumeSliderBmp.getHeight() - 422);
-		BufferedImage volumePressed = volumeSliderBmp.getSubimage(0, 422, 14, volumeSliderBmp.getHeight() - 422);
+		BufferedImage volumeReleased;
+		BufferedImage volumePressed;
+		if (volumeSliderBmp.getHeight() - 422 > 0) {
+			volumeReleased = volumeSliderBmp.getSubimage(15, 422, 14, volumeSliderBmp.getHeight() - 422);
+			volumePressed = volumeSliderBmp.getSubimage(0, 422, 14, volumeSliderBmp.getHeight() - 422);
+		} else {
+			volumeReleased = new BufferedImage(14, 11, BufferedImage.TYPE_INT_ARGB);
+			volumePressed = new BufferedImage(14, 11, BufferedImage.TYPE_INT_ARGB);
+		}
 
 		ExtRasterUISlider volumeSlider = w.addComponent(window -> new ExtRasterUISlider(window, volumeSliderBackgrounds, volumeReleased,
 				volumePressed, 107, 57, 68 - 14, 68 - 14, false, val -> (int) Math.round(val * 28.0d / 54.0d), 0, 1));
