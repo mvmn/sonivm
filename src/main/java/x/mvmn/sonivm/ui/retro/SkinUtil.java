@@ -15,7 +15,6 @@ public class SkinUtil {
 		if (numPoints != null && pointList != null) {
 			Graphics2D graphics = mask.createGraphics();
 			graphics.setColor(new Color(0, 0, 0, 0));
-			graphics.setPaint(new Color(0, 0, 0, 0));
 			graphics.drawRect(0, 0, width, height);
 			graphics.dispose();
 
@@ -40,7 +39,6 @@ public class SkinUtil {
 		} else {
 			Graphics2D graphics = mask.createGraphics();
 			graphics.setColor(new Color(255, 255, 255, 255));
-			graphics.setPaint(new Color(255, 255, 255, 255));
 			graphics.drawRect(0, 0, width, height);
 			graphics.dispose();
 		}
@@ -51,7 +49,6 @@ public class SkinUtil {
 		if (points != null && !points.isEmpty()) {
 			Graphics2D graphics = image.createGraphics();
 			graphics.setColor(new Color(255, 255, 255, 255));
-			graphics.setPaint(new Color(255, 255, 255, 255));
 			int[] xes = points.stream().mapToInt(p -> p.x).toArray();
 			int[] ys = points.stream().mapToInt(p -> p.y).toArray();
 			graphics.fillPolygon(xes, ys, points.size());
