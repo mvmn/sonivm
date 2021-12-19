@@ -248,7 +248,7 @@ public class RasterGraphicsWindow extends JFrame {
 
 		Stream.of(new File("/Users/mvmn/Downloads/winamp_skins").listFiles())
 				.filter(File::isDirectory)
-				.filter(f -> f.getName().equalsIgnoreCase("Alien_Metalloid_Build_2-0_"))
+				.filter(f -> f.getName().equalsIgnoreCase("Necromech"))
 				.forEach(skinFolder -> {
 					try {
 						System.out.println("Loading skin: " + skinFolder.getName());

@@ -4,8 +4,8 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class SkinUtil {
@@ -19,11 +19,18 @@ public class SkinUtil {
 			graphics.dispose();
 
 			int[] numbersOfPoints = Stream.of(numPoints.split("\\s*,\\s*")).mapToInt(Integer::parseInt).toArray();
-			List<Point> points = Stream.of(pointList.split("\\s+"))
-					.map(pointListStr -> pointListStr.split(","))
-					.map(pointListStrs -> Stream.of(pointListStrs).mapToInt(Integer::parseInt).toArray())
-					.map(pointCoords -> new Point(pointCoords[0], pointCoords[1]))
-					.collect(Collectors.toList());
+			String[] pointNumStrs = pointList.split("\\s*,\\s*");
+			List<Point> points = new ArrayList<>();
+			boolean x = true;
+			int v = 0;
+			for (int i = 0; i < pointNumStrs.length; i++) {
+				if (x) {
+					v = Integer.parseInt(pointNumStrs[i]);
+				} else {
+					points.add(new Point(v, Integer.parseInt(pointNumStrs[i])));
+				}
+				x = !x;
+			}
 			for (int numberOfPoints : numbersOfPoints) {
 				if (points.size() >= numberOfPoints) {
 					generateMaskRegion(mask, points.subList(0, numberOfPoints));
