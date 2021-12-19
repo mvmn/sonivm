@@ -24,6 +24,7 @@ import javax.swing.JLayer;
 import javax.swing.JPanel;
 import javax.swing.plaf.LayerUI;
 
+import x.mvmn.sonivm.ui.util.swing.ImageUtil;
 import x.mvmn.sonivm.ui.util.swing.RectanglePointRange;
 
 public class RasterGraphicsWindow extends JFrame {
@@ -110,14 +111,14 @@ public class RasterGraphicsWindow extends JFrame {
 		this.initMoveResize();
 	}
 
-	public void componentRepaint(RasterUIComponent component) {
+	public void repaintChildComponent(RasterUIComponent component) {
 		double scale = getScaleFactor();
 		componentsLayer.repaint(newScaleCoord(scale, component.getX()), newScaleCoord(scale, component.getY()),
 				newScaleCoord(scale, component.getWidth()), newScaleCoord(scale, component.getHeight()));
 	}
 
-	public void addComponent(Function<RasterGraphicsWindow, RasterUIComponent> componentCreator) {
-		RasterUIComponent component = componentCreator.apply(this);
+	public <T extends RasterUIComponent> T addComponent(Function<RasterGraphicsWindow, T> componentCreator) {
+		T component = componentCreator.apply(this);
 		components.add(component);
 		MouseListener mouseListener = component.getMouseListener();
 		MouseMotionListener mouseMotionListener = component.getMouseMotionListener();
@@ -127,6 +128,7 @@ public class RasterGraphicsWindow extends JFrame {
 		if (mouseMotionListener != null) {
 			this.addMouseMotionListener(mouseMotionListener);
 		}
+		return component;
 	}
 
 	protected double getScaleFactor() {
@@ -191,22 +193,34 @@ public class RasterGraphicsWindow extends JFrame {
 	}
 
 	public static void main(String args[]) throws Exception {
-		BufferedImage mainWindowBackgroundBmp = ImageIO.read(new File("/Users/mvmn/Downloads/winamp_skins/base-2.91/MAIN.BMP"));
+		String skin = "MetrixMetalDream";
+		// String skin = "Bento_Classified";
+		BufferedImage mainWindowBackgroundBmp = ImageIO.read(new File("/Users/mvmn/Downloads/winamp_skins/" + skin + "/MAIN.BMP"));
 
 		BufferedImage argbBackgroundImage = new BufferedImage(275, 116, BufferedImage.TYPE_INT_ARGB);
-		Graphics2D g2d = argbBackgroundImage.createGraphics();
-		g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
-		g2d.drawImage(mainWindowBackgroundBmp, 0, 0, null);
-		g2d.dispose();
+		ImageUtil.drawOnto(argbBackgroundImage, mainWindowBackgroundBmp, 0, 0);
 
-		BufferedImage posBar = ImageIO.read(new File("/Users/mvmn/Downloads/winamp_skins/base-2.91/POSBAR.BMP"));
-		BufferedImage handleReleased = posBar.getSubimage(249, 0, 28, 10);
-		BufferedImage handlePressed = posBar.getSubimage(279, 0, 28, 10);
+		BufferedImage posBar = ImageIO.read(new File("/Users/mvmn/Downloads/winamp_skins/" + skin + "/POSBAR.BMP"));
+		BufferedImage handleReleased = posBar.getSubimage(248, 0, 29, 10);
+		BufferedImage handlePressed = posBar.getSubimage(278, 0, 29, 10);
+
+		BufferedImage buttonsBmp = ImageIO.read(new File("/Users/mvmn/Downloads/winamp_skins/" + skin + "/CBUTTONS.BMP"));
 
 		RasterGraphicsWindow w = new RasterGraphicsWindow(275, 116, argbBackgroundImage, new RectanglePointRange(0, 0, 275, 16),
-				new RectanglePointRange(265, 110, 275, 116));
-		w.addComponent(
-				window -> new RasterUISlider(window, posBar.getSubimage(0, 0, 249, 10), handleReleased, handlePressed, 16, 72, 220, false));
+				new RectanglePointRange(260, 100, 275, 116));
+		RasterUISlider slider = w.addComponent(
+				window -> new RasterUISlider(window, posBar.getSubimage(0, 0, 248, 10), handleReleased, handlePressed, 16, 72, 219, false));
+		slider.addListener(() -> System.out.println(slider.getSliderPosition()));
+
+		// 136x36, 23x18, 23x16
+		for (int i = 0; i < 5; i++) {
+			int x = i * 23;
+			RasterUIButton btn = w.addComponent(window -> new RasterUIButton(window, buttonsBmp.getSubimage(x, 0, 22, 18),
+					buttonsBmp.getSubimage(x, 18, 22, 18), 16 + x, 88));
+			final int btnNum = i + 1;
+			btn.addListener(() -> System.out.println("Pressed " + btnNum));
+		}
+
 		w.setLocation(100, 100);
 		w.setVisible(true);
 	}

@@ -57,4 +57,14 @@ public class RasterUIComponent {
 	public MouseMotionListener getMouseMotionListener() {
 		return null;
 	}
+
+	protected boolean inComponentRange(int parentX, int parentY) {
+		int x = parent.originalScaleCoord(parentX);
+		int y = parent.originalScaleCoord(parentY);
+		return x >= this.getX() && x <= this.getX() + this.getWidth() && y >= this.getY() && y <= this.getY() + this.getHeight();
+	}
+
+	public void repaint() {
+		parent.repaintChildComponent(this);
+	}
 }
