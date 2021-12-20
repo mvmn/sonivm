@@ -1,18 +1,28 @@
 package x.mvmn.sonivm.ui.retro;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.InputStream;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
+import javax.swing.JFrame;
+import javax.swing.JList;
+import javax.swing.JScrollPane;
 
 import org.ini4j.Wini;
 
@@ -313,6 +323,8 @@ public class RetroUIFactory {
 		return load(skinZip, fileName, Wini::new);
 	}
 
+	private static volatile Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, Void> retroUIWindows;
+
 	public static void main(String args[]) throws Exception {
 		// String skin = "base-2.91";
 		// String skin = "MetrixMetalDream";
@@ -320,23 +332,56 @@ public class RetroUIFactory {
 		// String skin = "Necromech";
 		// String skin = "Lime";
 
-		Stream.of(new File("/Users/mvmn/Downloads/winamp_skins").listFiles())
+		Consumer<File> onSkinSelect = skinZipFile -> {
+			try {
+				System.out.println("Loading skin: " + skinZipFile.getName());
+				Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, Void> retroUIWindows = new RetroUIFactory().construct(skinZipFile);
+				if (RetroUIFactory.retroUIWindows != null) {
+					retroUIWindows.getA().getWindow().setLocation(RetroUIFactory.retroUIWindows.getA().getWindow().getLocation());
+					retroUIWindows.getA().getWindow().setSize(RetroUIFactory.retroUIWindows.getA().getWindow().getSize());
+					retroUIWindows.getA().getWindow().setVisible(RetroUIFactory.retroUIWindows.getA().getWindow().isVisible());
+
+					retroUIWindows.getB().getWindow().setLocation(RetroUIFactory.retroUIWindows.getB().getWindow().getLocation());
+					retroUIWindows.getB().getWindow().setSize(RetroUIFactory.retroUIWindows.getB().getWindow().getSize());
+					retroUIWindows.getB().getWindow().setVisible(RetroUIFactory.retroUIWindows.getB().getWindow().isVisible());
+
+					RetroUIFactory.retroUIWindows.getA().getWindow().setVisible(false);
+					RetroUIFactory.retroUIWindows.getA().getWindow().dispose();
+					RetroUIFactory.retroUIWindows.getB().getWindow().setVisible(false);
+					RetroUIFactory.retroUIWindows.getB().getWindow().dispose();
+				} else {
+					retroUIWindows.getA().getWindow().setLocation(100, 100);
+					retroUIWindows.getA().getWindow().setVisible(true);
+
+					retroUIWindows.getB().getWindow().setLocation(100, 216);
+					retroUIWindows.getB().getWindow().setVisible(true);
+				}
+				RetroUIFactory.retroUIWindows = retroUIWindows;
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		};
+
+		JFrame skinSelector = new JFrame();
+
+		File skinsFolder = new File("/Users/mvmn/Downloads/winamp_skins");
+		Set<String> skins = Stream.of(skinsFolder.listFiles())
 				.filter(f -> !f.isDirectory() && f.getName().toLowerCase().endsWith(".wsz"))
-				.filter(f -> f.getName().contains("cyborgani") || f.getName().contains("base"))
-				.forEach(skinZipFile -> {
-					try {
-						System.out.println("Loading skin: " + skinZipFile.getName());
-						Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, Void> retroUIWindows = new RetroUIFactory()
-								.construct(skinZipFile);
-						retroUIWindows.getA().getWindow().setLocation(100, 100);
-						retroUIWindows.getA().getWindow().setVisible(true);
+				.map(File::getName)
+				.collect(Collectors.toCollection(TreeSet::new));
+		JList<String> skinList = new JList<>(skins.toArray(new String[skins.size()]));
+		skinList.addMouseListener(new MouseAdapter() {
+			public void mouseClicked(MouseEvent e) {
+				String skinFileName = skinList.getModel().getElementAt(skinList.locationToIndex(e.getPoint()));
+				onSkinSelect.accept(new File(skinsFolder, skinFileName));
+			}
+		});
 
-						retroUIWindows.getB().getWindow().setLocation(100, 216);
-						retroUIWindows.getB().getWindow().setVisible(true);
+		skinSelector.getContentPane().setLayout(new BorderLayout());
+		skinSelector.getContentPane().add(new JScrollPane(skinList), BorderLayout.CENTER);
 
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				});
+		skinSelector.pack();
+		skinSelector.setVisible(true);
 	}
 }
