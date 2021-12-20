@@ -51,11 +51,18 @@ public class RasterUIButton extends RasterUIComponent implements MouseListener, 
 		boolean wasPressed = this.pressed;
 		this.pressed = false;
 		if (this.pressed != wasPressed) {
-			repaint();
 			if (this.mouseInRange) {
-				listerens.forEach(Runnable::run);
+				onPressBeforeRepaint();
+				repaint();
+				onPressAfterRepaint();
 			}
 		}
+	}
+
+	protected void onPressBeforeRepaint() {}
+
+	protected void onPressAfterRepaint() {
+		listerens.forEach(Runnable::run);
 	}
 
 	@Override

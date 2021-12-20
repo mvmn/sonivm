@@ -25,6 +25,7 @@ import x.mvmn.sonivm.ui.retro.rasterui.RasterGraphicsWindow;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIButton;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIHeading;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUISlider;
+import x.mvmn.sonivm.ui.retro.rasterui.RasterUIToggleButton;
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
 import x.mvmn.sonivm.ui.util.swing.RectanglePointRange;
 import x.mvmn.sonivm.util.Tuple3;
@@ -154,6 +155,15 @@ public class RetroUIFactory {
 				.btnNext(controlButtons[4])
 				.build());
 
+		BufferedImage shufRepBmp = loadImage(skinZip, "SHUFREP.BMP");
+		RasterUIToggleButton btnEqToggle = mainWin.addComponent(
+				window -> new RasterUIToggleButton(window, shufRepBmp.getSubimage(0, 73, 23, 12), shufRepBmp.getSubimage(46, 73, 23, 12),
+						shufRepBmp.getSubimage(0, 61, 23, 12), shufRepBmp.getSubimage(46, 61, 23, 12), 219, 58));
+
+		RasterUIToggleButton btnPlaylistToggle = mainWin.addComponent(
+				window -> new RasterUIToggleButton(window, shufRepBmp.getSubimage(23, 73, 23, 12), shufRepBmp.getSubimage(69, 73, 23, 12),
+						shufRepBmp.getSubimage(23, 61, 23, 12), shufRepBmp.getSubimage(69, 61, 23, 12), 242, 58));
+
 		BufferedImage eqWindowBackgroundBmp = loadImage(skinZip, "EQMAIN.BMP");
 		BufferedImage eqArgbBackgroundImage = new BufferedImage(275, 116, BufferedImage.TYPE_INT_ARGB);
 		ImageUtil.drawOnto(eqArgbBackgroundImage, eqWindowBackgroundBmp.getSubimage(0, 0, 275, 116), 0, 0);
@@ -265,6 +275,10 @@ public class RetroUIFactory {
 
 		mainWin.setAutoRequestFocus(false);
 		eqWin.setAutoRequestFocus(false);
+
+		btnEqToggle.setButtonOn(true);
+		btnEqToggle.addListener(() -> eqWin.setVisible(btnEqToggle.isButtonOn()));
+		btnPlaylistToggle.setButtonOn(true);
 
 		return resultBuilder.build();
 	}
