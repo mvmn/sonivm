@@ -8,11 +8,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class CallUtil {
 
-	public static interface UnsafeFunction<I, O> {
-		O apply(I t) throws Exception;
-	}
-
-	public static void doUnsafe(UnsafeOperation task) {
+	public static void doUnsafe(UnsafeOperation<?> task) {
 		try {
 			task.run();
 		} catch (Exception e) {
@@ -24,15 +20,15 @@ public class CallUtil {
 		}
 	}
 
-	public static Runnable unsafe(UnsafeOperation task) {
+	public static Runnable unsafe(UnsafeOperation<?> task) {
 		return () -> doUnsafe(task);
 	}
 
-	public static <T> Consumer<T> unsafe(UnsafeConsumer<T> task) {
+	public static <T, E extends Exception> Consumer<T> unsafe(UnsafeConsumer<T, E> task) {
 		return v -> doUnsafe(() -> task.accept(v));
 	}
 
-	public static <I, O> Function<I, O> safe(UnsafeFunction<I, O> unsafe) {
+	public static <I, O, E extends Exception> Function<I, O> safe(UnsafeFunction<I, O, E> unsafe) {
 		return (I input) -> {
 			try {
 				return unsafe.apply(input);

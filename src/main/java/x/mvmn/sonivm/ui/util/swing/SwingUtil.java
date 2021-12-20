@@ -62,7 +62,7 @@ public class SwingUtil {
 
 	private static final Logger LOGGER = Logger.getLogger(SwingUtil.class.getCanonicalName());
 
-	public static void performSafely(final UnsafeOperation operation) {
+	public static void performSafely(final UnsafeOperation<?> operation) {
 		new Thread(() -> {
 			try {
 				operation.run();
@@ -73,7 +73,7 @@ public class SwingUtil {
 		}).start();
 	}
 
-	public static void performSafely(final UnsafeOperation operation, final Runnable finalOp, boolean finalOpSwingThread) {
+	public static void performSafely(final UnsafeOperation<?> operation, final Runnable finalOp, boolean finalOpSwingThread) {
 		new Thread(() -> {
 			try {
 				operation.run();
@@ -530,6 +530,5 @@ public class SwingUtil {
 			}
 		}
 		return Tuple2.<Integer, Integer> builder().a(location).b(size).build();
-
 	}
 }

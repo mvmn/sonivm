@@ -5,6 +5,9 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.util.function.Function;
 
+import x.mvmn.sonivm.ui.retro.rasterui.RasterGraphicsWindow;
+import x.mvmn.sonivm.ui.retro.rasterui.RasterUISlider;
+
 public class ExtRasterUISlider extends RasterUISlider {
 
 	protected final Function<Integer, Integer> sliderPositionToBackgroundIndex;

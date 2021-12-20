@@ -1,4 +1,4 @@
-package x.mvmn.sonivm.ui.retro;
+package x.mvmn.sonivm.ui.retro.rasterui;
 
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
