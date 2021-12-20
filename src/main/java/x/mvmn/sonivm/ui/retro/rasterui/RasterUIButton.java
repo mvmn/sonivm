@@ -2,16 +2,18 @@ package x.mvmn.sonivm.ui.retro.rasterui;
 
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
 
-public class RasterUIButton extends RasterUIComponent implements MouseListener {
+public class RasterUIButton extends RasterUIComponent implements MouseListener, MouseMotionListener {
 
 	protected final BufferedImage imageReleased;
 	protected final BufferedImage imagePressed;
 	protected volatile boolean pressed;
+	protected volatile boolean mouseInRange;
 
 	protected final CopyOnWriteArrayList<Runnable> listerens = new CopyOnWriteArrayList<>();
 
@@ -25,7 +27,7 @@ public class RasterUIButton extends RasterUIComponent implements MouseListener {
 
 	@Override
 	public void repaint() {
-		ImageUtil.drawOnto(super.image, pressed ? imagePressed : imageReleased, 0, 0);
+		ImageUtil.drawOnto(super.image, pressed && mouseInRange ? imagePressed : imageReleased, 0, 0);
 		super.repaint();
 	}
 
@@ -37,6 +39,7 @@ public class RasterUIButton extends RasterUIComponent implements MouseListener {
 		boolean wasPressed = this.pressed;
 		if (inComponentRange(e.getX(), e.getY())) {
 			this.pressed = true;
+			this.mouseInRange = true;
 		}
 		if (this.pressed != wasPressed) {
 			repaint();
@@ -49,7 +52,9 @@ public class RasterUIButton extends RasterUIComponent implements MouseListener {
 		this.pressed = false;
 		if (this.pressed != wasPressed) {
 			repaint();
-			listerens.forEach(Runnable::run);
+			if (this.mouseInRange) {
+				listerens.forEach(Runnable::run);
+			}
 		}
 	}
 
@@ -64,7 +69,26 @@ public class RasterUIButton extends RasterUIComponent implements MouseListener {
 		return this;
 	}
 
+	@Override
+	public MouseMotionListener getMouseMotionListener() {
+		return this;
+	}
+
 	public void addListener(Runnable onClick) {
 		listerens.add(onClick);
 	}
+
+	@Override
+	public void mouseDragged(MouseEvent e) {
+		if (this.pressed) {
+			boolean wasInRange = this.mouseInRange;
+			this.mouseInRange = inComponentRange(e.getX(), e.getY());
+			if (wasInRange != this.mouseInRange) {
+				repaint();
+			}
+		}
+	}
+
+	@Override
+	public void mouseMoved(MouseEvent e) {}
 }

@@ -19,7 +19,7 @@ public class SkinUtil {
 			graphics.dispose();
 
 			int[] numbersOfPoints = Stream.of(numPoints.split("\\s*,\\s*")).mapToInt(Integer::parseInt).toArray();
-			String[] pointNumStrs = pointList.split("\\s*,\\s*");
+			String[] pointNumStrs = pointList.split("\\s*,\\s*|\\s+");
 			List<Point> points = new ArrayList<>();
 			boolean x = true;
 			int v = 0;

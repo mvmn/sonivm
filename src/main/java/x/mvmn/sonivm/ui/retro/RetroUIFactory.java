@@ -3,6 +3,8 @@ package x.mvmn.sonivm.ui.retro;
 import java.awt.Color;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.InputStream;
@@ -21,6 +23,7 @@ import net.lingala.zip4j.model.FileHeader;
 import x.mvmn.sonivm.ui.retro.exception.WSZLoadingException;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterGraphicsWindow;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIButton;
+import x.mvmn.sonivm.ui.retro.rasterui.RasterUIHeading;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUISlider;
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
 import x.mvmn.sonivm.ui.util.swing.RectanglePointRange;
@@ -69,6 +72,11 @@ public class RetroUIFactory {
 
 		RasterGraphicsWindow mainWin = new RasterGraphicsWindow(275, 116, argbBackgroundImage, mainWindowTransparencyMask,
 				new RectanglePointRange(0, 0, 275, 16), new RectanglePointRange(260, 100, 275, 116));
+
+		BufferedImage titleBarBmp = ImageUtil.convert(loadImage(skinZip, "titlebar.bmp"), BufferedImage.TYPE_INT_ARGB);
+		RasterUIHeading titleBar = mainWin.addComponent(window -> new RasterUIHeading(window, titleBarBmp.getSubimage(27, 0, 275, 14),
+				titleBarBmp.getSubimage(27, 15, 275, 14), 0, 0));
+
 		RasterUISlider seekSlider = mainWin.addComponent(window -> new RasterUISlider(window,
 				posBar.getSubimage(0, 0, 248, posBar.getHeight()), handleReleased, handlePressed, 16, 72, 219, 0, false));
 		seekSlider.addListener(() -> System.out.println("Seek: " + seekSlider.getSliderPosition()));
@@ -154,6 +162,10 @@ public class RetroUIFactory {
 				new RectanglePointRange(0, 0, 275, 16), null);
 		eqWin.setBackground(new Color(0, 0, 0, 0));
 
+		BufferedImage eqTitleBarBmp = ImageUtil.convert(loadImage(skinZip, "eqmain.bmp"), BufferedImage.TYPE_INT_ARGB);
+		RasterUIHeading eqTitleBar = eqWin.addComponent(window -> new RasterUIHeading(window, eqTitleBarBmp.getSubimage(0, 134, 275, 14),
+				eqTitleBarBmp.getSubimage(0, 149, 275, 14), 0, 0));
+
 		resultBuilder.b(RetroUIEqualizerWindow.builder().window(eqWin).build());
 
 		Supplier<Boolean> isEQWinInSnapPosition = () -> mainWin.getLocation().x == eqWin.getLocation().x
@@ -215,6 +227,45 @@ public class RetroUIFactory {
 			}
 		});
 
+		mainWin.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowActivated(WindowEvent e) {
+				titleBar.setFocused(true);
+				titleBar.repaint();
+				if (eqWin.isVisible()) {
+					eqWin.toFront();
+					eqWin.repaint();
+				}
+			}
+
+			@Override
+			public void windowDeactivated(WindowEvent e) {
+				titleBar.setFocused(false);
+				titleBar.repaint();
+			}
+		});
+
+		eqWin.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowActivated(WindowEvent e) {
+				eqTitleBar.setFocused(true);
+				eqTitleBar.repaint();
+				if (mainWin.isVisible()) {
+					mainWin.toFront();
+					mainWin.repaint();
+				}
+			}
+
+			@Override
+			public void windowDeactivated(WindowEvent e) {
+				eqTitleBar.setFocused(false);
+				eqTitleBar.repaint();
+			}
+		});
+
+		mainWin.setAutoRequestFocus(false);
+		eqWin.setAutoRequestFocus(false);
+
 		return resultBuilder.build();
 	}
 
@@ -222,7 +273,8 @@ public class RetroUIFactory {
 		try {
 			FileHeader fileHeader = skinZip.getFileHeaders()
 					.stream()
-					.filter(fh -> fh.getFileName().equalsIgnoreCase(fileName))
+					.filter(fh -> fh.getFileName().equalsIgnoreCase(fileName)
+							|| fh.getFileName().toLowerCase().endsWith("/" + fileName.toLowerCase()))
 					.findAny()
 					.orElse(null);
 			if (fileHeader == null) {
@@ -256,7 +308,7 @@ public class RetroUIFactory {
 
 		Stream.of(new File("/Users/mvmn/Downloads/winamp_skins").listFiles())
 				.filter(f -> !f.isDirectory() && f.getName().toLowerCase().endsWith(".wsz"))
-				.filter(f -> f.getName().contains("Necromech"))
+				.filter(f -> f.getName().contains("cyborgani") || f.getName().contains("base"))
 				.forEach(skinZipFile -> {
 					try {
 						System.out.println("Loading skin: " + skinZipFile.getName());

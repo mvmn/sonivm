@@ -48,4 +48,14 @@ public abstract class ImageUtil {
 		graphics2d.setComposite(ac);
 		graphics2d.drawImage(mask, 0, 0, null);
 	}
+
+	public static BufferedImage convert(BufferedImage image, int type) {
+		if (image == null) {
+			return null;
+		}
+
+		BufferedImage result = new BufferedImage(image.getWidth(), image.getHeight(), type);
+		drawOnto(result, image, 0, 0);
+		return result;
+	}
 }
