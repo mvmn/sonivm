@@ -2,6 +2,7 @@ package x.mvmn.sonivm.ui.retro.rasterui;
 
 import java.awt.AlphaComposite;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -53,6 +54,7 @@ public class RasterGraphicsWindow extends JFrame {
 	public RasterGraphicsWindow(int width, int height, BufferedImage backgroundImage, BufferedImage transparencyMask,
 			RectanglePointRange dragZone, RectanglePointRange resizeZone) {
 		this.setUndecorated(true);
+		super.setBackground(new Color(0, 0, 0, 0));
 		this.backgroundImage = backgroundImage;
 		this.transparencyMask = transparencyMask;
 		this.initialWidth = width;

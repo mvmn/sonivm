@@ -1,7 +1,6 @@
 package x.mvmn.sonivm.ui.retro;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
@@ -218,7 +217,6 @@ public class RetroUIFactory {
 		RasterUIIndicator stereoIndicator = mainWin.addComponent(window -> new RasterUIIndicator(window,
 				monosterBmp.getSubimage(0, 0, 29, 12), monosterBmp.getSubimage(0, 12, 29, 12), 239, 41));
 
-		mainWin.setBackground(new Color(0, 0, 0, 0));
 		resultBuilder.a(RetroUIMainWindow.builder()
 				.window(mainWin)
 				.titleBar(titleBar)
@@ -246,7 +244,6 @@ public class RetroUIFactory {
 
 		RasterGraphicsWindow eqWin = new RasterGraphicsWindow(275, 116, eqArgbBackgroundImage, eqWindowTransparencyMask,
 				new RectanglePointRange(0, 0, 275, 16), null);
-		eqWin.setBackground(new Color(0, 0, 0, 0));
 
 		BufferedImage eqTitleBarBmp = ImageUtil.convert(loadImage(skinZip, "eqmain.bmp"), BufferedImage.TYPE_INT_ARGB);
 		RasterUIIndicator eqTitleBar = eqWin.addComponent(window -> new RasterUIIndicator(window,
