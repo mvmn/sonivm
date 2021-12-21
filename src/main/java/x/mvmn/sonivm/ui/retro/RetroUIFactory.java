@@ -4,13 +4,13 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.InputStream;
+import java.util.Comparator;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,6 +23,9 @@ import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
+import javax.swing.ListSelectionModel;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 import org.ini4j.Wini;
 
@@ -33,7 +36,7 @@ import net.lingala.zip4j.model.FileHeader;
 import x.mvmn.sonivm.ui.retro.exception.WSZLoadingException;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterGraphicsWindow;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIButton;
-import x.mvmn.sonivm.ui.retro.rasterui.RasterUIHeading;
+import x.mvmn.sonivm.ui.retro.rasterui.RasterUIIndicator;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUISlider;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIToggleButton;
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
@@ -43,10 +46,13 @@ import x.mvmn.sonivm.util.UnsafeFunction;
 
 public class RetroUIFactory {
 
+	private static final int SNAP_INTERVAL_PIXELS = 20;
+
 	public Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, Void> construct(File winAmpSkinZipFile) throws WSZLoadingException {
 		Tuple3.Tuple3Builder<RetroUIMainWindow, RetroUIEqualizerWindow, Void> resultBuilder = Tuple3
 				.<RetroUIMainWindow, RetroUIEqualizerWindow, Void> builder();
 
+		ImageIO.setUseCache(false);
 		ZipFile skinZip = new ZipFile(winAmpSkinZipFile);
 
 		String mainWindowNumPoints = null;
@@ -85,7 +91,7 @@ public class RetroUIFactory {
 				new RectanglePointRange(0, 0, 275, 16), new RectanglePointRange(260, 100, 275, 116));
 
 		BufferedImage titleBarBmp = ImageUtil.convert(loadImage(skinZip, "titlebar.bmp"), BufferedImage.TYPE_INT_ARGB);
-		RasterUIHeading titleBar = mainWin.addComponent(window -> new RasterUIHeading(window, titleBarBmp.getSubimage(27, 0, 275, 14),
+		RasterUIIndicator titleBar = mainWin.addComponent(window -> new RasterUIIndicator(window, titleBarBmp.getSubimage(27, 0, 275, 14),
 				titleBarBmp.getSubimage(27, 15, 275, 14), 0, 0));
 
 		RasterUISlider seekSlider = mainWin.addComponent(window -> new RasterUISlider(window,
@@ -151,9 +157,71 @@ public class RetroUIFactory {
 				volumeReleased, volumePressed, 107, 57, 68 - 14, 68 - 14, false, val -> (int) Math.round(val * 28.0d / 54.0d), 0, 1));
 		volumeSlider.addListener(() -> System.out.println("Volume: " + volumeSlider.getSliderPosition()));
 
+		BufferedImage shufRepBmp = loadImage(skinZip, "SHUFREP.BMP");
+
+		BufferedImage eqToggleOn;
+		BufferedImage eqToggleOnPressed;
+		BufferedImage eqToggleOff;
+		BufferedImage eqToggleOffPressed;
+		BufferedImage playlistToggleOn;
+		BufferedImage playlistToggleOnPressed;
+		BufferedImage playlistToggleOff;
+		BufferedImage playlistToggleOffPressed;
+		if (shufRepBmp.getHeight() >= 61 + 12) {
+			eqToggleOff = shufRepBmp.getSubimage(0, 61, 23, 12);
+			eqToggleOffPressed = shufRepBmp.getSubimage(46, 61, 23, 12);
+			playlistToggleOff = shufRepBmp.getSubimage(23, 61, 23, 12);
+			playlistToggleOffPressed = shufRepBmp.getSubimage(69, 61, 23, 12);
+
+			if (shufRepBmp.getHeight() >= 73 + 12) {
+				eqToggleOn = shufRepBmp.getSubimage(0, 73, 23, 12);
+				eqToggleOnPressed = shufRepBmp.getSubimage(46, 73, 23, 12);
+				playlistToggleOn = shufRepBmp.getSubimage(23, 73, 23, 12);
+				playlistToggleOnPressed = shufRepBmp.getSubimage(69, 73, 23, 12);
+			} else {
+				eqToggleOn = eqToggleOff;
+				eqToggleOnPressed = eqToggleOffPressed;
+				playlistToggleOn = playlistToggleOff;
+				playlistToggleOnPressed = playlistToggleOffPressed;
+			}
+		} else {
+			BufferedImage dummyImage = new BufferedImage(23, 12, BufferedImage.TYPE_INT_ARGB);
+			eqToggleOn = dummyImage;
+			eqToggleOnPressed = dummyImage;
+			eqToggleOff = dummyImage;
+			eqToggleOffPressed = dummyImage;
+			playlistToggleOn = dummyImage;
+			playlistToggleOnPressed = dummyImage;
+			playlistToggleOff = dummyImage;
+			playlistToggleOffPressed = dummyImage;
+		}
+
+		RasterUIToggleButton btnEqToggle = mainWin.addComponent(
+				window -> new RasterUIToggleButton(window, eqToggleOn, eqToggleOnPressed, eqToggleOff, eqToggleOffPressed, 219, 58));
+
+		RasterUIToggleButton btnPlaylistToggle = mainWin.addComponent(window -> new RasterUIToggleButton(window, playlistToggleOn,
+				playlistToggleOnPressed, playlistToggleOff, playlistToggleOffPressed, 242, 58));
+
+		RasterUIToggleButton btnShuffleToggle = mainWin.addComponent(
+				window -> new RasterUIToggleButton(window, shufRepBmp.getSubimage(0, 30, 28, 15), shufRepBmp.getSubimage(0, 45, 28, 15),
+						shufRepBmp.getSubimage(0, 0, 28, 15), shufRepBmp.getSubimage(0, 15, 28, 15), 211, 89));
+
+		RasterUIToggleButton btnRepeatToggle = mainWin.addComponent(
+				window -> new RasterUIToggleButton(window, shufRepBmp.getSubimage(28, 30, 47, 15), shufRepBmp.getSubimage(28, 45, 47, 15),
+						shufRepBmp.getSubimage(28, 0, 47, 15), shufRepBmp.getSubimage(28, 15, 47, 15), 164, 89));
+
+		BufferedImage monosterBmp = Optional.ofNullable(loadImage(skinZip, "monoster.bmp"))
+				.orElseGet(() -> new BufferedImage(56, 24, BufferedImage.TYPE_INT_ARGB));
+		RasterUIIndicator monoIndicator = mainWin
+				.addComponent(window -> new RasterUIIndicator(window, monosterBmp.getSubimage(29, 0, monosterBmp.getWidth() - 29, 12),
+						monosterBmp.getSubimage(29, 12, monosterBmp.getWidth() - 29, 12), 212, 41));
+		RasterUIIndicator stereoIndicator = mainWin.addComponent(window -> new RasterUIIndicator(window,
+				monosterBmp.getSubimage(0, 0, 29, 12), monosterBmp.getSubimage(0, 12, 29, 12), 239, 41));
+
 		mainWin.setBackground(new Color(0, 0, 0, 0));
 		resultBuilder.a(RetroUIMainWindow.builder()
 				.window(mainWin)
+				.titleBar(titleBar)
 				.balanceSlider(balanceSlider)
 				.volumelider(volumeSlider)
 				.seekSlider(seekSlider)
@@ -163,36 +231,73 @@ public class RetroUIFactory {
 				.btnPause(controlButtons[2])
 				.btnStop(controlButtons[3])
 				.btnNext(controlButtons[4])
+				.monoIndicator(monoIndicator)
+				.stereoIndicator(stereoIndicator)
+				.btnEqToggle(btnEqToggle)
+				.btnPlaylistToggle(btnPlaylistToggle)
+				.btnShuffleToggle(btnShuffleToggle)
+				.btnRepeatToggle(btnRepeatToggle)
 				.build());
+		//////////////////// //////////////////// //////////////////// //////////////////// ////////////////////
 
-		BufferedImage shufRepBmp = loadImage(skinZip, "SHUFREP.BMP");
-		RasterUIToggleButton btnEqToggle = mainWin.addComponent(
-				window -> new RasterUIToggleButton(window, shufRepBmp.getSubimage(0, 73, 23, 12), shufRepBmp.getSubimage(46, 73, 23, 12),
-						shufRepBmp.getSubimage(0, 61, 23, 12), shufRepBmp.getSubimage(46, 61, 23, 12), 219, 58));
-
-		RasterUIToggleButton btnPlaylistToggle = mainWin.addComponent(
-				window -> new RasterUIToggleButton(window, shufRepBmp.getSubimage(23, 73, 23, 12), shufRepBmp.getSubimage(69, 73, 23, 12),
-						shufRepBmp.getSubimage(23, 61, 23, 12), shufRepBmp.getSubimage(69, 61, 23, 12), 242, 58));
-
-		BufferedImage eqWindowBackgroundBmp = loadImage(skinZip, "EQMAIN.BMP");
+		BufferedImage eqmainBmp = loadImage(skinZip, "EQMAIN.BMP");
 		BufferedImage eqArgbBackgroundImage = new BufferedImage(275, 116, BufferedImage.TYPE_INT_ARGB);
-		ImageUtil.drawOnto(eqArgbBackgroundImage, eqWindowBackgroundBmp.getSubimage(0, 0, 275, 116), 0, 0);
+		ImageUtil.drawOnto(eqArgbBackgroundImage, eqmainBmp.getSubimage(0, 0, 275, 116), 0, 0);
 
 		RasterGraphicsWindow eqWin = new RasterGraphicsWindow(275, 116, eqArgbBackgroundImage, eqWindowTransparencyMask,
 				new RectanglePointRange(0, 0, 275, 16), null);
 		eqWin.setBackground(new Color(0, 0, 0, 0));
 
 		BufferedImage eqTitleBarBmp = ImageUtil.convert(loadImage(skinZip, "eqmain.bmp"), BufferedImage.TYPE_INT_ARGB);
-		RasterUIHeading eqTitleBar = eqWin.addComponent(window -> new RasterUIHeading(window, eqTitleBarBmp.getSubimage(0, 134, 275, 14),
-				eqTitleBarBmp.getSubimage(0, 149, 275, 14), 0, 0));
+		RasterUIIndicator eqTitleBar = eqWin.addComponent(window -> new RasterUIIndicator(window,
+				eqTitleBarBmp.getSubimage(0, 134, 275, 14), eqTitleBarBmp.getSubimage(0, 149, 275, 14), 0, 0));
 
-		resultBuilder.b(RetroUIEqualizerWindow.builder().window(eqWin).build());
+		BufferedImage[] eqSliderBackgrounds = new BufferedImage[28];
+		for (int i = 0; i < 28; i++) {
+			eqSliderBackgrounds[27 - i] = new BufferedImage(14, 64, BufferedImage.TYPE_INT_ARGB);
+			ImageUtil.drawOnto(eqSliderBackgrounds[27 - i], eqmainBmp.getSubimage(13 + (i % 14) * 15, (i < 14 ? 0 : 65) + 164, 14, 64), 0,
+					0);
+		}
+
+		ExtRasterUISlider[] eqSliders = new ExtRasterUISlider[10];
+		for (int i = 0; i < 10; i++) {
+			final int index = i;
+			eqSliders[i] = eqWin.addComponent(window -> new ExtRasterUISlider(window, eqSliderBackgrounds,
+					eqmainBmp.getSubimage(0, 164, 11, 11), eqmainBmp.getSubimage(0, 164 + 12, 11, 11), 78 + index * 18, 38, 51, 25, true,
+					val -> (int) Math.round(val * 28.0d / 51.0d), 1, 0));
+			eqSliders[i].addListener(() -> System.out.println("EQ " + index + ": " + eqSliders[index].getSliderPosition()));
+		}
+		ExtRasterUISlider eqGainSlider = eqWin.addComponent(window -> new ExtRasterUISlider(window, eqSliderBackgrounds,
+				eqmainBmp.getSubimage(0, 164, 11, 11), eqmainBmp.getSubimage(0, 164 + 12, 11, 11), 21, 38, 51, 25, true,
+				val -> (int) Math.round(val * 28.0d / 51.0d), 1, 0));
+		eqGainSlider.addListener(() -> System.out.println("Gain: " + eqGainSlider.getSliderPosition()));
+
+		RasterUIButton btnPresets = eqWin.addComponent(window -> new RasterUIButton(window, eqmainBmp.getSubimage(224, 164, 44, 12),
+				eqmainBmp.getSubimage(224, 176, 44, 12), 217, 18));
+
+		RasterUIToggleButton btnEqOn = eqWin.addComponent(
+				window -> new RasterUIToggleButton(window, eqmainBmp.getSubimage(69, 119, 25, 12), eqmainBmp.getSubimage(187, 119, 25, 12),
+						eqmainBmp.getSubimage(10, 119, 25, 12), eqmainBmp.getSubimage(128, 119, 25, 12), 15, 18));
+		RasterUIToggleButton btnEqAuto = eqWin.addComponent(
+				window -> new RasterUIToggleButton(window, eqmainBmp.getSubimage(94, 119, 33, 12), eqmainBmp.getSubimage(212, 119, 33, 12),
+						eqmainBmp.getSubimage(35, 119, 33, 12), eqmainBmp.getSubimage(153, 119, 33, 12), 39, 18));
+
+		resultBuilder.b(RetroUIEqualizerWindow.builder()
+				.window(eqWin)
+				.titleBar(eqTitleBar)
+				.gainSlider(eqGainSlider)
+				.eqSliders(eqSliders)
+				.btnPresets(btnPresets)
+				.btnEqOnOff(btnEqOn)
+				.btnEqAuto(btnEqAuto)
+				.build());
+		//////////////////// //////////////////// //////////////////// //////////////////// ////////////////////
 
 		Supplier<Boolean> isEQWinInSnapPosition = () -> mainWin.getLocation().x == eqWin.getLocation().x
 				&& mainWin.getLocation().y + mainWin.getHeight() == eqWin.getLocation().y;
 
-		Supplier<Boolean> isEQWinNearSnapPosition = () -> Math.abs(mainWin.getLocation().x - eqWin.getLocation().x) < 10
-				&& Math.abs(mainWin.getLocation().y + mainWin.getHeight() - eqWin.getLocation().y) < 10;
+		Supplier<Boolean> isEQWinNearSnapPosition = () -> Math.abs(mainWin.getLocation().x - eqWin.getLocation().x) < SNAP_INTERVAL_PIXELS
+				&& Math.abs(mainWin.getLocation().y + mainWin.getHeight() - eqWin.getLocation().y) < SNAP_INTERVAL_PIXELS;
 
 		AtomicBoolean eqWindowSnapped = new AtomicBoolean(isEQWinInSnapPosition.get());
 		Runnable moveEQWindowBelowMain = () -> eqWin.setLocation(mainWin.getLocation().x, mainWin.getLocation().y + mainWin.getHeight());
@@ -250,7 +355,7 @@ public class RetroUIFactory {
 		mainWin.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowActivated(WindowEvent e) {
-				titleBar.setFocused(true);
+				titleBar.setActive(true);
 				titleBar.repaint();
 				if (eqWin.isVisible()) {
 					eqWin.toFront();
@@ -260,7 +365,7 @@ public class RetroUIFactory {
 
 			@Override
 			public void windowDeactivated(WindowEvent e) {
-				titleBar.setFocused(false);
+				titleBar.setActive(false);
 				titleBar.repaint();
 			}
 		});
@@ -268,7 +373,7 @@ public class RetroUIFactory {
 		eqWin.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowActivated(WindowEvent e) {
-				eqTitleBar.setFocused(true);
+				eqTitleBar.setActive(true);
 				eqTitleBar.repaint();
 				if (mainWin.isVisible()) {
 					mainWin.toFront();
@@ -278,7 +383,7 @@ public class RetroUIFactory {
 
 			@Override
 			public void windowDeactivated(WindowEvent e) {
-				eqTitleBar.setFocused(false);
+				eqTitleBar.setActive(false);
 				eqTitleBar.repaint();
 			}
 		});
@@ -326,12 +431,6 @@ public class RetroUIFactory {
 	private static volatile Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, Void> retroUIWindows;
 
 	public static void main(String args[]) throws Exception {
-		// String skin = "base-2.91";
-		// String skin = "MetrixMetalDream";
-		// String skin = "Bento_Classified";
-		// String skin = "Necromech";
-		// String skin = "Lime";
-
 		Consumer<File> onSkinSelect = skinZipFile -> {
 			try {
 				System.out.println("Loading skin: " + skinZipFile.getName());
@@ -369,11 +468,14 @@ public class RetroUIFactory {
 		Set<String> skins = Stream.of(skinsFolder.listFiles())
 				.filter(f -> !f.isDirectory() && f.getName().toLowerCase().endsWith(".wsz"))
 				.map(File::getName)
-				.collect(Collectors.toCollection(TreeSet::new));
+				.collect(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(str -> str.toLowerCase()))));
 		JList<String> skinList = new JList<>(skins.toArray(new String[skins.size()]));
-		skinList.addMouseListener(new MouseAdapter() {
-			public void mouseClicked(MouseEvent e) {
-				String skinFileName = skinList.getModel().getElementAt(skinList.locationToIndex(e.getPoint()));
+
+		skinList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		skinList.addListSelectionListener(new ListSelectionListener() {
+			@Override
+			public void valueChanged(ListSelectionEvent e) {
+				String skinFileName = skinList.getModel().getElementAt(skinList.getSelectedIndex());
 				onSkinSelect.accept(new File(skinsFolder, skinFileName));
 			}
 		});

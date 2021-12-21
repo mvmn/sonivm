@@ -17,10 +17,16 @@ public class RasterUIToggleButton extends RasterUIButton {
 		super(parent, imageOnReleased, imageOnPressed, x, y);
 		this.imageOffReleased = imageOffReleased;
 		this.imageOffPressed = imageOffPressed;
+		prepareImage();
 	}
 
 	@Override
 	public void repaint() {
+		prepareImage();
+		parent.repaintChildComponent(this);
+	}
+
+	protected void prepareImage() {
 		BufferedImage image;
 		if (pressed && mouseInRange) {
 			image = buttonOn ? imagePressed : imageOffPressed;
@@ -28,7 +34,6 @@ public class RasterUIToggleButton extends RasterUIButton {
 			image = buttonOn ? imageReleased : imageOffReleased;
 		}
 		ImageUtil.drawOnto(super.image, image, 0, 0);
-		parent.repaintChildComponent(this);
 	}
 
 	@Override

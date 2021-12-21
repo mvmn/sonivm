@@ -8,6 +8,9 @@ import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class RasterUISlider extends RasterUIComponent implements MouseListener, MouseMotionListener {
 
 	protected final BufferedImage sliderBackground;
@@ -16,11 +19,15 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 	protected final int range;
 	protected final boolean vertical;
 
+	@Getter
 	protected volatile int sliderPosition;
 	protected volatile boolean pressed;
 	protected volatile int dragStartX;
 	protected volatile int dragStartY;
 	protected volatile int dragStartSliderPos;
+	@Getter
+	@Setter
+	protected volatile boolean indefinite;
 
 	protected final CopyOnWriteArrayList<Runnable> listerens = new CopyOnWriteArrayList<>();
 
@@ -36,21 +43,7 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 		repaint();
 	}
 
-	@Override
-	public void mouseDragged(MouseEvent e) {
-		if (this.pressed) {
-			int offset;
-			if (vertical) {
-				offset = e.getY() - this.dragStartY;
-			} else {
-				offset = e.getX() - this.dragStartX;
-			}
-			int newSliderPos = this.dragStartSliderPos + this.parent.originalScaleCoord(offset);
-			updateSliderPosition(newSliderPos);
-		}
-	}
-
-	protected void updateSliderPosition(int newSliderPos) {
+	protected void updateSliderPosition(int newSliderPos, boolean notifyListeners) {
 		int oldSliderPos = this.sliderPosition;
 		if (newSliderPos < 0) {
 			newSliderPos = 0;
@@ -60,7 +53,9 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 		this.sliderPosition = newSliderPos;
 		if (oldSliderPos != this.sliderPosition) {
 			repaint();
-			listerens.forEach(Runnable::run);
+			if (notifyListeners) {
+				listerens.forEach(Runnable::run);
+			}
 		}
 	}
 
@@ -70,14 +65,16 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 		Graphics2D g2d = argbBackgroundImage.createGraphics();
 		g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
 		g2d.drawImage(sliderBackground, 0, 0, null);
-		int x = 0;
-		int y = 0;
-		if (vertical) {
-			y += this.sliderPosition;
-		} else {
-			x += this.sliderPosition;
+		if (!indefinite) {
+			int x = 0;
+			int y = 0;
+			if (vertical) {
+				y += this.sliderPosition;
+			} else {
+				x += this.sliderPosition;
+			}
+			g2d.drawImage(pressed ? sliderButtonPressed : sliderButtonReleased, x, y, null);
 		}
-		g2d.drawImage(pressed ? sliderButtonPressed : sliderButtonReleased, x, y, null);
 		super.repaint();
 	}
 
@@ -86,25 +83,6 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 
 	@Override
 	public void mouseClicked(MouseEvent e) {}
-
-	@Override
-	public void mousePressed(MouseEvent e) {
-		boolean wasPressed = this.pressed;
-		if (inComponentRange(e.getX(), e.getY())) {
-			if (inButtonRange(e.getX(), e.getY())) {
-				this.pressed = true;
-				this.dragStartX = e.getX();
-				this.dragStartY = e.getY();
-				this.dragStartSliderPos = this.sliderPosition;
-			} else {
-				updateSliderPosition(parent.originalScaleCoord(vertical ? e.getY() : e.getX()) - (vertical ? this.getY() : this.getX())
-						- (vertical ? sliderButtonReleased.getHeight() : sliderButtonReleased.getWidth()) / 2);
-			}
-		}
-		if (wasPressed != this.pressed) {
-			repaint();
-		}
-	}
 
 	private boolean inButtonRange(int parentX, int parentY) {
 		int x = parent.originalScaleCoord(parentX) - this.getX();
@@ -117,11 +95,53 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 	}
 
 	@Override
+	public void mousePressed(MouseEvent e) {
+		if (indefinite) {
+			return;
+		}
+		boolean wasPressed = this.pressed;
+		if (inComponentRange(e.getX(), e.getY())) {
+			if (inButtonRange(e.getX(), e.getY())) {
+				this.pressed = true;
+				this.dragStartX = e.getX();
+				this.dragStartY = e.getY();
+				this.dragStartSliderPos = this.sliderPosition;
+			} else {
+				updateSliderPosition(parent.originalScaleCoord(vertical ? e.getY() : e.getX()) - (vertical ? this.getY() : this.getX())
+						- (vertical ? sliderButtonReleased.getHeight() : sliderButtonReleased.getWidth()) / 2, true);
+			}
+		}
+		if (wasPressed != this.pressed) {
+			repaint();
+		}
+	}
+
+	@Override
 	public void mouseReleased(MouseEvent e) {
+		if (indefinite) {
+			return;
+		}
 		boolean wasPressed = this.pressed;
 		this.pressed = false;
 		if (wasPressed != this.pressed) {
 			repaint();
+		}
+	}
+
+	@Override
+	public void mouseDragged(MouseEvent e) {
+		if (indefinite) {
+			return;
+		}
+		if (this.pressed) {
+			int offset;
+			if (vertical) {
+				offset = e.getY() - this.dragStartY;
+			} else {
+				offset = e.getX() - this.dragStartX;
+			}
+			int newSliderPos = this.dragStartSliderPos + this.parent.originalScaleCoord(offset);
+			updateSliderPosition(newSliderPos, true);
 		}
 	}
 
@@ -145,11 +165,7 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 		listerens.add(onClick);
 	}
 
-	public int getSliderPosition() {
-		return sliderPosition;
-	}
-
-	public void setSliderPosition(int sliderPosition) {
-		updateSliderPosition(sliderPosition);
+	public void setSliderPosition(int sliderPosition, boolean notifyListeners) {
+		updateSliderPosition(sliderPosition, notifyListeners);
 	}
 }
