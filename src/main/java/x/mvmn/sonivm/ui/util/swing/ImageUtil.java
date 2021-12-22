@@ -19,7 +19,7 @@ public abstract class ImageUtil {
 
 	public static BufferedImage drawOnto(BufferedImage background, BufferedImage img, int x, int y) {
 		Graphics2D g2d = background.createGraphics();
-		g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+		g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC, 1.0f));
 		g2d.drawImage(img, x, y, null);
 		g2d.dispose();
 		return background;
@@ -57,5 +57,13 @@ public abstract class ImageUtil {
 		BufferedImage result = new BufferedImage(image.getWidth(), image.getHeight(), type);
 		drawOnto(result, image, 0, 0);
 		return result;
+	}
+
+	public static BufferedImage subImageOrBlank(BufferedImage sourceImage, int x, int y, int width, int height) {
+		if (sourceImage.getWidth() >= x + width && sourceImage.getHeight() >= y + height) {
+			return sourceImage.getSubimage(x, y, width, height);
+		} else {
+			return new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+		}
 	}
 }
