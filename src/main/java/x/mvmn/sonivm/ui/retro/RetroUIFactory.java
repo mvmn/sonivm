@@ -87,11 +87,19 @@ public class RetroUIFactory {
 		}
 
 		RasterGraphicsWindow mainWin = new RasterGraphicsWindow(275, 116, argbBackgroundImage, mainWindowTransparencyMask,
-				new RectanglePointRange(0, 0, 275, 16), new RectanglePointRange(260, 100, 275, 116));
+				new RectanglePointRange(0, 0, 275, 16), new RectanglePointRange(260, 100, 275, 116),
+				new RectanglePointRange(264, 3, 264 + 9, 3 + 9));
 
 		BufferedImage titleBarBmp = ImageUtil.convert(loadImage(skinZip, "titlebar.bmp"), BufferedImage.TYPE_INT_ARGB);
-		RasterUIIndicator titleBar = mainWin.addComponent(window -> new RasterUIIndicator(window,
-				ImageUtil.subImageOrBlank(titleBarBmp, 27, 0, 275, 14), ImageUtil.subImageOrBlank(titleBarBmp, 27, 15, 275, 14), 0, 0));
+		BufferedImage mainWinTitleBarActive = ImageUtil.subImageOrBlank(titleBarBmp, 27, 0, 275, 14);
+		ImageUtil.drawOnto(mainWinTitleBarActive, ImageUtil.subImageOrBlank(titleBarBmp, 0, 0, 9, 9), 6, 3);
+		ImageUtil.drawOnto(mainWinTitleBarActive, ImageUtil.subImageOrBlank(titleBarBmp, 9, 0, 9, 9), 244, 3);
+		ImageUtil.drawOnto(mainWinTitleBarActive, ImageUtil.subImageOrBlank(titleBarBmp, 0, 18, 9, 9), 254, 3);
+		ImageUtil.drawOnto(mainWinTitleBarActive, ImageUtil.subImageOrBlank(titleBarBmp, 18, 0, 9, 9), 264, 3);
+
+		ImageUtil.drawOnto(argbBackgroundImage, ImageUtil.subImageOrBlank(titleBarBmp, 304, 0, 8, 43), 10, 22);
+		RasterUIIndicator titleBar = mainWin.addComponent(window -> new RasterUIIndicator(window, mainWinTitleBarActive,
+				ImageUtil.subImageOrBlank(titleBarBmp, 27, 15, 275, 14), 0, 0));
 
 		RasterUISlider seekSlider = mainWin.addComponent(window -> new RasterUISlider(window,
 				ImageUtil.subImageOrBlank(posBar, 0, 0, 248, posBar.getHeight()), handleReleased, handlePressed, 16, 72, 219, 0, false));
@@ -224,12 +232,15 @@ public class RetroUIFactory {
 		ImageUtil.drawOnto(eqArgbBackgroundImage, ImageUtil.subImageOrBlank(eqmainBmp, 0, 0, 275, 116), 0, 0);
 
 		RasterGraphicsWindow eqWin = new RasterGraphicsWindow(275, 116, eqArgbBackgroundImage, eqWindowTransparencyMask,
-				new RectanglePointRange(0, 0, 275, 16), null);
+				new RectanglePointRange(0, 0, 275, 16), null, new RectanglePointRange(264, 3, 264 + 9, 3 + 9));
 
 		BufferedImage eqTitleBarBmp = ImageUtil.convert(loadImage(skinZip, "eqmain.bmp"), BufferedImage.TYPE_INT_ARGB);
-		RasterUIIndicator eqTitleBar = eqWin
-				.addComponent(window -> new RasterUIIndicator(window, ImageUtil.subImageOrBlank(eqTitleBarBmp, 0, 134, 275, 14),
-						ImageUtil.subImageOrBlank(eqTitleBarBmp, 0, 149, 275, 14), 0, 0));
+		BufferedImage eqTitleBarActive = ImageUtil.subImageOrBlank(eqTitleBarBmp, 0, 134, 275, 14);
+		ImageUtil.drawOnto(eqTitleBarActive, ImageUtil.subImageOrBlank(eqTitleBarBmp, 0, 116, 9, 9), 264, 3);
+		RasterUIIndicator eqTitleBar = eqWin.addComponent(
+				window -> new RasterUIIndicator(window, eqTitleBarActive, ImageUtil.subImageOrBlank(eqTitleBarBmp, 0, 149, 275, 14), 0, 0));
+
+		ImageUtil.drawOnto(mainWinTitleBarActive, ImageUtil.subImageOrBlank(titleBarBmp, 0, 0, 9, 9), 6, 3);
 
 		BufferedImage[] eqSliderBackgrounds = new BufferedImage[28];
 		for (int i = 0; i < 28; i++) {
@@ -374,6 +385,8 @@ public class RetroUIFactory {
 		btnEqToggle.addListener(() -> eqWin.setVisible(btnEqToggle.isButtonOn()));
 		btnPlaylistToggle.setButtonOn(true);
 
+		eqWin.addCloseListener(() -> btnEqToggle.setButtonOn(false));
+
 		return resultBuilder.build();
 	}
 
@@ -417,11 +430,14 @@ public class RetroUIFactory {
 				if (RetroUIFactory.retroUIWindows != null) {
 					retroUIWindows.getA().getWindow().setLocation(RetroUIFactory.retroUIWindows.getA().getWindow().getLocation());
 					retroUIWindows.getA().getWindow().setSize(RetroUIFactory.retroUIWindows.getA().getWindow().getSize());
-					retroUIWindows.getA().getWindow().setVisible(RetroUIFactory.retroUIWindows.getA().getWindow().isVisible());
+					retroUIWindows.getA().getWindow().setVisible(true);
 
 					retroUIWindows.getB().getWindow().setLocation(RetroUIFactory.retroUIWindows.getB().getWindow().getLocation());
 					retroUIWindows.getB().getWindow().setSize(RetroUIFactory.retroUIWindows.getB().getWindow().getSize());
-					retroUIWindows.getB().getWindow().setVisible(RetroUIFactory.retroUIWindows.getB().getWindow().isVisible());
+					boolean eqVisible = RetroUIFactory.retroUIWindows.getB().getWindow().isVisible();
+					retroUIWindows.getB().getWindow().setVisible(eqVisible);
+
+					retroUIWindows.getA().btnEqToggle.setButtonOn(eqVisible);
 
 					RetroUIFactory.retroUIWindows.getA().getWindow().setVisible(false);
 					RetroUIFactory.retroUIWindows.getA().getWindow().dispose();

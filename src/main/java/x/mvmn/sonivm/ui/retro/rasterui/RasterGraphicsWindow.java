@@ -37,9 +37,11 @@ public class RasterGraphicsWindow extends JFrame {
 	protected final int initialHeight;
 	protected final RectanglePointRange dragZone;
 	protected final RectanglePointRange resizeZone;
+	protected final RectanglePointRange closeZone;
 
 	protected final JLayer<JPanel> componentsLayer;
 
+	private volatile boolean isBeingClosed = true;
 	private volatile boolean isBeingResized = false;
 	private volatile boolean isBeingMoved = false;
 	private volatile int dragFromX = 0;
@@ -47,12 +49,13 @@ public class RasterGraphicsWindow extends JFrame {
 	private volatile Point initialLocationBeforeMove = null;
 	private volatile int resizedFromWidth = 0;
 
-	private CopyOnWriteArrayList<RasterUIComponent> components = new CopyOnWriteArrayList<>();
-	private CopyOnWriteArrayList<Consumer<Tuple2<Point, Point>>> moveListeners = new CopyOnWriteArrayList<>();
-	private CopyOnWriteArrayList<Runnable> resizeListeners = new CopyOnWriteArrayList<>();
+	protected CopyOnWriteArrayList<RasterUIComponent> components = new CopyOnWriteArrayList<>();
+	protected CopyOnWriteArrayList<Consumer<Tuple2<Point, Point>>> moveListeners = new CopyOnWriteArrayList<>();
+	protected CopyOnWriteArrayList<Runnable> resizeListeners = new CopyOnWriteArrayList<>();
+	protected CopyOnWriteArrayList<Runnable> closeListeners = new CopyOnWriteArrayList<>();
 
 	public RasterGraphicsWindow(int width, int height, BufferedImage backgroundImage, BufferedImage transparencyMask,
-			RectanglePointRange dragZone, RectanglePointRange resizeZone) {
+			RectanglePointRange dragZone, RectanglePointRange resizeZone, RectanglePointRange closeZone) {
 		this.setUndecorated(true);
 		super.setBackground(new Color(0, 0, 0, 0));
 		this.backgroundImage = backgroundImage;
@@ -61,6 +64,7 @@ public class RasterGraphicsWindow extends JFrame {
 		this.initialHeight = height;
 		this.dragZone = dragZone;
 		this.resizeZone = resizeZone;
+		this.closeZone = closeZone;
 
 		this.setSize(width, height);
 		this.setMinimumSize(new Dimension(width, height));
@@ -135,8 +139,8 @@ public class RasterGraphicsWindow extends JFrame {
 	}
 
 	public RasterGraphicsWindow(int width, int height, BufferedImage backgroundImage, RectanglePointRange dragZone,
-			RectanglePointRange resizeZone) throws Exception {
-		this(width, height, backgroundImage, null, dragZone, resizeZone);
+			RectanglePointRange resizeZone, RectanglePointRange closeZone) {
+		this(width, height, backgroundImage, null, dragZone, resizeZone, closeZone);
 	}
 
 	public void repaintChildComponent(RasterUIComponent component) {
@@ -172,19 +176,36 @@ public class RasterGraphicsWindow extends JFrame {
 		return (int) Math.round(coord / scale);
 	}
 
+	protected void handleClose() {
+		if (this.isVisible()) {
+			this.setVisible(false);
+			closeListeners.forEach(Runnable::run);
+		}
+	}
+
 	protected void initMoveResize() {
 		this.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseReleased(MouseEvent e) {
 				RasterGraphicsWindow.this.isBeingResized = false;
 				RasterGraphicsWindow.this.isBeingMoved = false;
+				if (isBeingClosed) {
+					int x = originalScaleCoord(e.getX());
+					int y = originalScaleCoord(e.getY());
+					if (closeZone != null && closeZone.inRange(x, y)) {
+						RasterGraphicsWindow.this.handleClose();
+					}
+				}
+				RasterGraphicsWindow.this.isBeingClosed = false;
 			}
 
 			@Override
 			public void mousePressed(MouseEvent e) {
 				int x = originalScaleCoord(e.getX());
 				int y = originalScaleCoord(e.getY());
-				if (resizeZone != null && resizeZone.inRange(x, y)) {
+				if (closeZone != null && closeZone.inRange(x, y)) {
+					RasterGraphicsWindow.this.isBeingClosed = true;
+				} else if (resizeZone != null && resizeZone.inRange(x, y)) {
 					RasterGraphicsWindow.this.isBeingResized = true;
 					RasterGraphicsWindow.this.dragFromX = e.getXOnScreen();
 					RasterGraphicsWindow.this.resizedFromWidth = RasterGraphicsWindow.this.getWidth();
@@ -233,5 +254,9 @@ public class RasterGraphicsWindow extends JFrame {
 
 	public void addResizeListener(Runnable resizeListener) {
 		this.resizeListeners.add(resizeListener);
+	}
+
+	public void addCloseListener(Runnable closeListener) {
+		this.closeListeners.add(closeListener);
 	}
 }
