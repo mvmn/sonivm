@@ -109,7 +109,6 @@ public class RasterGraphicsWindow extends JFrame {
 					}
 
 					applyTransparencyMask(g2);
-
 					g2.dispose();
 				}
 			}

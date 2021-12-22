@@ -18,8 +18,12 @@ public abstract class ImageUtil {
 	}
 
 	public static BufferedImage drawOnto(BufferedImage background, BufferedImage img, int x, int y) {
+		return drawOnto(background, img, x, y, AlphaComposite.SRC, 1.0f);
+	}
+
+	public static BufferedImage drawOnto(BufferedImage background, BufferedImage img, int x, int y, int alphaCompositeType, float alpha) {
 		Graphics2D g2d = background.createGraphics();
-		g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC, 1.0f));
+		g2d.setComposite(AlphaComposite.getInstance(alphaCompositeType, alpha));
 		g2d.drawImage(img, x, y, null);
 		g2d.dispose();
 		return background;
