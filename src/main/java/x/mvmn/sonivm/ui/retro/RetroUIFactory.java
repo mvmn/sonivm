@@ -244,9 +244,9 @@ public class RetroUIFactory {
 
 		BufferedImage[] eqSliderBackgrounds = new BufferedImage[28];
 		for (int i = 0; i < 28; i++) {
-			eqSliderBackgrounds[27 - i] = new BufferedImage(14, 64, BufferedImage.TYPE_INT_ARGB);
+			eqSliderBackgrounds[27 - i] = new BufferedImage(14, 63, BufferedImage.TYPE_INT_ARGB);
 			ImageUtil.drawOnto(eqSliderBackgrounds[27 - i],
-					ImageUtil.subImageOrBlank(eqmainBmp, 13 + (i % 14) * 15, (i < 14 ? 0 : 65) + 164, 14, 64), 0, 0);
+					ImageUtil.subImageOrBlank(eqmainBmp, 13 + (i % 14) * 15, (i < 14 ? 0 : 65) + 164, 14, 63), 0, 0);
 		}
 
 		ExtRasterUISlider[] eqSliders = new ExtRasterUISlider[10];
