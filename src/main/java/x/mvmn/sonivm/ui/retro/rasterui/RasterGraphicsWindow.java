@@ -35,34 +35,41 @@ public class RasterGraphicsWindow extends JFrame {
 	protected final BufferedImage transparencyMask;
 	protected final int initialWidth;
 	protected final int initialHeight;
-	protected final RectanglePointRange dragZone;
+	protected final RectanglePointRange moveZone;
 	protected final RectanglePointRange resizeZone;
 	protected final RectanglePointRange closeZone;
 
+	protected final JPanel backgroundPanel;
+	protected final LayerUI<JPanel> layerUI;
 	protected final JLayer<JPanel> componentsLayer;
 
-	private volatile boolean isBeingClosed = true;
-	private volatile boolean isBeingResized = false;
-	private volatile boolean isBeingMoved = false;
-	private volatile int dragFromX = 0;
-	private volatile int dragFromY = 0;
-	private volatile Point initialLocationBeforeMove = null;
-	private volatile int resizedFromWidth = 0;
+	protected volatile boolean isBeingClosed = true;
+	protected volatile boolean isBeingResized = false;
+	protected volatile boolean isBeingMoved = false;
+	protected volatile int dragFromX = 0;
+	protected volatile int dragFromY = 0;
+	protected volatile Point initialLocationBeforeMove = null;
+	protected volatile int resizedFromWidth = 0;
 
 	protected CopyOnWriteArrayList<RasterUIComponent> components = new CopyOnWriteArrayList<>();
 	protected CopyOnWriteArrayList<Consumer<Tuple2<Point, Point>>> moveListeners = new CopyOnWriteArrayList<>();
 	protected CopyOnWriteArrayList<Runnable> resizeListeners = new CopyOnWriteArrayList<>();
 	protected CopyOnWriteArrayList<Runnable> closeListeners = new CopyOnWriteArrayList<>();
 
-	public RasterGraphicsWindow(int width, int height, BufferedImage backgroundImage, BufferedImage transparencyMask,
-			RectanglePointRange dragZone, RectanglePointRange resizeZone, RectanglePointRange closeZone) {
+	public RasterGraphicsWindow(int width,
+			int height,
+			BufferedImage backgroundImage,
+			BufferedImage transparencyMask,
+			RectanglePointRange moveZone,
+			RectanglePointRange resizeZone,
+			RectanglePointRange closeZone) {
 		this.setUndecorated(true);
 		super.setBackground(new Color(0, 0, 0, 0));
 		this.backgroundImage = backgroundImage;
 		this.transparencyMask = transparencyMask;
 		this.initialWidth = width;
 		this.initialHeight = height;
-		this.dragZone = dragZone;
+		this.moveZone = moveZone;
 		this.resizeZone = resizeZone;
 		this.closeZone = closeZone;
 
@@ -70,76 +77,85 @@ public class RasterGraphicsWindow extends JFrame {
 		this.setMinimumSize(new Dimension(width, height));
 		this.getContentPane().setLayout(new BorderLayout());
 
-		JPanel imgPanel = new JPanel() {
+		this.backgroundPanel = new JPanel() {
 			private static final long serialVersionUID = -7619624446072478858L;
 
 			@Override
 			protected void paintComponent(Graphics g) {
-				Graphics2D g2 = (Graphics2D) g.create();
-				g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
-				if (RasterGraphicsWindow.this.getWidth() == initialWidth) {
-					g2.drawImage(backgroundImage, 0, 0, null);
-				} else {
-					g2.drawImage(backgroundImage.getScaledInstance(RasterGraphicsWindow.this.getWidth(), -1, Image.SCALE_SMOOTH), 0, 0,
-							null);
-				}
-				applyTransparencyMask(g2);
+				paintBackgroundPanel(g);
 			}
 		};
-		LayerUI<JPanel> layerUI = new LayerUI<JPanel>() {
+		this.layerUI = new LayerUI<JPanel>() {
 			private static final long serialVersionUID = 1L;
 
 			@Override
 			public void paint(Graphics g, JComponent c) {
-				super.paint(g, c);
-
-				if (!components.isEmpty()) {
-					Graphics2D g2 = (Graphics2D) g.create();
-
-					for (RasterUIComponent uiComponent : components) {
-						BufferedImage componentImage = uiComponent.getImage();
-						int x = uiComponent.getX();
-						int y = uiComponent.getY();
-						g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
-						if (RasterGraphicsWindow.this.getWidth() == initialWidth) {
-							g2.drawImage(componentImage, x, y, null);
-						} else {
-							double scale = RasterGraphicsWindow.this.getWidth() / (double) initialWidth;
-							int newWidth = (int) Math.round(componentImage.getWidth() * scale);
-							int newX = (int) Math.round(x * scale);
-							int newY = (int) Math.round(y * scale);
-							g2.drawImage(componentImage.getScaledInstance(newWidth, -1, Image.SCALE_SMOOTH), newX, newY, null);
-						}
-					}
-
-					applyTransparencyMask(g2);
-					g2.dispose();
-				}
+				paintLayerUI(g, c);
 			}
 		};
 
-		componentsLayer = new JLayer<JPanel>(imgPanel, layerUI);
+		componentsLayer = new JLayer<JPanel>(backgroundPanel, layerUI);
 
 		this.getContentPane().add(componentsLayer, BorderLayout.CENTER);
 		this.setResizable(false);
 		this.initMoveResize();
 	}
 
-	protected void applyTransparencyMask(Graphics2D g2) {
+	protected void paintBackgroundPanel(Graphics g) {
+		Graphics2D g2 = (Graphics2D) g.create();
+		g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
 		if (RasterGraphicsWindow.this.getWidth() == initialWidth) {
-			if (transparencyMask != null) {
-				ImageUtil.applyTransparency(g2, transparencyMask);
-			}
+			g2.drawImage(backgroundImage, 0, 0, null);
 		} else {
-			if (transparencyMask != null) {
+			g2.drawImage(backgroundImage.getScaledInstance(RasterGraphicsWindow.this.getWidth(), -1, Image.SCALE_SMOOTH), 0, 0, null);
+		}
+		applyTransparencyMask(g2);
+	}
+
+	protected void paintLayerUI(Graphics g, JComponent c) {
+		c.paint(g);
+
+		if (!components.isEmpty()) {
+			Graphics2D g2 = (Graphics2D) g.create();
+
+			for (RasterUIComponent uiComponent : components) {
+				BufferedImage componentImage = uiComponent.getImage();
+				int x = uiComponent.getX();
+				int y = uiComponent.getY();
+				g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+				if (RasterGraphicsWindow.this.getWidth() == initialWidth) {
+					g2.drawImage(componentImage, x, y, null);
+				} else {
+					double scale = getScaleFactor();
+					int newWidth = (int) Math.round(componentImage.getWidth() * scale);
+					int newX = (int) Math.round(x * scale);
+					int newY = (int) Math.round(y * scale);
+					g2.drawImage(componentImage.getScaledInstance(newWidth, -1, Image.SCALE_SMOOTH), newX, newY, null);
+				}
+			}
+
+			applyTransparencyMask(g2);
+			g2.dispose();
+		}
+	}
+
+	protected void applyTransparencyMask(Graphics2D g2) {
+		if (transparencyMask != null) {
+			if (RasterGraphicsWindow.this.getWidth() == initialWidth) {
+				ImageUtil.applyTransparency(g2, transparencyMask);
+			} else {
 				ImageUtil.applyTransparency(g2,
 						transparencyMask.getScaledInstance(RasterGraphicsWindow.this.getWidth(), -1, Image.SCALE_SMOOTH));
 			}
 		}
 	}
 
-	public RasterGraphicsWindow(int width, int height, BufferedImage backgroundImage, RectanglePointRange dragZone,
-			RectanglePointRange resizeZone, RectanglePointRange closeZone) {
+	public RasterGraphicsWindow(int width,
+			int height,
+			BufferedImage backgroundImage,
+			RectanglePointRange dragZone,
+			RectanglePointRange resizeZone,
+			RectanglePointRange closeZone) {
 		this(width, height, backgroundImage, null, dragZone, resizeZone, closeZone);
 	}
 
@@ -163,8 +179,8 @@ public class RasterGraphicsWindow extends JFrame {
 		return component;
 	}
 
-	protected double getScaleFactor() {
-		return RasterGraphicsWindow.this.getWidth() / (double) RasterGraphicsWindow.this.initialWidth;
+	public double getScaleFactor() {
+		return getWidth() / (double) initialWidth;
 	}
 
 	protected int newScaleCoord(double scale, int coord) {
@@ -184,6 +200,7 @@ public class RasterGraphicsWindow extends JFrame {
 	}
 
 	protected void initMoveResize() {
+		System.out.println("Init move/resize");
 		this.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseReleased(MouseEvent e) {
@@ -192,7 +209,7 @@ public class RasterGraphicsWindow extends JFrame {
 				if (isBeingClosed) {
 					int x = originalScaleCoord(e.getX());
 					int y = originalScaleCoord(e.getY());
-					if (closeZone != null && closeZone.inRange(x, y)) {
+					if (inCloseZone(x, y)) {
 						RasterGraphicsWindow.this.handleClose();
 					}
 				}
@@ -203,17 +220,12 @@ public class RasterGraphicsWindow extends JFrame {
 			public void mousePressed(MouseEvent e) {
 				int x = originalScaleCoord(e.getX());
 				int y = originalScaleCoord(e.getY());
-				if (closeZone != null && closeZone.inRange(x, y)) {
+				if (inCloseZone(x, y)) {
 					RasterGraphicsWindow.this.isBeingClosed = true;
-				} else if (resizeZone != null && resizeZone.inRange(x, y)) {
-					RasterGraphicsWindow.this.isBeingResized = true;
-					RasterGraphicsWindow.this.dragFromX = e.getXOnScreen();
-					RasterGraphicsWindow.this.resizedFromWidth = RasterGraphicsWindow.this.getWidth();
-				} else if (dragZone != null && dragZone.inRange(x, y)) {
-					RasterGraphicsWindow.this.isBeingMoved = true;
-					RasterGraphicsWindow.this.dragFromX = e.getXOnScreen();
-					RasterGraphicsWindow.this.dragFromY = e.getYOnScreen();
-					RasterGraphicsWindow.this.initialLocationBeforeMove = RasterGraphicsWindow.this.getLocation();
+				} else if (inResizeZone(x, y)) {
+					onResizeStart(e);
+				} else if (inMoveZone(x, y)) {
+					onMoveStart(e);
 				}
 			}
 		});
@@ -222,30 +234,63 @@ public class RasterGraphicsWindow extends JFrame {
 			@Override
 			public void mouseDragged(MouseEvent e) {
 				if (RasterGraphicsWindow.this.isBeingResized) {
-					int currentWidth = RasterGraphicsWindow.this.resizedFromWidth;
-					int additionalPixels = e.getXOnScreen() - RasterGraphicsWindow.this.dragFromX;
-
-					int newWidth = currentWidth + additionalPixels;
-					if (newWidth < initialWidth) {
-						newWidth = initialWidth;
-					}
-					int newHeight = (int) Math.round(initialHeight * newWidth / initialWidth);
-					RasterGraphicsWindow.this.setSize(new Dimension(newWidth, newHeight));
-					RasterGraphicsWindow.this.resizeListeners.stream().forEach(Runnable::run);
+					onResize(e);
 				} else if (RasterGraphicsWindow.this.isBeingMoved) {
-					int deltaX = e.getXOnScreen() - RasterGraphicsWindow.this.dragFromX;
-					int deltaY = e.getYOnScreen() - RasterGraphicsWindow.this.dragFromY;
-					Point from = RasterGraphicsWindow.this.getLocation();
-					Point to = new Point(RasterGraphicsWindow.this.initialLocationBeforeMove.x + deltaX,
-							RasterGraphicsWindow.this.initialLocationBeforeMove.y + deltaY);
-					RasterGraphicsWindow.this.setLocation(to);
-					Point finalTo = RasterGraphicsWindow.this.getLocation(); // If movement was limited by title bar the actual location might differ from
-																				// desired one
-					RasterGraphicsWindow.this.moveListeners.stream()
-							.forEach(listener -> listener.accept(Tuple2.<Point, Point> builder().a(from).b(finalTo).build()));
+					onMove(e);
 				}
 			}
 		});
+	}
+
+	protected void onResizeStart(MouseEvent e) {
+		this.isBeingResized = true;
+		this.dragFromX = e.getXOnScreen();
+		this.dragFromY = e.getYOnScreen();
+		this.resizedFromWidth = RasterGraphicsWindow.this.getWidth();
+	}
+
+	protected void onMoveStart(MouseEvent e) {
+		this.isBeingMoved = true;
+		this.dragFromX = e.getXOnScreen();
+		this.dragFromY = e.getYOnScreen();
+		this.initialLocationBeforeMove = RasterGraphicsWindow.this.getLocation();
+	}
+
+	protected boolean inCloseZone(int x, int y) {
+		return closeZone != null && closeZone.inRange(x, y);
+	}
+
+	protected boolean inResizeZone(int x, int y) {
+		return resizeZone != null && resizeZone.inRange(x, y);
+	}
+
+	protected boolean inMoveZone(int x, int y) {
+		return moveZone != null && moveZone.inRange(x, y);
+	}
+
+	protected void onResize(MouseEvent e) {
+		int currentWidth = this.resizedFromWidth;
+		int additionalPixels = e.getXOnScreen() - this.dragFromX;
+
+		int newWidth = currentWidth + additionalPixels;
+		if (newWidth < initialWidth) {
+			newWidth = initialWidth;
+		}
+		int newHeight = (int) Math.round(initialHeight * newWidth / initialWidth);
+		this.setSize(new Dimension(newWidth, newHeight));
+		this.resizeListeners.stream().forEach(Runnable::run);
+	}
+
+	protected void onMove(MouseEvent e) {
+		int deltaX = e.getXOnScreen() - this.dragFromX;
+		int deltaY = e.getYOnScreen() - this.dragFromY;
+		Point from = this.getLocation();
+		Point to = new Point(this.initialLocationBeforeMove.x + deltaX, this.initialLocationBeforeMove.y + deltaY);
+		this.setLocation(to);
+		// If movement was limited by macOS title bar then the actual location of the window
+		// might differ from the one set via setLocation
+		Point finalTo = this.getLocation();
+		this.moveListeners.stream().forEach(listener -> listener.accept(Tuple2.<Point, Point> builder().a(from).b(finalTo).build()));
 	}
 
 	public void addMoveListener(Consumer<Tuple2<Point, Point>> moveListener) {

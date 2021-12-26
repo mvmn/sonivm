@@ -1,6 +1,7 @@
 package x.mvmn.sonivm.ui.retro;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
@@ -14,6 +15,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -33,6 +35,7 @@ import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.io.inputstream.ZipInputStream;
 import net.lingala.zip4j.model.FileHeader;
 import x.mvmn.sonivm.ui.retro.exception.WSZLoadingException;
+import x.mvmn.sonivm.ui.retro.rasterui.RasterFrameWindow;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterGraphicsWindow;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIButton;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIIndicator;
@@ -40,6 +43,7 @@ import x.mvmn.sonivm.ui.retro.rasterui.RasterUISlider;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIToggleButton;
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
 import x.mvmn.sonivm.ui.util.swing.RectanglePointRange;
+import x.mvmn.sonivm.util.Tuple2;
 import x.mvmn.sonivm.util.Tuple3;
 import x.mvmn.sonivm.util.UnsafeFunction;
 
@@ -283,6 +287,85 @@ public class RetroUIFactory {
 				.build());
 		//////////////////// //////////////////// //////////////////// //////////////////// ////////////////////
 
+		BufferedImage pleditBmp = ImageUtil.convert(loadImage(skinZip, "PLEDIT.BMP"), BufferedImage.TYPE_INT_ARGB);
+		BufferedImage plFrameTopLeftActive = ImageUtil.subImageOrBlank(pleditBmp, 0, 0, 25, 20);
+		BufferedImage plFrameTitleActive = ImageUtil.subImageOrBlank(pleditBmp, 26, 0, 100, 20);
+		BufferedImage plFrameTopExtenderActive = ImageUtil.subImageOrBlank(pleditBmp, 127, 0, 25, 20);
+		BufferedImage plFrameTopRightActive = ImageUtil.subImageOrBlank(pleditBmp, 153, 0, 25, 20);
+
+		BufferedImage plFrameTopLeftInactive = ImageUtil.subImageOrBlank(pleditBmp, 0, 21, 25, 20);
+		BufferedImage plFrameTitleInactive = ImageUtil.subImageOrBlank(pleditBmp, 26, 21, 100, 20);
+		BufferedImage plFrameTopExtenderInactive = ImageUtil.subImageOrBlank(pleditBmp, 127, 21, 25, 20);
+		BufferedImage plFrameTopRightInactive = ImageUtil.subImageOrBlank(pleditBmp, 153, 21, 25, 20);
+
+		BufferedImage plFrameBottomExtender = ImageUtil.subImageOrBlank(pleditBmp, 179, 0, 25, 38);
+		BufferedImage plFrameBottomExtenderBig = ImageUtil.subImageOrBlank(pleditBmp, 205, 0, 75, 38);
+
+		BufferedImage plFrameLeft = ImageUtil.subImageOrBlank(pleditBmp, 0, 42, 12, 29);
+		BufferedImage plFrameRight = ImageUtil.subImageOrBlank(pleditBmp, 31, 42, 20, 29);
+
+		BufferedImage plSliderButtonActive = ImageUtil.subImageOrBlank(pleditBmp, 52, 53, 8, 18);
+		BufferedImage plSliderButtonInactive = ImageUtil.subImageOrBlank(pleditBmp, 61, 53, 8, 18);
+		BufferedImage plFrameBottomLeft = ImageUtil.subImageOrBlank(pleditBmp, 0, 72, 125, 38);
+		BufferedImage plFrameBottomRight = ImageUtil.subImageOrBlank(pleditBmp, 126, 72, 150, 38);
+
+		int btnY = 111;
+		int btnW = 22;
+		int btnH = 18;
+
+		int divW = 3;
+		int divH = 54;
+		int divLongH = 72;
+
+		Function<Tuple3<Integer, Integer, Integer>, Tuple2<BufferedImage[], BufferedImage[]>> cutOutButtons = numNCoords -> {
+			BufferedImage[] buttonsActive = new BufferedImage[numNCoords.getA()];
+			BufferedImage[] buttonsInActive = new BufferedImage[numNCoords.getA()];
+
+			for (int i = 0; i < buttonsActive.length; i++) {
+				buttonsActive[i] = ImageUtil.subImageOrBlank(pleditBmp, numNCoords.getB(), numNCoords.getC() + (1 + btnH) * i, btnW, btnH);
+				buttonsInActive[i] = ImageUtil.subImageOrBlank(pleditBmp, numNCoords.getB() + 1 + btnW, numNCoords.getC() + (1 + btnH) * i,
+						btnW, btnH);
+			}
+
+			return Tuple2.<BufferedImage[], BufferedImage[]> builder().a(buttonsActive).b(buttonsInActive).build();
+		};
+
+		Tuple2<BufferedImage[], BufferedImage[]> addButtons = cutOutButtons.apply(Tuple3.of(3, 0, btnY));
+		Tuple2<BufferedImage[], BufferedImage[]> removeButtons = cutOutButtons.apply(Tuple3.of(4, 54, btnY));
+		Tuple2<BufferedImage[], BufferedImage[]> selectionButtons = cutOutButtons.apply(Tuple3.of(3, 104, btnY));
+		Tuple2<BufferedImage[], BufferedImage[]> miscButtons = cutOutButtons.apply(Tuple3.of(3, 154, btnY));
+		Tuple2<BufferedImage[], BufferedImage[]> listButtons = cutOutButtons.apply(Tuple3.of(3, 204, btnY));
+
+		BufferedImage addBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 48, 111, divW, divH);
+		BufferedImage removeBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 100, 111, divW, divLongH);
+		BufferedImage selectionBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 150, 111, divW, divH);
+		BufferedImage miscBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 200, 111, divW, divH);
+		BufferedImage listBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 250, 111, divW, divH);
+
+		Color backgroundColor = Color.BLACK;
+		Wini plEditIni = loadIniFile(skinZip, "PLEDIT.TXT");
+		if (plEditIni != null) {
+			String bgColor = plEditIni.get("Text", "NormalBG");
+			if (bgColor != null && bgColor.trim().startsWith("#")) {
+				String color = bgColor.trim().substring(1);
+				if (color.matches("^[A-F0-9]{6}$")) {
+					int red = Integer.parseInt(color.substring(0, 2), 16);
+					int green = Integer.parseInt(color.substring(2, 4), 16);
+					int blue = Integer.parseInt(color.substring(4, 6), 16);
+					backgroundColor = new Color(red, green, blue);
+				}
+			}
+		}
+
+		RasterFrameWindow plEditWin = new RasterFrameWindow(275, 116, backgroundColor, plFrameTopLeftActive, plFrameTitleActive,
+				plFrameTopExtenderActive, plFrameTopRightActive, plFrameTopLeftInactive, plFrameTitleInactive, plFrameTopExtenderInactive,
+				plFrameTopRightInactive, plFrameLeft, plFrameRight, plFrameBottomLeft, plFrameBottomExtender, plFrameBottomExtenderBig,
+				plFrameBottomRight, new RectanglePointRange(0, 0, 275, 16), new RectanglePointRange(260, 100, 275, 116),
+				new RectanglePointRange(264, 3, 264 + 9, 3 + 9));
+		plEditWin.setVisible(true);
+
+		//////////////////// //////////////////// //////////////////// //////////////////// ////////////////////
+
 		Supplier<Boolean> isEQWinInSnapPosition = () -> mainWin.getLocation().x == eqWin.getLocation().x
 				&& mainWin.getLocation().y + mainWin.getHeight() == eqWin.getLocation().y;
 
@@ -304,11 +387,10 @@ public class RetroUIFactory {
 
 			@Override
 			public void componentResized(ComponentEvent e) {
+				eqWin.setSize(mainWin.getSize());
+				plEditWin.setScaleFactor(mainWin.getScaleFactor());
 				if (eqWindowSnapped.get()) {
-					eqWin.setSize(mainWin.getSize());
 					moveEQWindowBelowMain.run();
-				} else {
-					eqWin.setSize(mainWin.getSize());
 				}
 			}
 
@@ -380,6 +462,7 @@ public class RetroUIFactory {
 
 		mainWin.setAutoRequestFocus(false);
 		eqWin.setAutoRequestFocus(false);
+		plEditWin.setAutoRequestFocus(false);
 
 		btnEqToggle.setButtonOn(true);
 		btnEqToggle.addListener(() -> eqWin.setVisible(btnEqToggle.isButtonOn()));
