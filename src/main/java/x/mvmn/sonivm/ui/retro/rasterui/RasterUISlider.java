@@ -18,6 +18,8 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 	protected final BufferedImage sliderButtonPressed;
 	protected final int range;
 	protected final boolean vertical;
+	protected int handleXOffset = 0;
+	protected int handleYOffset = 0;
 
 	@Getter
 	protected volatile int sliderPosition;
@@ -40,9 +42,25 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 			int range,
 			int initialPosition,
 			boolean vertical) {
+		this(parent, sliderBackground, sliderButtonReleased, sliderButtonPressed, x, y, range, initialPosition, vertical, 0, 0);
+	}
+
+	public RasterUISlider(RasterGraphicsWindow parent,
+			BufferedImage sliderBackground,
+			BufferedImage sliderButtonReleased,
+			BufferedImage sliderButtonPressed,
+			int x,
+			int y,
+			int range,
+			int initialPosition,
+			boolean vertical,
+			int handleXOffset,
+			int handleYOffset) {
 		super(parent,
 				new BufferedImage(sliderBackground.getWidth(),
-						range + (vertical ? sliderButtonPressed.getHeight() : sliderButtonPressed.getWidth()), BufferedImage.TYPE_INT_ARGB),
+						Math.max(sliderBackground.getHeight(),
+								range + (vertical ? sliderButtonPressed.getHeight() : sliderButtonPressed.getWidth())),
+						BufferedImage.TYPE_INT_ARGB),
 				x, y);
 		this.sliderBackground = sliderBackground;
 		this.sliderButtonReleased = sliderButtonReleased;
@@ -50,6 +68,8 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 		this.range = range;
 		this.vertical = vertical;
 		this.sliderPosition = initialPosition;
+		this.handleXOffset = handleXOffset;
+		this.handleYOffset = handleYOffset;
 		repaint();
 	}
 
@@ -90,7 +110,7 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 			} else {
 				x += this.sliderPosition;
 			}
-			g2d.drawImage(pressed ? sliderButtonPressed : sliderButtonReleased, x, y, null);
+			g2d.drawImage(pressed ? sliderButtonPressed : sliderButtonReleased, x + handleXOffset, y + handleYOffset, null);
 		}
 		super.repaint();
 	}
@@ -105,8 +125,8 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 		int x = parent.originalScaleCoord(parentX) - this.getX();
 		int y = parent.originalScaleCoord(parentY) - this.getY();
 
-		int btnx = vertical ? 0 : sliderPosition;
-		int btny = vertical ? sliderPosition : 0;
+		int btnx = vertical ? 0 : sliderPosition + handleXOffset;
+		int btny = vertical ? sliderPosition : 0 + handleYOffset;
 
 		return x >= btnx && x <= btnx + sliderButtonReleased.getWidth() && y >= btny && y <= btny + sliderButtonReleased.getHeight();
 	}

@@ -18,9 +18,11 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -29,6 +31,7 @@ import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.table.DefaultTableCellRenderer;
 
 import org.ini4j.Wini;
 
@@ -37,6 +40,7 @@ import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.io.inputstream.ZipInputStream;
 import net.lingala.zip4j.model.FileHeader;
 import x.mvmn.sonivm.ui.retro.exception.WSZLoadingException;
+import x.mvmn.sonivm.ui.retro.rasterui.ExtRasterUISlider;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterFrameWindow;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterGraphicsWindow;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIButton;
@@ -262,7 +266,8 @@ public class RetroUIFactory {
 			eqSliders[i] = eqWin.addComponent(window -> new ExtRasterUISlider(window, eqSliderBackgrounds,
 					ImageUtil.subImageOrBlank(eqmainBmp, 0, 164, 11, 11), ImageUtil.subImageOrBlank(eqmainBmp, 0, 164 + 12, 11, 11),
 					78 + index * 18, 38, 51, 25, true, val -> (int) Math.round(val * 28.0d / 51.0d), 1, 0));
-			eqSliders[i].addListener(() -> System.out.println("EQ " + index + ": " + eqSliders[index].getSliderPosition()));
+			eqSliders[i].addListener(() -> System.out
+					.println("EQ " + index + ": " + eqSliders[index].getSliderPosition() + " " + eqSliders[index].getHeight()));
 		}
 		ExtRasterUISlider eqGainSlider = eqWin.addComponent(window -> new ExtRasterUISlider(window, eqSliderBackgrounds,
 				ImageUtil.subImageOrBlank(eqmainBmp, 0, 164, 11, 11), ImageUtil.subImageOrBlank(eqmainBmp, 0, 164 + 12, 11, 11), 21, 38, 51,
@@ -274,7 +279,7 @@ public class RetroUIFactory {
 
 		RasterUIToggleButton btnEqOn = eqWin.addComponent(window -> new RasterUIToggleButton(window,
 				ImageUtil.subImageOrBlank(eqmainBmp, 69, 119, 25, 12), ImageUtil.subImageOrBlank(eqmainBmp, 187, 119, 25, 12),
-				ImageUtil.subImageOrBlank(eqmainBmp, 10, 119, 25, 12), ImageUtil.subImageOrBlank(eqmainBmp, 128, 119, 25, 12), 15, 18));
+				ImageUtil.subImageOrBlank(eqmainBmp, 10, 119, 25, 12), ImageUtil.subImageOrBlank(eqmainBmp, 128, 119, 25, 12), 14, 18));
 		RasterUIToggleButton btnEqAuto = eqWin.addComponent(window -> new RasterUIToggleButton(window,
 				ImageUtil.subImageOrBlank(eqmainBmp, 94, 119, 33, 12), ImageUtil.subImageOrBlank(eqmainBmp, 212, 119, 33, 12),
 				ImageUtil.subImageOrBlank(eqmainBmp, 35, 119, 33, 12), ImageUtil.subImageOrBlank(eqmainBmp, 153, 119, 33, 12), 39, 18));
@@ -345,29 +350,26 @@ public class RetroUIFactory {
 		BufferedImage miscBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 200, 111, divW, divH);
 		BufferedImage listBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 250, 111, divW, divH);
 
-		Color backgroundColor = Color.BLACK;
 		Wini plEditIni = loadIniFile(skinZip, "PLEDIT.TXT");
-		if (plEditIni != null) {
-			String bgColor = plEditIni.get("Text", "NormalBG");
-			if (bgColor != null && bgColor.trim().startsWith("#")) {
-				String color = bgColor.trim().substring(1);
-				if (color.matches("^[A-F0-9]{6}$")) {
-					int red = Integer.parseInt(color.substring(0, 2), 16);
-					int green = Integer.parseInt(color.substring(2, 4), 16);
-					int blue = Integer.parseInt(color.substring(4, 6), 16);
-					backgroundColor = new Color(red, green, blue);
-				}
-			}
-		}
+		Color backgroundColor = SkinUtil.getColor(plEditIni, "Text", "NormalBG", Color.BLACK);
+		Color textColor = SkinUtil.getColor(plEditIni, "Text", "Normal", Color.YELLOW);
+		Color currentTrackTextColor = SkinUtil.getColor(plEditIni, "Text", "Current", Color.WHITE);
+		Color selectionBackgroundColor = SkinUtil.getColor(plEditIni, "Text", "SelectedBG", Color.BLACK);
+		String[][] dummyTableData = IntStream.range(0, 100)
+				.mapToObj(i -> new String[] { "Test" + i, "asdasd" })
+				.collect(Collectors.toList())
+				.toArray(new String[][] {});
+		JTable dummyTable = new JTable(dummyTableData, new String[] { "Column 1", "Column 2" });
+		dummyTable.setBackground(backgroundColor);
+		dummyTable.setForeground(textColor);
+		dummyTable.setSelectionBackground(selectionBackgroundColor);
+		dummyTable.setSelectionForeground(textColor);
+		dummyTable.setBorder(BorderFactory.createEmptyBorder());
 
-		RasterFrameWindow plEditWin = new RasterFrameWindow(275, 116,
-				new JTable(new String[][] { new String[] { "Test1", "asdasd" }, new String[] { "Test2", "asdasd" },
-						new String[] { "Test3", "asdasd" }, new String[] { "Test4", "asdasd" }, new String[] { "Test5", "asdasd" } },
-						new String[] { "Test", "Col2" }),
-				backgroundColor, plFrameTopLeftActive, plFrameTitleActive, plFrameTopExtenderActive, plFrameTopRightActive,
-				plFrameTopLeftInactive, plFrameTitleInactive, plFrameTopExtenderInactive, plFrameTopRightInactive, plFrameLeft,
-				plFrameRight, plFrameBottomLeft, plFrameBottomExtender, plFrameBottomExtenderBig, plFrameBottomRight,
-				new RectanglePointRange(0, 0, 275, 16), new RectanglePointRange(255, 96, 275, 116),
+		RasterFrameWindow plEditWin = new RasterFrameWindow(275, 116, dummyTable, backgroundColor, plFrameTopLeftActive, plFrameTitleActive,
+				plFrameTopExtenderActive, plFrameTopRightActive, plFrameTopLeftInactive, plFrameTitleInactive, plFrameTopExtenderInactive,
+				plFrameTopRightInactive, plFrameLeft, plFrameRight, plFrameBottomLeft, plFrameBottomExtender, plFrameBottomExtenderBig,
+				plFrameBottomRight, new RectanglePointRange(0, 0, 275, 16), new RectanglePointRange(255, 96, 275, 116),
 				new RectanglePointRange(264, 3, 264 + 9, 3 + 9), plSliderButtonActive, plSliderButtonInactive);
 
 		resultBuilder.c(RetroUIPlaylistWindow.builder().window(plEditWin).build());
@@ -440,6 +442,10 @@ public class RetroUIFactory {
 					eqWin.toFront();
 					eqWin.repaint();
 				}
+				if (plEditWin.isVisible()) {
+					plEditWin.toFront();
+					plEditWin.repaint();
+				}
 			}
 
 			@Override
@@ -458,12 +464,38 @@ public class RetroUIFactory {
 					mainWin.toFront();
 					mainWin.repaint();
 				}
+				if (plEditWin.isVisible()) {
+					plEditWin.toFront();
+					plEditWin.repaint();
+				}
 			}
 
 			@Override
 			public void windowDeactivated(WindowEvent e) {
 				eqTitleBar.setActive(false);
 				eqTitleBar.repaint();
+			}
+		});
+
+		plEditWin.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowActivated(WindowEvent e) {
+				plEditWin.setActive(true);
+				plEditWin.repaint();
+				if (mainWin.isVisible()) {
+					mainWin.toFront();
+					mainWin.repaint();
+				}
+				if (eqWin.isVisible()) {
+					eqWin.toFront();
+					eqWin.repaint();
+				}
+			}
+
+			@Override
+			public void windowDeactivated(WindowEvent e) {
+				plEditWin.setActive(false);
+				plEditWin.repaint();
 			}
 		});
 

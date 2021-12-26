@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
+import org.ini4j.Wini;
+
 public class SkinUtil {
 
 	public static BufferedImage createTransparencyMask(int width, int height, String numPoints, String pointList) {
@@ -61,5 +63,20 @@ public class SkinUtil {
 			graphics.fillPolygon(xes, ys, points.size());
 			graphics.dispose();
 		}
+	}
+
+	public static Color getColor(Wini skinIni, String section, String property, Color fallback) {
+		Color result = fallback;
+		if (skinIni != null) {
+			String bgColor = skinIni.get(section, property);
+			if (bgColor != null && bgColor.trim().matches("^#[A-F0-9]{6}$")) {
+				String color = bgColor.trim().substring(1);
+				int red = Integer.parseInt(color.substring(0, 2), 16);
+				int green = Integer.parseInt(color.substring(2, 4), 16);
+				int blue = Integer.parseInt(color.substring(4, 6), 16);
+				result = new Color(red, green, blue);
+			}
+		}
+		return result;
 	}
 }
