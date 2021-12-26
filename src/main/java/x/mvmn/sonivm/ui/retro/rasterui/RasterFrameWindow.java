@@ -128,7 +128,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 
 		this.sliderButtonPressed = sliderButtonPressed;
 		this.sliderButtonReleased = sliderButtonReleased;
-		this.sliderBackground = ImageUtil.subImageOrBlank(right, 4, 0, 8, 29);
+		this.sliderBackground = ImageUtil.subImageOrBlank(right, 4, 0, 8 + 1, 29); // 8 is slider button width + 1 is slider button x offset
 
 		this.wrappedComponentScrollPane.getVerticalScrollBar().setUI(new ScrollBarUI() {});
 		this.wrappedComponentScrollPane.getViewport().addChangeListener(new ChangeListener() {
