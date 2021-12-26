@@ -22,8 +22,10 @@ import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -358,11 +360,15 @@ public class RetroUIFactory {
 			}
 		}
 
-		RasterFrameWindow plEditWin = new RasterFrameWindow(275, 116, backgroundColor, plFrameTopLeftActive, plFrameTitleActive,
-				plFrameTopExtenderActive, plFrameTopRightActive, plFrameTopLeftInactive, plFrameTitleInactive, plFrameTopExtenderInactive,
-				plFrameTopRightInactive, plFrameLeft, plFrameRight, plFrameBottomLeft, plFrameBottomExtender, plFrameBottomExtenderBig,
-				plFrameBottomRight, new RectanglePointRange(0, 0, 275, 16), new RectanglePointRange(255, 96, 275, 116),
-				new RectanglePointRange(264, 3, 264 + 9, 3 + 9));
+		RasterFrameWindow plEditWin = new RasterFrameWindow(275, 116,
+				new JTable(new String[][] { new String[] { "Test1", "asdasd" }, new String[] { "Test2", "asdasd" },
+						new String[] { "Test3", "asdasd" }, new String[] { "Test4", "asdasd" }, new String[] { "Test5", "asdasd" } },
+						new String[] { "Test", "Col2" }),
+				backgroundColor, plFrameTopLeftActive, plFrameTitleActive, plFrameTopExtenderActive, plFrameTopRightActive,
+				plFrameTopLeftInactive, plFrameTitleInactive, plFrameTopExtenderInactive, plFrameTopRightInactive, plFrameLeft,
+				plFrameRight, plFrameBottomLeft, plFrameBottomExtender, plFrameBottomExtenderBig, plFrameBottomRight,
+				new RectanglePointRange(0, 0, 275, 16), new RectanglePointRange(255, 96, 275, 116),
+				new RectanglePointRange(264, 3, 264 + 9, 3 + 9), plSliderButtonActive, plSliderButtonInactive);
 
 		resultBuilder.c(RetroUIPlaylistWindow.builder().window(plEditWin).build());
 		//////////////////// //////////////////// //////////////////// //////////////////// ////////////////////

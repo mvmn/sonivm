@@ -4,8 +4,15 @@ import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+
+import javax.swing.JComponent;
+import javax.swing.JScrollPane;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.plaf.ScrollBarUI;
 
 import lombok.Getter;
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
@@ -53,9 +60,16 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 	private final BufferedImage bottomSpecialExtender;
 	private final BufferedImage bottomRight;
 	private final Color backgroundColor;
+	private final JComponent wrappedComponent;
+	private final JScrollPane wrappedComponentScrollPane;
+	private volatile RasterUISlider scrollSlider;
+	private final BufferedImage sliderButtonPressed;
+	private final BufferedImage sliderButtonReleased;
+	private final BufferedImage sliderBackground;
 
 	public RasterFrameWindow(int baseWidth,
 			int baseHeight,
+			JComponent wrappedComponent,
 			Color backgroundColor,
 			BufferedImage topLeftActive,
 			BufferedImage titleActive,
@@ -73,7 +87,9 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 			BufferedImage bottomRight,
 			RectanglePointRange dragZone,
 			RectanglePointRange resizeZone,
-			RectanglePointRange closeZone) {
+			RectanglePointRange closeZone,
+			BufferedImage sliderButtonPressed,
+			BufferedImage sliderButtonReleased) {
 		super(baseWidth, baseHeight, new BufferedImage(baseWidth, baseHeight, BufferedImage.TYPE_INT_ARGB), dragZone, resizeZone,
 				closeZone);
 		this.backgroundImage = super.backgroundImage;
@@ -81,6 +97,8 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 		// this.initialHeight = initialHeight;
 
 		this.backgroundColor = backgroundColor;
+		this.wrappedComponent = wrappedComponent;
+		this.wrappedComponentScrollPane = new JScrollPane(wrappedComponent);
 
 		this.widthExtenderWidth = bottomExtender.getWidth(); // 25
 		this.heightExtenderHeight = left.getHeight(); // 29
@@ -104,13 +122,65 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 		this.bottomSpecialExtender = bottomSpecialExtender;
 		this.bottomRight = bottomRight;
 
-		// Background image: PLEDIT.TXT color background or black + frame
-		// Re-draw background + frame and re-create scroll slider on extension change
-		// Absolute positioning for tracklist component
-		// JLayer for buttons
+		this.sliderButtonPressed = sliderButtonPressed;
+		this.sliderButtonReleased = sliderButtonReleased;
+		this.sliderBackground = ImageUtil.subImageOrBlank(right, 4, 0, 8, 29);
 
+		this.wrappedComponentScrollPane.getVerticalScrollBar().setUI(new ScrollBarUI() {});
+		this.wrappedComponentScrollPane.getViewport().addChangeListener(new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				onScrollInScrollPane();
+			}
+		});
+
+		reconstructScrollSlider();
+
+		this.addComponent(window -> this.scrollSlider);
+
+		this.getContentPane().setLayout(null);
+		this.getContentPane().add(wrappedComponentScrollPane);
+
+		updateComponentLocations();
 		updateExtPixelSizes();
 		renderBackground();
+	}
+
+	protected void reconstructScrollSlider() {
+		if (this.scrollSlider != null) {
+			this.removeComponent(this.scrollSlider);
+		}
+		this.scrollSlider = new RasterUISlider(this, sliderBackground, sliderButtonPressed, sliderButtonReleased,
+				initialWidth - right.getWidth() + 4 + extensionWidthPixels, topRight.getHeight(),
+				heightExtenderHeight * 2 + extensionHeightPixels - sliderButtonPressed.getHeight(), 0, true);
+		this.scrollSlider.addListener(() -> onScrollViaSlider(this.scrollSlider.getSliderPositionRatio()));
+		this.addComponent(window -> this.scrollSlider);
+	}
+
+	protected void onScrollInScrollPane() {
+		Rectangle visibleRect = this.wrappedComponent.getVisibleRect();
+		int totalHeight = this.wrappedComponent.getHeight();
+		this.scrollSlider.setSliderPositionRatio(visibleRect.y / (double) (totalHeight - visibleRect.height), false);
+	}
+
+	protected void onScrollViaSlider(double sliderPositionRatio) {
+		Rectangle visibleRect = this.wrappedComponent.getVisibleRect();
+		int y = (int) Math.round((this.wrappedComponent.getHeight() - visibleRect.height) * sliderPositionRatio);
+		this.wrappedComponent.scrollRectToVisible(new Rectangle(visibleRect.x, y, visibleRect.width, visibleRect.height));
+	}
+
+	private void updateComponentLocations() {
+		int width = initialWidth + widthExtenderWidth * widthExtension;
+		int height = initialHeight + heightExtenderHeight * heightExtension;
+		int widthScaled = newScaleCoord(scaleFactor, width);
+		int heightScaled = newScaleCoord(scaleFactor, height);
+
+		this.componentsLayer.setBounds(0, 0, widthScaled, heightScaled);
+		int leftPx = newScaleCoord(getScaleFactor(), left.getWidth());
+		int topPx = newScaleCoord(getScaleFactor(), topLeft.getHeight());
+		int rightPx = newScaleCoord(getScaleFactor(), initialWidth + extensionWidthPixels - right.getWidth());
+		int bottomPx = newScaleCoord(getScaleFactor(), initialHeight + extensionHeightPixels - bottomLeft.getHeight());
+		this.wrappedComponentScrollPane.setBounds(leftPx, topPx, rightPx - leftPx, bottomPx - topPx);
 	}
 
 	protected void renderBackground() {
@@ -173,13 +243,14 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 	protected void paintBackgroundPanel(Graphics g) {
 		Graphics2D g2 = (Graphics2D) g.create();
 		g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
-		int width = (int) Math.round((this.extensionWidthPixels + this.initialWidth) * getScaleFactor());
+		int width = newScaleCoord(getScaleFactor(), this.extensionWidthPixels + this.initialWidth);
 		if (backgroundImage.getWidth() == width) {
 			g2.drawImage(backgroundImage, 0, 0, null);
 		} else {
 			g2.drawImage(backgroundImage.getScaledInstance(width, -1, BufferedImage.SCALE_SMOOTH), 0, 0, null);
 		}
 		applyTransparencyMask(g2);
+		this.wrappedComponentScrollPane.repaint();
 	}
 
 	private void drawBottomWidthExtension(int actualWindowWidth, int bottomLineYOffset) {
@@ -221,8 +292,8 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 
 	@Override
 	protected void onResize(MouseEvent e) {
-		int additionalXPixels = e.getXOnScreen() - this.dragFromX;
-		int additionalYPixels = e.getYOnScreen() - this.dragFromY;
+		int additionalXPixels = this.originalScaleCoord(e.getXOnScreen() - this.dragFromX);
+		int additionalYPixels = this.originalScaleCoord(e.getYOnScreen() - this.dragFromY);
 
 		int widthExtDelta = (int) Math.round(additionalXPixels / (double) widthExtenderWidth);
 		int heightExtDelta = (int) Math.round(additionalYPixels / (double) heightExtenderHeight);
@@ -250,6 +321,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 	protected void onSizeExtensionsChange() {
 		updateExtPixelSizes();
 		updateComponentSize();
+		reconstructScrollSlider();
 		this.resizeListeners.stream().forEach(Runnable::run);
 
 	}
@@ -258,11 +330,12 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 		double scaleFactor = getScaleFactor();
 		int width = initialWidth + widthExtenderWidth * widthExtension;
 		int height = initialHeight + heightExtenderHeight * heightExtension;
-		int widthScaled = (int) Math.round(width * scaleFactor);
-		int heightScaled = (int) Math.round(height * scaleFactor);
+		int widthScaled = newScaleCoord(scaleFactor, width);
+		int heightScaled = newScaleCoord(scaleFactor, height);
 		this.backgroundImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 		renderBackground();
 		this.setSize(widthScaled, heightScaled);
+		updateComponentLocations();
 	}
 
 	public void setWidthSizeExtension(int widthExtension) {

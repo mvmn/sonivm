@@ -31,9 +31,19 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 
 	protected final CopyOnWriteArrayList<Runnable> listerens = new CopyOnWriteArrayList<>();
 
-	public RasterUISlider(RasterGraphicsWindow parent, BufferedImage sliderBackground, BufferedImage sliderButtonReleased,
-			BufferedImage sliderButtonPressed, int x, int y, int range, int initialPosition, boolean vertical) {
-		super(parent, new BufferedImage(sliderBackground.getWidth(), sliderBackground.getHeight(), BufferedImage.TYPE_INT_ARGB), x, y);
+	public RasterUISlider(RasterGraphicsWindow parent,
+			BufferedImage sliderBackground,
+			BufferedImage sliderButtonReleased,
+			BufferedImage sliderButtonPressed,
+			int x,
+			int y,
+			int range,
+			int initialPosition,
+			boolean vertical) {
+		super(parent,
+				new BufferedImage(sliderBackground.getWidth(),
+						range + (vertical ? sliderButtonPressed.getHeight() : sliderButtonPressed.getWidth()), BufferedImage.TYPE_INT_ARGB),
+				x, y);
 		this.sliderBackground = sliderBackground;
 		this.sliderButtonReleased = sliderButtonReleased;
 		this.sliderButtonPressed = sliderButtonPressed;
@@ -64,7 +74,14 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 		BufferedImage argbBackgroundImage = super.image;
 		Graphics2D g2d = argbBackgroundImage.createGraphics();
 		g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
-		g2d.drawImage(sliderBackground, 0, 0, null);
+		int timesToPaint = (int) Math.round(Math.floor(vertical ? this.getHeight() : this.getWidth())
+				/ (vertical ? this.sliderBackground.getHeight() : this.sliderBackground.getWidth()));
+		for (int i = 0; i < timesToPaint; i++) {
+			g2d.drawImage(sliderBackground, vertical ? 0 : i * this.sliderBackground.getWidth(),
+					vertical ? i * this.sliderBackground.getHeight() : 0, null);
+		}
+		g2d.drawImage(sliderBackground, this.getWidth() - this.sliderBackground.getWidth(),
+				this.getHeight() - this.sliderBackground.getHeight(), null);
 		if (!indefinite) {
 			int x = 0;
 			int y = 0;
@@ -167,5 +184,13 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 
 	public void setSliderPosition(int sliderPosition, boolean notifyListeners) {
 		updateSliderPosition(sliderPosition, notifyListeners);
+	}
+
+	public double getSliderPositionRatio() {
+		return this.getSliderPosition() / (double) this.range;
+	}
+
+	public void setSliderPositionRatio(double sliderPositionRatio, boolean notifyListeners) {
+		updateSliderPosition(Math.min((int) Math.round(range * sliderPositionRatio), range), notifyListeners);
 	}
 }

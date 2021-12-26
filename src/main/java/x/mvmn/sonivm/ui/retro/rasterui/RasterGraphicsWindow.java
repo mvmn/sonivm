@@ -65,6 +65,7 @@ public class RasterGraphicsWindow extends JFrame {
 			RectanglePointRange closeZone) {
 		this.setUndecorated(true);
 		super.setBackground(new Color(0, 0, 0, 0));
+		this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		this.backgroundImage = backgroundImage;
 		this.transparencyMask = transparencyMask;
 		this.initialWidth = width;
@@ -177,6 +178,10 @@ public class RasterGraphicsWindow extends JFrame {
 			this.addMouseMotionListener(mouseMotionListener);
 		}
 		return component;
+	}
+
+	public void removeComponent(RasterUIComponent component) {
+		components.remove(component);
 	}
 
 	public double getScaleFactor() {
