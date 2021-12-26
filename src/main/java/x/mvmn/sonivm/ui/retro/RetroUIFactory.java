@@ -426,6 +426,7 @@ public class RetroUIFactory {
 			@Override
 			public void componentShown(ComponentEvent e) {
 				eqWindowSnapped.set(isEQWinInSnapPosition.get());
+				eqWin.repaint();
 			}
 
 			@Override
