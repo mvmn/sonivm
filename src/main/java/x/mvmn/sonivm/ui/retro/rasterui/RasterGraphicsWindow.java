@@ -128,10 +128,15 @@ public class RasterGraphicsWindow extends JFrame {
 					g2.drawImage(componentImage, x, y, null);
 				} else {
 					double scale = getScaleFactor();
-					int newWidth = (int) Math.round(componentImage.getWidth() * scale);
 					int newX = (int) Math.round(x * scale);
 					int newY = (int) Math.round(y * scale);
-					g2.drawImage(componentImage.getScaledInstance(newWidth, -1, Image.SCALE_SMOOTH), newX, newY, null);
+					if (componentImage.getWidth() > componentImage.getHeight()) {
+						int newWidth = (int) Math.round(componentImage.getWidth() * scale);
+						g2.drawImage(componentImage.getScaledInstance(newWidth, -1, Image.SCALE_SMOOTH), newX, newY, null);
+					} else {
+						int newHeight = (int) Math.round(componentImage.getHeight() * scale);
+						g2.drawImage(componentImage.getScaledInstance(-1, newHeight, Image.SCALE_SMOOTH), newX, newY, null);
+					}
 				}
 			}
 
