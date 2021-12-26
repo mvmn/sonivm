@@ -142,8 +142,6 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 
 		reconstructScrollSlider();
 
-		this.addComponent(window -> this.scrollSlider);
-
 		this.getContentPane().setLayout(null);
 		this.getContentPane().add(wrappedComponentScrollPane);
 
@@ -156,9 +154,9 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 		if (this.scrollSlider != null) {
 			this.removeComponent(this.scrollSlider);
 		}
+		int range = heightExtenderHeight * 2 + extensionHeightPixels - sliderButtonPressed.getHeight();
 		this.scrollSlider = new RasterUISlider(this, sliderBackground, sliderButtonPressed, sliderButtonReleased,
-				initialWidth - right.getWidth() + 4 + extensionWidthPixels, topRight.getHeight(),
-				heightExtenderHeight * 2 + extensionHeightPixels - sliderButtonPressed.getHeight(), 0, true, 1, 0);
+				initialWidth - right.getWidth() + 4 + extensionWidthPixels, topRight.getHeight(), range, 0, true, 1, 0);
 		this.scrollSlider.addListener(() -> onScrollViaSlider(this.scrollSlider.getSliderPositionRatio()));
 		this.addComponent(window -> this.scrollSlider);
 	}
@@ -318,10 +316,15 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 		int heightExtDelta = (int) Math.round(additionalYPixels / (double) heightExtenderHeight);
 
 		if (widthExtDelta != 0 || heightExtDelta != 0) {
-			this.widthExtension = Math.max(0, this.resizeInitialWidthExt + widthExtDelta);
-			this.heightExtension = Math.max(0, this.resizeInitialHeightExt + heightExtDelta);
-			onSizeExtensionsChange();
+			int newWidthExt = Math.max(0, this.resizeInitialWidthExt + widthExtDelta);
+			int newHeightExt = Math.max(0, this.resizeInitialHeightExt + heightExtDelta);
+			if (newWidthExt != this.widthExtension || newHeightExt != this.heightExtension) {
+				this.widthExtension = newWidthExt;
+				this.heightExtension = newHeightExt;
+				onSizeExtensionsChange();
+			}
 		}
+		onScrollInScrollPane();
 	}
 
 	@Override

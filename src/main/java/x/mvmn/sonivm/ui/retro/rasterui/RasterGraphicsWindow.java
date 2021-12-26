@@ -182,6 +182,14 @@ public class RasterGraphicsWindow extends JFrame {
 
 	public void removeComponent(RasterUIComponent component) {
 		components.remove(component);
+		MouseListener mouseListener = component.getMouseListener();
+		MouseMotionListener mouseMotionListener = component.getMouseMotionListener();
+		if (mouseListener != null) {
+			this.removeMouseListener(mouseListener);
+		}
+		if (mouseMotionListener != null) {
+			this.removeMouseMotionListener(mouseMotionListener);
+		}
 	}
 
 	public double getScaleFactor() {
