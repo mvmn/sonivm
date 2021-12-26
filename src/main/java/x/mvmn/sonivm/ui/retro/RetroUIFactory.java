@@ -426,6 +426,8 @@ public class RetroUIFactory {
 			@Override
 			public void componentShown(ComponentEvent e) {
 				eqWindowSnapped.set(isEQWinInSnapPosition.get());
+				// Need this because on rescaling if EQ window is hidden it is not re-rendered
+				// And then when set visible it is shown with old scaling
 				eqWin.repaint();
 			}
 
