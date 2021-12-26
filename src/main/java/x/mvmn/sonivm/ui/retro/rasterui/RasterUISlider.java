@@ -56,12 +56,10 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 			boolean vertical,
 			int handleXOffset,
 			int handleYOffset) {
-		super(parent,
-				new BufferedImage(sliderBackground.getWidth(),
-						Math.max(sliderBackground.getHeight(),
-								range + (vertical ? sliderButtonPressed.getHeight() : sliderButtonPressed.getWidth())),
-						BufferedImage.TYPE_INT_ARGB),
-				x, y);
+		super(parent, new BufferedImage(
+				vertical ? sliderBackground.getWidth() : Math.max(sliderBackground.getWidth(), range + sliderButtonPressed.getWidth()),
+				vertical ? Math.max(sliderBackground.getHeight(), range + sliderButtonPressed.getHeight()) : sliderBackground.getHeight(),
+				BufferedImage.TYPE_INT_ARGB), x, y);
 		this.sliderBackground = sliderBackground;
 		this.sliderButtonReleased = sliderButtonReleased;
 		this.sliderButtonPressed = sliderButtonPressed;

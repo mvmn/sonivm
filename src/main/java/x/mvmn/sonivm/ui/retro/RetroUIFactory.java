@@ -382,6 +382,7 @@ public class RetroUIFactory {
 				&& Math.abs(mainWin.getLocation().y + mainWin.getHeight() - eqWin.getLocation().y) < SNAP_INTERVAL_PIXELS;
 
 		AtomicBoolean eqWindowSnapped = new AtomicBoolean(isEQWinInSnapPosition.get());
+		AtomicBoolean plWindowSnapped = new AtomicBoolean();
 		Runnable moveEQWindowBelowMain = () -> eqWin.setLocation(mainWin.getLocation().x, mainWin.getLocation().y + mainWin.getHeight());
 
 		mainWin.addComponentListener(new ComponentAdapter() {
