@@ -198,7 +198,7 @@ public class CueSheetParser {
 					continue;
 				}
 			} else {
-				System.err.println(firstWord);
+				LOGGER.fine("Unknown CUE sheet field " + firstWord);
 			}
 		}
 

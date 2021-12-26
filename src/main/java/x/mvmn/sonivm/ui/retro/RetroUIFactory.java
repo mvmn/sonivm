@@ -51,9 +51,10 @@ public class RetroUIFactory {
 
 	private static final int SNAP_INTERVAL_PIXELS = 20;
 
-	public Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, Void> construct(File winAmpSkinZipFile) throws WSZLoadingException {
-		Tuple3.Tuple3Builder<RetroUIMainWindow, RetroUIEqualizerWindow, Void> resultBuilder = Tuple3
-				.<RetroUIMainWindow, RetroUIEqualizerWindow, Void> builder();
+	public Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> construct(File winAmpSkinZipFile)
+			throws WSZLoadingException {
+		Tuple3.Tuple3Builder<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> resultBuilder = Tuple3
+				.<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> builder();
 
 		ImageIO.setUseCache(false);
 		ZipFile skinZip = new ZipFile(winAmpSkinZipFile);
@@ -91,7 +92,7 @@ public class RetroUIFactory {
 		}
 
 		RasterGraphicsWindow mainWin = new RasterGraphicsWindow(275, 116, argbBackgroundImage, mainWindowTransparencyMask,
-				new RectanglePointRange(0, 0, 275, 16), new RectanglePointRange(260, 100, 275, 116),
+				new RectanglePointRange(0, 0, 275, 16), new RectanglePointRange(255, 96, 275, 116),
 				new RectanglePointRange(264, 3, 264 + 9, 3 + 9));
 
 		BufferedImage titleBarBmp = ImageUtil.convert(loadImage(skinZip, "titlebar.bmp"), BufferedImage.TYPE_INT_ARGB);
@@ -360,10 +361,10 @@ public class RetroUIFactory {
 		RasterFrameWindow plEditWin = new RasterFrameWindow(275, 116, backgroundColor, plFrameTopLeftActive, plFrameTitleActive,
 				plFrameTopExtenderActive, plFrameTopRightActive, plFrameTopLeftInactive, plFrameTitleInactive, plFrameTopExtenderInactive,
 				plFrameTopRightInactive, plFrameLeft, plFrameRight, plFrameBottomLeft, plFrameBottomExtender, plFrameBottomExtenderBig,
-				plFrameBottomRight, new RectanglePointRange(0, 0, 275, 16), new RectanglePointRange(260, 100, 275, 116),
+				plFrameBottomRight, new RectanglePointRange(0, 0, 275, 16), new RectanglePointRange(255, 96, 275, 116),
 				new RectanglePointRange(264, 3, 264 + 9, 3 + 9));
-		plEditWin.setVisible(true);
 
+		resultBuilder.c(RetroUIPlaylistWindow.builder().window(plEditWin).build());
 		//////////////////// //////////////////// //////////////////// //////////////////// ////////////////////
 
 		Supplier<Boolean> isEQWinInSnapPosition = () -> mainWin.getLocation().x == eqWin.getLocation().x
@@ -467,8 +468,10 @@ public class RetroUIFactory {
 		btnEqToggle.setButtonOn(true);
 		btnEqToggle.addListener(() -> eqWin.setVisible(btnEqToggle.isButtonOn()));
 		btnPlaylistToggle.setButtonOn(true);
+		btnPlaylistToggle.addListener(() -> plEditWin.setVisible(btnPlaylistToggle.isButtonOn()));
 
 		eqWin.addCloseListener(() -> btnEqToggle.setButtonOn(false));
+		plEditWin.addCloseListener(() -> btnPlaylistToggle.setButtonOn(false));
 
 		return resultBuilder.build();
 	}
@@ -503,13 +506,14 @@ public class RetroUIFactory {
 		return load(skinZip, fileName, Wini::new);
 	}
 
-	private static volatile Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, Void> retroUIWindows;
+	private static volatile Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> retroUIWindows;
 
 	public static void main(String args[]) throws Exception {
 		Consumer<File> onSkinSelect = skinZipFile -> {
 			try {
 				System.out.println("Loading skin: " + skinZipFile.getName());
-				Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, Void> retroUIWindows = new RetroUIFactory().construct(skinZipFile);
+				Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> retroUIWindows = new RetroUIFactory()
+						.construct(skinZipFile);
 				if (RetroUIFactory.retroUIWindows != null) {
 					retroUIWindows.getA().getWindow().setLocation(RetroUIFactory.retroUIWindows.getA().getWindow().getLocation());
 					retroUIWindows.getA().getWindow().setSize(RetroUIFactory.retroUIWindows.getA().getWindow().getSize());
@@ -522,16 +526,29 @@ public class RetroUIFactory {
 
 					retroUIWindows.getA().btnEqToggle.setButtonOn(eqVisible);
 
+					RasterFrameWindow plWin = RetroUIFactory.retroUIWindows.getC().getWindow();
+					retroUIWindows.getC().getWindow().setLocation(plWin.getLocation());
+					retroUIWindows.getC().getWindow().setScaleFactor(plWin.getScaleFactor());
+					retroUIWindows.getC().getWindow().setSizeExtensions(plWin.getWidthExtension(), plWin.getHeightExtension());
+					retroUIWindows.getC().getWindow().setVisible(plWin.isVisible());
+
+					retroUIWindows.getA().btnPlaylistToggle.setButtonOn(plWin.isVisible());
+
 					RetroUIFactory.retroUIWindows.getA().getWindow().setVisible(false);
 					RetroUIFactory.retroUIWindows.getA().getWindow().dispose();
 					RetroUIFactory.retroUIWindows.getB().getWindow().setVisible(false);
 					RetroUIFactory.retroUIWindows.getB().getWindow().dispose();
+					plWin.setVisible(false);
+					plWin.dispose();
 				} else {
 					retroUIWindows.getA().getWindow().setLocation(100, 100);
 					retroUIWindows.getA().getWindow().setVisible(true);
 
 					retroUIWindows.getB().getWindow().setLocation(100, 216);
 					retroUIWindows.getB().getWindow().setVisible(true);
+
+					retroUIWindows.getC().getWindow().setLocation(100, 332);
+					retroUIWindows.getC().getWindow().setVisible(true);
 				}
 				RetroUIFactory.retroUIWindows = retroUIWindows;
 

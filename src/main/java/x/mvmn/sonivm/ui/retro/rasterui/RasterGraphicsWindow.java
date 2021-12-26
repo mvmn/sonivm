@@ -200,7 +200,6 @@ public class RasterGraphicsWindow extends JFrame {
 	}
 
 	protected void initMoveResize() {
-		System.out.println("Init move/resize");
 		this.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseReleased(MouseEvent e) {

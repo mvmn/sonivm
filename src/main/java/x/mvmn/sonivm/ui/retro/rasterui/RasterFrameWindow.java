@@ -7,6 +7,7 @@ import java.awt.Graphics2D;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 
+import lombok.Getter;
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
 import x.mvmn.sonivm.ui.util.swing.RectanglePointRange;
 
@@ -15,7 +16,9 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 	private static final long serialVersionUID = 8746593596309812903L;
 
 	protected volatile BufferedImage backgroundImage;
+	@Getter
 	private volatile int widthExtension;
+	@Getter
 	private volatile int heightExtension;
 	private volatile double scaleFactor = 1.0d;
 
@@ -170,7 +173,12 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 	protected void paintBackgroundPanel(Graphics g) {
 		Graphics2D g2 = (Graphics2D) g.create();
 		g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
-		g2.drawImage(backgroundImage, 0, 0, null);
+		int width = (int) Math.round((this.extensionWidthPixels + this.initialWidth) * getScaleFactor());
+		if (backgroundImage.getWidth() == width) {
+			g2.drawImage(backgroundImage, 0, 0, null);
+		} else {
+			g2.drawImage(backgroundImage.getScaledInstance(width, -1, BufferedImage.SCALE_SMOOTH), 0, 0, null);
+		}
 		applyTransparencyMask(g2);
 	}
 
@@ -208,7 +216,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 
 	public void setScaleFactor(double scaleFactor) {
 		this.scaleFactor = scaleFactor;
-		this.repaint();
+		this.updateComponentSize();
 	}
 
 	@Override
@@ -247,11 +255,14 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 	}
 
 	protected void updateComponentSize() {
+		double scaleFactor = getScaleFactor();
 		int width = initialWidth + widthExtenderWidth * widthExtension;
 		int height = initialHeight + heightExtenderHeight * heightExtension;
+		int widthScaled = (int) Math.round(width * scaleFactor);
+		int heightScaled = (int) Math.round(height * scaleFactor);
 		this.backgroundImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 		renderBackground();
-		this.setSize(width, height);
+		this.setSize(widthScaled, heightScaled);
 	}
 
 	public void setWidthSizeExtension(int widthExtension) {
