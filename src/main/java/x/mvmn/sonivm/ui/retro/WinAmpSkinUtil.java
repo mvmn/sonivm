@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 
 import org.ini4j.Wini;
 
-public class SkinUtil {
+public class WinAmpSkinUtil {
 
 	public static BufferedImage createTransparencyMask(int width, int height, String numPoints, String pointList) {
 		BufferedImage mask = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);

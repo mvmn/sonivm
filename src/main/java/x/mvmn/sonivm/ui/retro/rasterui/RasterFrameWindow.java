@@ -65,6 +65,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 	protected final BufferedImage bottomRight;
 	protected final Color backgroundColor;
 	protected final JComponent wrappedComponent;
+	@Getter // Have a getter to allow setting drag-n-drop handling externally
 	protected final JScrollPane wrappedComponentScrollPane;
 	protected volatile RasterUISlider scrollSlider;
 	protected final BufferedImage sliderButtonPressed;

@@ -51,9 +51,9 @@ import x.mvmn.sonivm.ui.retro.exception.WSZLoadingException;
 import x.mvmn.sonivm.ui.retro.rasterui.ExtRasterUISlider;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterFrameWindow;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterGraphicsWindow;
+import x.mvmn.sonivm.ui.retro.rasterui.RasterUIBooleanIndicator;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIButton;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIMultiIndicator;
-import x.mvmn.sonivm.ui.retro.rasterui.RasterUIBooleanIndicator;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUISlider;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUITextComponent;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIToggleButton;
@@ -62,7 +62,6 @@ import x.mvmn.sonivm.ui.util.swing.RectLocationAndSize;
 import x.mvmn.sonivm.ui.util.swing.RectanglePointRange;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil.Direction;
-import x.mvmn.sonivm.util.Tuple2;
 import x.mvmn.sonivm.util.Tuple3;
 import x.mvmn.sonivm.util.Tuple4;
 import x.mvmn.sonivm.util.UnsafeFunction;
@@ -104,11 +103,11 @@ public class RetroUIFactory {
 
 		BufferedImage mainWindowTransparencyMask = null;
 		if (mainWindowNumPoints != null && mainWindowPointList != null) {
-			mainWindowTransparencyMask = SkinUtil.createTransparencyMask(275, 116, mainWindowNumPoints, mainWindowPointList);
+			mainWindowTransparencyMask = WinAmpSkinUtil.createTransparencyMask(275, 116, mainWindowNumPoints, mainWindowPointList);
 		}
 		BufferedImage eqWindowTransparencyMask = null;
 		if (eqWindowNumPoints != null && eqWindowPointList != null) {
-			eqWindowTransparencyMask = SkinUtil.createTransparencyMask(275, 116, eqWindowNumPoints, eqWindowPointList);
+			eqWindowTransparencyMask = WinAmpSkinUtil.createTransparencyMask(275, 116, eqWindowNumPoints, eqWindowPointList);
 		}
 
 		RasterGraphicsWindow mainWin = new RasterGraphicsWindow(275, 116, argbBackgroundImage, mainWindowTransparencyMask,
@@ -128,7 +127,7 @@ public class RetroUIFactory {
 
 		RasterUISlider seekSlider = mainWin.addComponent(window -> new RasterUISlider(window,
 				ImageUtil.subImageOrBlank(posBar, 0, 0, 248, posBar.getHeight()), handleReleased, handlePressed, 16, 72, 219, 0, false));
-		seekSlider.addListener(() -> System.out.println("Seek: " + seekSlider.getSliderPosition()));
+		// seekSlider.addListener(() -> System.out.println("Seek: " + seekSlider.getSliderPosition()));
 
 		// 136x36, 5buttons 23x18, 1 button 23x16
 		RasterUIButton[] controlButtons = new RasterUIButton[5];
@@ -136,13 +135,13 @@ public class RetroUIFactory {
 			int x = i * 23;
 			RasterUIButton btn = mainWin.addComponent(window -> new RasterUIButton(window,
 					ImageUtil.subImageOrBlank(buttonsBmp, x, 0, 22, 18), ImageUtil.subImageOrBlank(buttonsBmp, x, 18, 22, 18), 16 + x, 88));
-			final int btnNum = i + 1;
 			controlButtons[i] = btn;
-			btn.addListener(() -> System.out.println("Pressed " + btnNum));
+			// final int btnNum = i + 1;
+			// btn.addListener(() -> System.out.println("Pressed " + btnNum));
 		}
 		RasterUIButton btnEject = mainWin.addComponent(window -> new RasterUIButton(window,
 				ImageUtil.subImageOrBlank(buttonsBmp, 114, 0, 22, 16), ImageUtil.subImageOrBlank(buttonsBmp, 114, 16, 22, 16), 136, 89));
-		btnEject.addListener(() -> System.out.println("Pressed eject"));
+		// btnEject.addListener(() -> System.out.println("Pressed eject"));
 
 		BufferedImage balanceSliderBmp = loadImage(skinZip, "BALANCE.BMP");
 		if (balanceSliderBmp == null) {
@@ -166,7 +165,7 @@ public class RetroUIFactory {
 		ExtRasterUISlider balanceSlider = mainWin
 				.addComponent(window -> new ExtRasterUISlider(window, balanceSliderBackgrounds, balanceReleased, balancePressed, 177, 57,
 						38 - 14, (38 - 14) / 2, false, val -> (int) Math.round(Math.abs((38 - 14) / 2 - val) * 28 / 12.0d), 0, 1));
-		balanceSlider.addListener(() -> System.out.println("Balance: " + balanceSlider.getSliderPosition()));
+		// balanceSlider.addListener(() -> System.out.println("Balance: " + balanceSlider.getSliderPosition()));
 
 		BufferedImage volumeSliderBmp = loadImage(skinZip, "VOLUME.BMP");
 		BufferedImage[] volumeSliderBackgrounds = new BufferedImage[28];
@@ -187,7 +186,7 @@ public class RetroUIFactory {
 
 		ExtRasterUISlider volumeSlider = mainWin.addComponent(window -> new ExtRasterUISlider(window, volumeSliderBackgrounds,
 				volumeReleased, volumePressed, 107, 57, 68 - 14, 68 - 14, false, val -> (int) Math.round(val * 28.0d / 54.0d), 0, 1));
-		volumeSlider.addListener(() -> System.out.println("Volume: " + volumeSlider.getSliderPosition()));
+		// volumeSlider.addListener(() -> System.out.println("Volume: " + volumeSlider.getSliderPosition()));
 
 		BufferedImage shufRepBmp = loadImage(skinZip, "SHUFREP.BMP");
 
@@ -339,13 +338,13 @@ public class RetroUIFactory {
 			eqSliders[i] = eqWin.addComponent(window -> new ExtRasterUISlider(window, eqSliderBackgrounds,
 					ImageUtil.subImageOrBlank(eqmainBmp, 0, 164, 11, 11), ImageUtil.subImageOrBlank(eqmainBmp, 0, 164 + 12, 11, 11),
 					78 + index * 18, 38, 51, 25, true, val -> (int) Math.round(val * 28.0d / 51.0d), 1, 0));
-			eqSliders[i].addListener(() -> System.out
-					.println("EQ " + index + ": " + eqSliders[index].getSliderPosition() + " " + eqSliders[index].getHeight()));
+			// eqSliders[i].addListener(() -> System.out
+			// .println("EQ " + index + ": " + eqSliders[index].getSliderPosition() + " " + eqSliders[index].getHeight()));
 		}
 		ExtRasterUISlider eqGainSlider = eqWin.addComponent(window -> new ExtRasterUISlider(window, eqSliderBackgrounds,
 				ImageUtil.subImageOrBlank(eqmainBmp, 0, 164, 11, 11), ImageUtil.subImageOrBlank(eqmainBmp, 0, 164 + 12, 11, 11), 21, 38, 51,
 				25, true, val -> (int) Math.round(val * 28.0d / 51.0d), 1, 0));
-		eqGainSlider.addListener(() -> System.out.println("Gain: " + eqGainSlider.getSliderPosition()));
+		// eqGainSlider.addListener(() -> System.out.println("Gain: " + eqGainSlider.getSliderPosition()));
 
 		RasterUIButton btnPresets = eqWin.addComponent(window -> new RasterUIButton(window,
 				ImageUtil.subImageOrBlank(eqmainBmp, 224, 164, 44, 12), ImageUtil.subImageOrBlank(eqmainBmp, 224, 176, 44, 12), 217, 18));
@@ -390,39 +389,39 @@ public class RetroUIFactory {
 		BufferedImage plFrameBottomLeft = ImageUtil.subImageOrBlank(pleditBmp, 0, 72, 125, 38);
 		BufferedImage plFrameBottomRight = ImageUtil.subImageOrBlank(pleditBmp, 126, 72, 150, 38);
 
-		int btnY = 111;
-		int btnW = 22;
-		int btnH = 18;
+		// int btnY = 111;
+		// int btnW = 22;
+		// int btnH = 18;
 
-		int divW = 3;
-		int divH = 54;
-		int divLongH = 72;
+		// int divW = 3;
+		// int divH = 54;
+		// int divLongH = 72;
 
-		Function<Tuple3<Integer, Integer, Integer>, Tuple2<BufferedImage[], BufferedImage[]>> cutOutButtons = numNCoords -> {
-			BufferedImage[] buttonsActive = new BufferedImage[numNCoords.getA()];
-			BufferedImage[] buttonsInActive = new BufferedImage[numNCoords.getA()];
-
-			for (int i = 0; i < buttonsActive.length; i++) {
-				buttonsActive[i] = ImageUtil.subImageOrBlank(pleditBmp, numNCoords.getB(), numNCoords.getC() + (1 + btnH) * i, btnW, btnH);
-				buttonsInActive[i] = ImageUtil.subImageOrBlank(pleditBmp, numNCoords.getB() + 1 + btnW, numNCoords.getC() + (1 + btnH) * i,
-						btnW, btnH);
-			}
-
-			return Tuple2.<BufferedImage[], BufferedImage[]> builder().a(buttonsActive).b(buttonsInActive).build();
-		};
+		// Function<Tuple3<Integer, Integer, Integer>, Tuple2<BufferedImage[], BufferedImage[]>> cutOutButtons = numNCoords -> {
+		// BufferedImage[] buttonsActive = new BufferedImage[numNCoords.getA()];
+		// BufferedImage[] buttonsInActive = new BufferedImage[numNCoords.getA()];
+		//
+		// for (int i = 0; i < buttonsActive.length; i++) {
+		// buttonsActive[i] = ImageUtil.subImageOrBlank(pleditBmp, numNCoords.getB(), numNCoords.getC() + (1 + btnH) * i, btnW, btnH);
+		// buttonsInActive[i] = ImageUtil.subImageOrBlank(pleditBmp, numNCoords.getB() + 1 + btnW, numNCoords.getC() + (1 + btnH) * i,
+		// btnW, btnH);
+		// }
+		//
+		// return Tuple2.<BufferedImage[], BufferedImage[]> builder().a(buttonsActive).b(buttonsInActive).build();
+		// };
 
 		// TODO: Add support for playlist window buttons and menus
-		Tuple2<BufferedImage[], BufferedImage[]> addButtons = cutOutButtons.apply(Tuple3.of(3, 0, btnY));
-		Tuple2<BufferedImage[], BufferedImage[]> removeButtons = cutOutButtons.apply(Tuple3.of(4, 54, btnY));
-		Tuple2<BufferedImage[], BufferedImage[]> selectionButtons = cutOutButtons.apply(Tuple3.of(3, 104, btnY));
-		Tuple2<BufferedImage[], BufferedImage[]> miscButtons = cutOutButtons.apply(Tuple3.of(3, 154, btnY));
-		Tuple2<BufferedImage[], BufferedImage[]> listButtons = cutOutButtons.apply(Tuple3.of(3, 204, btnY));
-
-		BufferedImage addBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 48, 111, divW, divH);
-		BufferedImage removeBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 100, 111, divW, divLongH);
-		BufferedImage selectionBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 150, 111, divW, divH);
-		BufferedImage miscBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 200, 111, divW, divH);
-		BufferedImage listBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 250, 111, divW, divH);
+		// Tuple2<BufferedImage[], BufferedImage[]> addButtons = cutOutButtons.apply(Tuple3.of(3, 0, btnY));
+		// Tuple2<BufferedImage[], BufferedImage[]> removeButtons = cutOutButtons.apply(Tuple3.of(4, 54, btnY));
+		// Tuple2<BufferedImage[], BufferedImage[]> selectionButtons = cutOutButtons.apply(Tuple3.of(3, 104, btnY));
+		// Tuple2<BufferedImage[], BufferedImage[]> miscButtons = cutOutButtons.apply(Tuple3.of(3, 154, btnY));
+		// Tuple2<BufferedImage[], BufferedImage[]> listButtons = cutOutButtons.apply(Tuple3.of(3, 204, btnY));
+		//
+		// BufferedImage addBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 48, 111, divW, divH);
+		// BufferedImage removeBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 100, 111, divW, divLongH);
+		// BufferedImage selectionBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 150, 111, divW, divH);
+		// BufferedImage miscBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 200, 111, divW, divH);
+		// BufferedImage listBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 250, 111, divW, divH);
 
 		String[][] dummyTableData = IntStream.range(0, 100)
 				.mapToObj(i -> new String[] { "Test" + i, "asdasd" })
@@ -432,16 +431,21 @@ public class RetroUIFactory {
 		JTable playlistTable = new JTable(playlistTableModel);
 
 		Wini plEditIni = loadIniFile(skinZip, "PLEDIT.TXT");
-		Color playlistTextColor = SkinUtil.getColor(plEditIni, "Text", "Normal", playlistTable.getForeground());
-		Color playlistBackgroundColor = SkinUtil.getColor(plEditIni, "Text", "NormalBG", playlistTable.getBackground());
-		Color currentTrackTextColor = SkinUtil.getColor(plEditIni, "Text", "Current", playlistTable.getSelectionForeground());
-		Color selectionBackgroundColor = SkinUtil.getColor(plEditIni, "Text", "SelectedBG", playlistTable.getSelectionBackground());
+		Color playlistTextColor = WinAmpSkinUtil.getColor(plEditIni, "Text", "Normal", textColor);
+		Color playlistBackgroundColor = WinAmpSkinUtil.getColor(plEditIni, "Text", "NormalBG", backgroundColor);
+		Color currentTrackTextColor = WinAmpSkinUtil.getColor(plEditIni, "Text", "Current", textColor.brighter());
+		Color selectionBackgroundColor = WinAmpSkinUtil.getColor(plEditIni, "Text", "SelectedBG", backgroundColor.brighter());
 
+		playlistTable.setOpaque(true);
 		playlistTable.setBackground(playlistBackgroundColor);
 		playlistTable.setForeground(playlistTextColor);
+		playlistTable.setGridColor(playlistTextColor);
 		playlistTable.setSelectionBackground(selectionBackgroundColor);
 		playlistTable.setSelectionForeground(textColor);
 		playlistTable.setBorder(BorderFactory.createEmptyBorder());
+		playlistTable.getTableHeader().setBackground(playlistTextColor);
+		playlistTable.getTableHeader().setForeground(playlistBackgroundColor);
+		playlistTable.setIntercellSpacing(new Dimension(0, 0));
 
 		RasterFrameWindow plEditWin = new RasterFrameWindow(275, 116, playlistTable, backgroundColor, plFrameTopLeftActive,
 				plFrameTitleActive, plFrameTopExtenderActive, plFrameTopRightActive, plFrameTopLeftInactive, plFrameTitleInactive,
