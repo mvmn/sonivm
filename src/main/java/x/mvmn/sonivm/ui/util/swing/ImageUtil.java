@@ -1,6 +1,7 @@
 package x.mvmn.sonivm.ui.util.swing;
 
 import java.awt.AlphaComposite;
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -80,5 +81,46 @@ public abstract class ImageUtil {
 		} else {
 			return new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 		}
+	}
+
+	public static Color averageColor(BufferedImage bi, int x, int y, int width, int height) {
+		long sumRed = 0;
+		long sumGreen = 0;
+		long sumBlue = 0;
+		for (int xc = x; xc < x + width; xc++) {
+			for (int yc = y; yc < y + height; yc++) {
+				int color = bi.getRGB(xc, yc);
+				int red = (color >> 16) & 0xFF;
+				int green = (color >> 8) & 0xFF;
+				int blue = color & 0xFF;
+				sumRed += red;
+				sumGreen += green;
+				sumBlue += blue;
+			}
+		}
+		long count = width * height;
+		return new Color((int) (sumRed / count), (int) (sumGreen / count), (int) (sumBlue / count));
+	}
+
+	public static Color findMinOrMaxColor(BufferedImage bi, int x, int y, int width, int height, boolean brightest) {
+		int result = 0;
+		int resultBrightness = brightest ? 0 : 256 + 256 + 256;
+		for (int xc = x; xc < x + width; xc++) {
+			for (int yc = y; yc < y + height; yc++) {
+				int color = bi.getRGB(xc, yc);
+
+				int red = (color >> 16) & 0xFF;
+				int green = (color >> 8) & 0xFF;
+				int blue = color & 0xFF;
+
+				int colorBrightness = red + green + blue;
+				boolean brighter = colorBrightness > resultBrightness;
+				if (!(brightest ^ brighter)) {
+					result = color;
+					resultBrightness = colorBrightness;
+				}
+			}
+		}
+		return new Color(result);
 	}
 }

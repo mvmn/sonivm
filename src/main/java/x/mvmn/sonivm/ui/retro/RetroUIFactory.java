@@ -10,8 +10,11 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
@@ -36,6 +39,7 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.ini4j.Wini;
 
@@ -51,6 +55,7 @@ import x.mvmn.sonivm.ui.retro.rasterui.RasterUIButton;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIMultiIndicator;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIBooleanIndicator;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUISlider;
+import x.mvmn.sonivm.ui.retro.rasterui.RasterUITextComponent;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIToggleButton;
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
 import x.mvmn.sonivm.ui.util.swing.RectLocationAndSize;
@@ -230,6 +235,9 @@ public class RetroUIFactory {
 		BufferedImage numExtBmp = loadImage(skinZip, "num_ext.bmp");
 		if (numExtBmp == null) {
 			BufferedImage numbersBmp = ImageUtil.convert(loadImage(skinZip, "numbers.bmp"), BufferedImage.TYPE_INT_ARGB);
+			if (numbersBmp == null) {
+				numbersBmp = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+			}
 			for (int i = 0; i < 11; i++) {
 				numbers[i] = ImageUtil.subImageOrBlank(numbersBmp, 9 * i, 0, 9, numbersBmp.getHeight());
 			}
@@ -255,7 +263,28 @@ public class RetroUIFactory {
 		}
 
 		RasterUIMultiIndicator playStateIndicator = mainWin.addComponent(window -> new RasterUIMultiIndicator(mainWin, playStates, 24, 28));
-		playStateIndicator.setState(3);
+		playStateIndicator.setState(2);
+
+		BufferedImage textBmp = loadImage(skinZip, "text.bmp");
+		BufferedImage textCharSpace = ImageUtil.subImageOrBlank(textBmp, 142, 0, 6, 6);
+		Color backgroundColor = ImageUtil.averageColor(textCharSpace, 0, 0, 6, 6);
+		BufferedImage textCharA = ImageUtil.subImageOrBlank(textBmp, 0, 0, 5, 6);
+		Color darkest = ImageUtil.findMinOrMaxColor(textCharA, 0, 0, 5, 6, false);
+		Color brightest = ImageUtil.findMinOrMaxColor(textCharA, 0, 0, 5, 6, true);
+
+		Color textColor;
+		int bgColorBrightness = backgroundColor.getRed() + backgroundColor.getGreen() + backgroundColor.getBlue();
+		int darkestColorBrightness = darkest.getRed() + darkest.getGreen() + darkest.getBlue();
+		int brightestColorBrightness = brightest.getRed() + brightest.getGreen() + brightest.getBlue();
+		int darkDiff = Math.abs(bgColorBrightness - darkestColorBrightness);
+		int brightDiff = Math.abs(bgColorBrightness - brightestColorBrightness);
+
+		textColor = darkDiff > brightDiff ? darkest : brightest;
+
+		RasterUITextComponent nowPlayingText = mainWin
+				.addComponent(window -> new RasterUITextComponent(mainWin, backgroundColor, textColor, 154, 10, 111, 25));
+		nowPlayingText
+				.setText("Hello world Hello world Hello world Hello world Hello world Hello world Hello world Hello world Hello world ");
 
 		resultBuilder.a(RetroUIMainWindow.builder()
 				.window(mainWin)
@@ -278,6 +307,7 @@ public class RetroUIFactory {
 				.playStateIndicator(playStateIndicator)
 				.playTimeNumbers(new RasterUIMultiIndicator[] { playTimeNumber0, playTimeNumber1, playTimeNumber2, playTimeNumber3,
 						playTimeNumber4 })
+				.nowPlayingText(nowPlayingText)
 				.build());
 		//////////////////// //////////////////// //////////////////// //////////////////// ////////////////////
 
@@ -402,12 +432,13 @@ public class RetroUIFactory {
 		JTable playlistTable = new JTable(playlistTableModel);
 
 		Wini plEditIni = loadIniFile(skinZip, "PLEDIT.TXT");
-		Color backgroundColor = SkinUtil.getColor(plEditIni, "Text", "NormalBG", playlistTable.getBackground());
-		Color textColor = SkinUtil.getColor(plEditIni, "Text", "Normal", playlistTable.getForeground());
+		Color playlistTextColor = SkinUtil.getColor(plEditIni, "Text", "Normal", playlistTable.getForeground());
+		Color playlistBackgroundColor = SkinUtil.getColor(plEditIni, "Text", "NormalBG", playlistTable.getBackground());
 		Color currentTrackTextColor = SkinUtil.getColor(plEditIni, "Text", "Current", playlistTable.getSelectionForeground());
 		Color selectionBackgroundColor = SkinUtil.getColor(plEditIni, "Text", "SelectedBG", playlistTable.getSelectionBackground());
-		playlistTable.setBackground(backgroundColor);
-		playlistTable.setForeground(textColor);
+
+		playlistTable.setBackground(playlistBackgroundColor);
+		playlistTable.setForeground(playlistTextColor);
 		playlistTable.setSelectionBackground(selectionBackgroundColor);
 		playlistTable.setSelectionForeground(textColor);
 		playlistTable.setBorder(BorderFactory.createEmptyBorder());
@@ -799,7 +830,24 @@ public class RetroUIFactory {
 	}
 
 	protected BufferedImage loadImage(ZipFile skinZip, String fileName) throws WSZLoadingException {
-		return load(skinZip, fileName, ImageIO::read);
+		return load(skinZip, fileName, inputStream -> {
+			byte[] img = IOUtils.toByteArray(inputStream);
+			BufferedImage result = null;
+			boolean retry = false;
+			int maxRetries = 10;
+			do {
+				try {
+					result = ImageIO.read(new ByteArrayInputStream(img));
+					retry = false;
+				} catch (EOFException eof) {
+					// Dumbest crutch ever for the weird EOF error in JRE BMP reader
+					// Weirdest thing is that it works!
+					img = Arrays.copyOf(img, img.length + 1024);
+					retry = true;
+				}
+			} while (retry && maxRetries-- > 0);
+			return result;
+		});
 	}
 
 	protected Wini loadIniFile(ZipFile skinZip, String fileName) throws WSZLoadingException {

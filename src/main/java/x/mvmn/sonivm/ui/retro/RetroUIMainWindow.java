@@ -4,10 +4,11 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterGraphicsWindow;
+import x.mvmn.sonivm.ui.retro.rasterui.RasterUIBooleanIndicator;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIButton;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIMultiIndicator;
-import x.mvmn.sonivm.ui.retro.rasterui.RasterUIBooleanIndicator;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUISlider;
+import x.mvmn.sonivm.ui.retro.rasterui.RasterUITextComponent;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIToggleButton;
 
 @RequiredArgsConstructor
@@ -41,4 +42,6 @@ public class RetroUIMainWindow {
 
 	protected final RasterUIMultiIndicator playStateIndicator;
 	protected final RasterUIMultiIndicator[] playTimeNumbers;
+	
+	protected final RasterUITextComponent nowPlayingText;
 }

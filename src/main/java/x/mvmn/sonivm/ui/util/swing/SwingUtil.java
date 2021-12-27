@@ -5,7 +5,9 @@ import java.awt.CheckboxMenuItem;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Frame;
+import java.awt.Graphics;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.GridLayout;
@@ -546,5 +548,21 @@ public class SwingUtil {
 			}
 		}
 		return Tuple2.<Integer, Integer> builder().a(location).b(size).build();
+	}
+
+	public static Font resizeToPx(Font font, int height, Graphics g) {
+		// Start with arbitrary big font and go down
+		// To do later: Lame quick implementation - change to a proper binary search
+		float size = 128;
+		Font result = font.deriveFont(size);
+
+		int fontHeight;
+		do {
+			fontHeight = g.getFontMetrics(result).getHeight();
+			result = font.deriveFont(size);
+			size--;
+		} while (fontHeight > height);
+
+		return result;
 	}
 }
