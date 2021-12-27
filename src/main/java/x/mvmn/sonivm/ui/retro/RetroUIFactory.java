@@ -42,6 +42,7 @@ import javax.swing.table.DefaultTableModel;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.ini4j.Wini;
+import org.springframework.stereotype.Service;
 
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
@@ -66,6 +67,7 @@ import x.mvmn.sonivm.util.Tuple3;
 import x.mvmn.sonivm.util.Tuple4;
 import x.mvmn.sonivm.util.UnsafeFunction;
 
+@Service
 public class RetroUIFactory {
 
 	private static final int SNAP_DISTANCE_PIXELS = 15;
@@ -423,19 +425,25 @@ public class RetroUIFactory {
 		// BufferedImage miscBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 200, 111, divW, divH);
 		// BufferedImage listBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 250, 111, divW, divH);
 
-		String[][] dummyTableData = IntStream.range(0, 100)
-				.mapToObj(i -> new String[] { "Test" + i, "asdasd" })
-				.collect(Collectors.toList())
-				.toArray(new String[][] {});
-		DefaultTableModel playlistTableModel = new DefaultTableModel(dummyTableData, new String[] { "Track", "Length" });
-		JTable playlistTable = new JTable(playlistTableModel);
-
 		Wini plEditIni = loadIniFile(skinZip, "PLEDIT.TXT");
 		Color playlistTextColor = WinAmpSkinUtil.getColor(plEditIni, "Text", "Normal", textColor);
 		Color playlistBackgroundColor = WinAmpSkinUtil.getColor(plEditIni, "Text", "NormalBG", backgroundColor);
 		Color currentTrackTextColor = WinAmpSkinUtil.getColor(plEditIni, "Text", "Current", textColor.brighter());
 		Color selectionBackgroundColor = WinAmpSkinUtil.getColor(plEditIni, "Text", "SelectedBG", backgroundColor.brighter());
 
+		String[][] dummyTableData = IntStream.range(0, 100)
+				.mapToObj(i -> new String[] { "Test" + i, "asdasd" })
+				.collect(Collectors.toList())
+				.toArray(new String[][] {});
+		DefaultTableModel playlistTableModel = new DefaultTableModel(dummyTableData, new String[] { "Track", "Length" }) {
+			private static final long serialVersionUID = -8801060966096981340L;
+
+			@Override
+			public boolean isCellEditable(int row, int column) {
+				return false;
+			}
+		};
+		JTable playlistTable = new JTable(playlistTableModel);
 		playlistTable.setOpaque(true);
 		playlistTable.setBackground(playlistBackgroundColor);
 		playlistTable.setForeground(playlistTextColor);
