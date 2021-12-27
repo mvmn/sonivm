@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 
 import javax.swing.JTable;
 
-import x.mvmn.sonivm.model.IntRange;
+import x.mvmn.sonivm.util.IntRange;
 
 public final class PlaybackQueueDropTarget extends DropTarget {
 	private static final Logger LOGGER = Logger.getLogger(PlaybackQueueDropTarget.class.getCanonicalName());

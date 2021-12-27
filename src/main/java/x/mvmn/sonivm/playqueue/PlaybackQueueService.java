@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import x.mvmn.sonivm.model.IntRange;
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
+import x.mvmn.sonivm.util.IntRange;
 
 public interface PlaybackQueueService {
 

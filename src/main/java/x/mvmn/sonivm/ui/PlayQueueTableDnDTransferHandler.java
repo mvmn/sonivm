@@ -19,7 +19,7 @@ import javax.swing.JTable;
 import javax.swing.TransferHandler;
 
 import lombok.RequiredArgsConstructor;
-import x.mvmn.sonivm.model.IntRange;
+import x.mvmn.sonivm.util.IntRange;
 
 @RequiredArgsConstructor
 public class PlayQueueTableDnDTransferHandler extends TransferHandler {

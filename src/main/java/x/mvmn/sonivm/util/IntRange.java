@@ -1,4 +1,4 @@
-package x.mvmn.sonivm.model;
+package x.mvmn.sonivm.util;
 
 import java.io.Serializable;
 
