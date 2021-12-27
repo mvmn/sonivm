@@ -363,26 +363,37 @@ public class RetroUIFactory {
 				.collect(Collectors.toList())
 				.toArray(new String[][] {});
 		DefaultTableModel playlistTableModel = new DefaultTableModel(dummyTableData, new String[] { "Track", "Length" });
-		JTable dummyTable = new JTable(playlistTableModel);
+		JTable playlistTable = new JTable(playlistTableModel);
 
 		Wini plEditIni = loadIniFile(skinZip, "PLEDIT.TXT");
-		Color backgroundColor = SkinUtil.getColor(plEditIni, "Text", "NormalBG", dummyTable.getBackground());
-		Color textColor = SkinUtil.getColor(plEditIni, "Text", "Normal", dummyTable.getForeground());
-		Color currentTrackTextColor = SkinUtil.getColor(plEditIni, "Text", "Current", dummyTable.getSelectionForeground());
-		Color selectionBackgroundColor = SkinUtil.getColor(plEditIni, "Text", "SelectedBG", dummyTable.getSelectionBackground());
-		dummyTable.setBackground(backgroundColor);
-		dummyTable.setForeground(textColor);
-		dummyTable.setSelectionBackground(selectionBackgroundColor);
-		dummyTable.setSelectionForeground(textColor);
-		dummyTable.setBorder(BorderFactory.createEmptyBorder());
+		Color backgroundColor = SkinUtil.getColor(plEditIni, "Text", "NormalBG", playlistTable.getBackground());
+		Color textColor = SkinUtil.getColor(plEditIni, "Text", "Normal", playlistTable.getForeground());
+		Color currentTrackTextColor = SkinUtil.getColor(plEditIni, "Text", "Current", playlistTable.getSelectionForeground());
+		Color selectionBackgroundColor = SkinUtil.getColor(plEditIni, "Text", "SelectedBG", playlistTable.getSelectionBackground());
+		playlistTable.setBackground(backgroundColor);
+		playlistTable.setForeground(textColor);
+		playlistTable.setSelectionBackground(selectionBackgroundColor);
+		playlistTable.setSelectionForeground(textColor);
+		playlistTable.setBorder(BorderFactory.createEmptyBorder());
 
-		RasterFrameWindow plEditWin = new RasterFrameWindow(275, 116, dummyTable, backgroundColor, plFrameTopLeftActive, plFrameTitleActive,
-				plFrameTopExtenderActive, plFrameTopRightActive, plFrameTopLeftInactive, plFrameTitleInactive, plFrameTopExtenderInactive,
-				plFrameTopRightInactive, plFrameLeft, plFrameRight, plFrameBottomLeft, plFrameBottomExtender, plFrameBottomExtenderBig,
-				plFrameBottomRight, new RectanglePointRange(0, 0, 275, 16), new RectanglePointRange(255, 96, 275, 116),
-				new RectanglePointRange(264, 3, 264 + 9, 3 + 9), plSliderButtonActive, plSliderButtonInactive);
+		RasterFrameWindow plEditWin = new RasterFrameWindow(275, 116, playlistTable, backgroundColor, plFrameTopLeftActive,
+				plFrameTitleActive, plFrameTopExtenderActive, plFrameTopRightActive, plFrameTopLeftInactive, plFrameTitleInactive,
+				plFrameTopExtenderInactive, plFrameTopRightInactive, plFrameLeft, plFrameRight, plFrameBottomLeft, plFrameBottomExtender,
+				plFrameBottomExtenderBig, plFrameBottomRight, new RectanglePointRange(0, 0, 275, 16),
+				new RectanglePointRange(255, 96, 275, 116), new RectanglePointRange(264, 3, 264 + 9, 3 + 9), plSliderButtonActive,
+				plSliderButtonInactive);
 
-		resultBuilder.c(RetroUIPlaylistWindow.builder().window(plEditWin).build());
+		resultBuilder.c(RetroUIPlaylistWindow.builder()
+				.window(plEditWin)
+				.playlistTable(playlistTable)
+				.playlistTableModel(playlistTableModel)
+				.playlistColors(RetroUIPlaylistWindow.PlaylistColors.builder()
+						.backgroundColor(backgroundColor)
+						.selectionBackgroundColor(selectionBackgroundColor)
+						.textColor(textColor)
+						.currentTrackTextColor(currentTrackTextColor)
+						.build())
+				.build());
 		//////////////////// //////////////////// //////////////////// //////////////////// ////////////////////
 
 		BiPredicate<RectLocationAndSize, RectLocationAndSize> areAdjacent = (w1, w2) -> w1.getLeft() == w2.getRight()
