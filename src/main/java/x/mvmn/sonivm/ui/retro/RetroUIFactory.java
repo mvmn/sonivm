@@ -31,6 +31,7 @@ import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.table.DefaultTableModel;
 
 import org.ini4j.Wini;
 
@@ -351,16 +352,18 @@ public class RetroUIFactory {
 		BufferedImage miscBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 200, 111, divW, divH);
 		BufferedImage listBtnDivider = ImageUtil.subImageOrBlank(pleditBmp, 250, 111, divW, divH);
 
-		Wini plEditIni = loadIniFile(skinZip, "PLEDIT.TXT");
-		Color backgroundColor = SkinUtil.getColor(plEditIni, "Text", "NormalBG", Color.BLACK);
-		Color textColor = SkinUtil.getColor(plEditIni, "Text", "Normal", Color.YELLOW);
-		// Color currentTrackTextColor = SkinUtil.getColor(plEditIni, "Text", "Current", Color.WHITE);
-		Color selectionBackgroundColor = SkinUtil.getColor(plEditIni, "Text", "SelectedBG", Color.BLACK);
 		String[][] dummyTableData = IntStream.range(0, 100)
 				.mapToObj(i -> new String[] { "Test" + i, "asdasd" })
 				.collect(Collectors.toList())
 				.toArray(new String[][] {});
-		JTable dummyTable = new JTable(dummyTableData, new String[] { "Column 1", "Column 2" });
+		DefaultTableModel playlistTableModel = new DefaultTableModel(dummyTableData, new String[] { "Track", "Length" });
+		JTable dummyTable = new JTable(playlistTableModel);
+
+		Wini plEditIni = loadIniFile(skinZip, "PLEDIT.TXT");
+		Color backgroundColor = SkinUtil.getColor(plEditIni, "Text", "NormalBG", dummyTable.getBackground());
+		Color textColor = SkinUtil.getColor(plEditIni, "Text", "Normal", dummyTable.getForeground());
+		Color currentTrackTextColor = SkinUtil.getColor(plEditIni, "Text", "Current", dummyTable.getSelectionForeground());
+		Color selectionBackgroundColor = SkinUtil.getColor(plEditIni, "Text", "SelectedBG", dummyTable.getSelectionBackground());
 		dummyTable.setBackground(backgroundColor);
 		dummyTable.setForeground(textColor);
 		dummyTable.setSelectionBackground(selectionBackgroundColor);
@@ -406,8 +409,8 @@ public class RetroUIFactory {
 		BiFunction<RectLocationAndSize, RectLocationAndSize, Point> snap = (w1, w2) -> {
 			Direction nearDir = isNear.apply(w1, w2);
 			if (nearDir != null) {
-				int x = -1;
-				int y = -1;
+				int x = 0;
+				int y = 0;
 				switch (nearDir) {
 					case RIGHT:
 						x = w2.getLeft() - w1.getWidth();
@@ -460,18 +463,21 @@ public class RetroUIFactory {
 					break;
 				}
 
-				if (x >= 0 && y >= 0) {
-					return new Point(x, y);
-				}
+				return new Point(x, y);
 			}
 			return new Point(w1.getLeft(), w1.getTop());
 		};
 
 		mainWin.setMoveAdjuster((p1, p2) -> {
-			RectanglePointRange winFutureLocation = RectanglePointRange.of(p2, mainWin.getSize());
-			Point p = snap.apply(winFutureLocation, eqWin);
-			p = snap.apply(RectanglePointRange.of(p, mainWin.getSize()), plEditWin);
-			return p;
+			try {
+				RectanglePointRange winFutureLocation = RectanglePointRange.of(p2, mainWin.getSize());
+				Point p = snap.apply(winFutureLocation, eqWin);
+				p = snap.apply(RectanglePointRange.of(p, mainWin.getSize()), plEditWin);
+				return p;
+			} catch (Exception e) {
+				e.printStackTrace();
+				return p2;
+			}
 		});
 
 		eqWin.setMoveAdjuster((p1, p2) -> {
