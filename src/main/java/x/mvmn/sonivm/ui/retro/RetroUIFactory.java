@@ -232,7 +232,7 @@ public class RetroUIFactory {
 				ImageUtil.subImageOrBlank(monosterBmp, 0, 0, 29, 12), ImageUtil.subImageOrBlank(monosterBmp, 0, 12, 29, 12), 239, 41));
 
 		BufferedImage numbers[] = new BufferedImage[12]; // 0-9, blank, minus
-		BufferedImage numExtBmp = loadImage(skinZip, "num_ext.bmp");
+		BufferedImage numExtBmp = loadImage(skinZip, "nums_ex.bmp");
 		if (numExtBmp == null) {
 			BufferedImage numbersBmp = ImageUtil.convert(loadImage(skinZip, "numbers.bmp"), BufferedImage.TYPE_INT_ARGB);
 			if (numbersBmp == null) {
@@ -283,8 +283,8 @@ public class RetroUIFactory {
 
 		RasterUITextComponent nowPlayingText = mainWin
 				.addComponent(window -> new RasterUITextComponent(mainWin, backgroundColor, textColor, 154, 10, 111, 25));
-		nowPlayingText
-				.setText("Hello world Hello world Hello world Hello world Hello world Hello world Hello world Hello world Hello world ");
+		nowPlayingText.setText("SONIVM Вітає Вас");
+		nowPlayingText.setOffset(-(nowPlayingText.getWidth() - nowPlayingText.getTextFullWidth()) / 2);
 
 		resultBuilder.a(RetroUIMainWindow.builder()
 				.window(mainWin)

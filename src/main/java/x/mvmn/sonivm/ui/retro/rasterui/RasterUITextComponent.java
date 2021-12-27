@@ -39,7 +39,7 @@ public class RasterUITextComponent extends RasterUIComponent {
 		g.setFont(font);
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		textBounds = g.getFontMetrics(font).getStringBounds(text, g).getBounds();
-		g.drawString(text, 0, textBounds.height - 2);
+		g.drawString(text, -xOffset, textBounds.height - 2);
 		g.dispose();
 		super.repaint();
 	}
