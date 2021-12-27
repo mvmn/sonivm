@@ -844,6 +844,9 @@ public class RetroUIFactory {
 					result = ImageIO.read(new ByteArrayInputStream(img));
 					retry = false;
 				} catch (EOFException eof) {
+					if (maxRetries < 1) {
+						throw eof;
+					}
 					// Dumbest crutch ever for the weird EOF error in JRE BMP reader
 					// Weirdest thing is that it works!
 					img = Arrays.copyOf(img, img.length + 1024);
