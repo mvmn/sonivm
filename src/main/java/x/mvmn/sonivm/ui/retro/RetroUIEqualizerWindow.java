@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterGraphicsWindow;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIButton;
-import x.mvmn.sonivm.ui.retro.rasterui.RasterUIIndicator;
+import x.mvmn.sonivm.ui.retro.rasterui.RasterUIBooleanIndicator;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUISlider;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIToggleButton;
 
@@ -14,7 +14,7 @@ import x.mvmn.sonivm.ui.retro.rasterui.RasterUIToggleButton;
 public class RetroUIEqualizerWindow {
 	@Getter
 	protected final RasterGraphicsWindow window;
-	protected final RasterUIIndicator titleBar;
+	protected final RasterUIBooleanIndicator titleBar;
 
 	protected final RasterUISlider gainSlider;
 	protected final RasterUISlider[] eqSliders;

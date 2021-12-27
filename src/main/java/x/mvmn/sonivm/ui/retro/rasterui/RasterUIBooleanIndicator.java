@@ -5,19 +5,19 @@ import java.awt.image.BufferedImage;
 import lombok.Getter;
 import lombok.Setter;
 
-public class RasterUIIndicator extends RasterUIComponent {
+public class RasterUIBooleanIndicator extends RasterUIComponent {
 
 	protected final BufferedImage imageInactive;
 	@Getter
 	@Setter
 	protected volatile boolean active = false;
 
-	public RasterUIIndicator(RasterGraphicsWindow parent, BufferedImage imageActive, BufferedImage imageInactive) {
+	public RasterUIBooleanIndicator(RasterGraphicsWindow parent, BufferedImage imageActive, BufferedImage imageInactive) {
 		super(parent, imageActive);
 		this.imageInactive = imageInactive;
 	}
 
-	public RasterUIIndicator(RasterGraphicsWindow parent, BufferedImage imageActive, BufferedImage imageInactive, int x, int y) {
+	public RasterUIBooleanIndicator(RasterGraphicsWindow parent, BufferedImage imageActive, BufferedImage imageInactive, int x, int y) {
 		super(parent, imageActive, x, y);
 		this.imageInactive = imageInactive;
 	}

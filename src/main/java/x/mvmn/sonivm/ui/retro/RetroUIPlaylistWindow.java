@@ -16,11 +16,8 @@ public class RetroUIPlaylistWindow {
 
 	@Getter
 	protected final RasterFrameWindow window;
-	@Getter
 	protected final JTable playlistTable;
-	@Getter
 	protected final DefaultTableModel playlistTableModel;
-	@Getter
 	protected final PlaylistColors playlistColors;
 
 	@AllArgsConstructor

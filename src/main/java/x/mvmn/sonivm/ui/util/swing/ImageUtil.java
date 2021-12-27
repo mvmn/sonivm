@@ -64,8 +64,19 @@ public abstract class ImageUtil {
 	}
 
 	public static BufferedImage subImageOrBlank(BufferedImage sourceImage, int x, int y, int width, int height) {
+		return subImageOrBlank(sourceImage, x, y, width, height, false);
+	}
+
+	public static BufferedImage subImageOrBlank(BufferedImage sourceImage, int x, int y, int width, int height, boolean newImage) {
 		if (sourceImage.getWidth() >= x + width && sourceImage.getHeight() >= y + height) {
-			return sourceImage.getSubimage(x, y, width, height);
+			BufferedImage subImg = sourceImage.getSubimage(x, y, width, height);
+			if (newImage) {
+				BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+				ImageUtil.drawOnto(result, subImg, 0, 0);
+				return result;
+			} else {
+				return subImg;
+			}
 		} else {
 			return new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 		}

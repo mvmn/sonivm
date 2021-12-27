@@ -48,7 +48,8 @@ import x.mvmn.sonivm.ui.retro.rasterui.ExtRasterUISlider;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterFrameWindow;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterGraphicsWindow;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIButton;
-import x.mvmn.sonivm.ui.retro.rasterui.RasterUIIndicator;
+import x.mvmn.sonivm.ui.retro.rasterui.RasterUIMultiIndicator;
+import x.mvmn.sonivm.ui.retro.rasterui.RasterUIBooleanIndicator;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUISlider;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIToggleButton;
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
@@ -117,7 +118,7 @@ public class RetroUIFactory {
 		ImageUtil.drawOnto(mainWinTitleBarActive, ImageUtil.subImageOrBlank(titleBarBmp, 18, 0, 9, 9), 264, 3);
 
 		ImageUtil.drawOnto(argbBackgroundImage, ImageUtil.subImageOrBlank(titleBarBmp, 304, 0, 8, 43), 10, 22);
-		RasterUIIndicator titleBar = mainWin.addComponent(window -> new RasterUIIndicator(window, mainWinTitleBarActive,
+		RasterUIBooleanIndicator titleBar = mainWin.addComponent(window -> new RasterUIBooleanIndicator(window, mainWinTitleBarActive,
 				ImageUtil.subImageOrBlank(titleBarBmp, 27, 15, 275, 14), 0, 0));
 
 		RasterUISlider seekSlider = mainWin.addComponent(window -> new RasterUISlider(window,
@@ -219,11 +220,42 @@ public class RetroUIFactory {
 
 		BufferedImage monosterBmp = Optional.ofNullable(loadImage(skinZip, "monoster.bmp"))
 				.orElseGet(() -> new BufferedImage(56, 24, BufferedImage.TYPE_INT_ARGB));
-		RasterUIIndicator monoIndicator = mainWin.addComponent(
-				window -> new RasterUIIndicator(window, ImageUtil.subImageOrBlank(monosterBmp, 29, 0, monosterBmp.getWidth() - 29, 12),
-						ImageUtil.subImageOrBlank(monosterBmp, 29, 12, monosterBmp.getWidth() - 29, 12), 212, 41));
-		RasterUIIndicator stereoIndicator = mainWin.addComponent(window -> new RasterUIIndicator(window,
+		RasterUIBooleanIndicator monoIndicator = mainWin.addComponent(window -> new RasterUIBooleanIndicator(window,
+				ImageUtil.subImageOrBlank(monosterBmp, 29, 0, monosterBmp.getWidth() - 29, 12),
+				ImageUtil.subImageOrBlank(monosterBmp, 29, 12, monosterBmp.getWidth() - 29, 12), 212, 41));
+		RasterUIBooleanIndicator stereoIndicator = mainWin.addComponent(window -> new RasterUIBooleanIndicator(window,
 				ImageUtil.subImageOrBlank(monosterBmp, 0, 0, 29, 12), ImageUtil.subImageOrBlank(monosterBmp, 0, 12, 29, 12), 239, 41));
+
+		BufferedImage numbers[] = new BufferedImage[12]; // 0-9, blank, minus
+		BufferedImage numExtBmp = loadImage(skinZip, "num_ext.bmp");
+		if (numExtBmp == null) {
+			BufferedImage numbersBmp = ImageUtil.convert(loadImage(skinZip, "numbers.bmp"), BufferedImage.TYPE_INT_ARGB);
+			for (int i = 0; i < 11; i++) {
+				numbers[i] = ImageUtil.subImageOrBlank(numbersBmp, 9 * i, 0, 9, numbersBmp.getHeight());
+			}
+			numbers[11] = ImageUtil.subImageOrBlank(numbersBmp, 9 * 10, 0, 9, numbersBmp.getHeight(), true);
+			ImageUtil.drawOnto(numbers[11], ImageUtil.subImageOrBlank(numbersBmp, 9 * 2 + 1, 6, 7, 1), 1, 6);
+		} else {
+			numExtBmp = ImageUtil.convert(numExtBmp, BufferedImage.TYPE_INT_ARGB);
+			for (int i = 0; i < 12; i++) {
+				numbers[i] = ImageUtil.subImageOrBlank(numExtBmp, 9 * i, 0, 9, numExtBmp.getHeight());
+			}
+		}
+		RasterUIMultiIndicator playTimeNumber0 = mainWin.addComponent(window -> new RasterUIMultiIndicator(mainWin, numbers, 36, 26));
+		RasterUIMultiIndicator playTimeNumber1 = mainWin.addComponent(window -> new RasterUIMultiIndicator(mainWin, numbers, 48, 26));
+		RasterUIMultiIndicator playTimeNumber2 = mainWin.addComponent(window -> new RasterUIMultiIndicator(mainWin, numbers, 60, 26));
+		RasterUIMultiIndicator playTimeNumber3 = mainWin.addComponent(window -> new RasterUIMultiIndicator(mainWin, numbers, 78, 26));
+		RasterUIMultiIndicator playTimeNumber4 = mainWin.addComponent(window -> new RasterUIMultiIndicator(mainWin, numbers, 90, 26));
+		playTimeNumber0.setState(10);
+
+		BufferedImage playpausBmp = ImageUtil.convert(loadImage(skinZip, "playpaus.bmp"), BufferedImage.TYPE_INT_ARGB);
+		BufferedImage playStates[] = new BufferedImage[4];
+		for (int i = 0; i < playStates.length; i++) {
+			playStates[i] = ImageUtil.subImageOrBlank(playpausBmp, 9 * i, 0, 9, 9);
+		}
+
+		RasterUIMultiIndicator playStateIndicator = mainWin.addComponent(window -> new RasterUIMultiIndicator(mainWin, playStates, 24, 28));
+		playStateIndicator.setState(3);
 
 		resultBuilder.a(RetroUIMainWindow.builder()
 				.window(mainWin)
@@ -243,6 +275,9 @@ public class RetroUIFactory {
 				.btnPlaylistToggle(btnPlaylistToggle)
 				.btnShuffleToggle(btnShuffleToggle)
 				.btnRepeatToggle(btnRepeatToggle)
+				.playStateIndicator(playStateIndicator)
+				.playTimeNumbers(new RasterUIMultiIndicator[] { playTimeNumber0, playTimeNumber1, playTimeNumber2, playTimeNumber3,
+						playTimeNumber4 })
 				.build());
 		//////////////////// //////////////////// //////////////////// //////////////////// ////////////////////
 
@@ -256,8 +291,8 @@ public class RetroUIFactory {
 		BufferedImage eqTitleBarBmp = ImageUtil.convert(loadImage(skinZip, "eqmain.bmp"), BufferedImage.TYPE_INT_ARGB);
 		BufferedImage eqTitleBarActive = ImageUtil.subImageOrBlank(eqTitleBarBmp, 0, 134, 275, 14);
 		ImageUtil.drawOnto(eqTitleBarActive, ImageUtil.subImageOrBlank(eqTitleBarBmp, 0, 116, 9, 9), 264, 3);
-		RasterUIIndicator eqTitleBar = eqWin.addComponent(
-				window -> new RasterUIIndicator(window, eqTitleBarActive, ImageUtil.subImageOrBlank(eqTitleBarBmp, 0, 149, 275, 14), 0, 0));
+		RasterUIBooleanIndicator eqTitleBar = eqWin.addComponent(window -> new RasterUIBooleanIndicator(window, eqTitleBarActive,
+				ImageUtil.subImageOrBlank(eqTitleBarBmp, 0, 149, 275, 14), 0, 0));
 
 		ImageUtil.drawOnto(mainWinTitleBarActive, ImageUtil.subImageOrBlank(titleBarBmp, 0, 0, 9, 9), 6, 3);
 
@@ -346,6 +381,7 @@ public class RetroUIFactory {
 			return Tuple2.<BufferedImage[], BufferedImage[]> builder().a(buttonsActive).b(buttonsInActive).build();
 		};
 
+		// TODO: Add support for playlist window buttons and menus
 		Tuple2<BufferedImage[], BufferedImage[]> addButtons = cutOutButtons.apply(Tuple3.of(3, 0, btnY));
 		Tuple2<BufferedImage[], BufferedImage[]> removeButtons = cutOutButtons.apply(Tuple3.of(4, 54, btnY));
 		Tuple2<BufferedImage[], BufferedImage[]> selectionButtons = cutOutButtons.apply(Tuple3.of(3, 104, btnY));
