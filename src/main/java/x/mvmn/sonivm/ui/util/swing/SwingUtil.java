@@ -62,6 +62,10 @@ public class SwingUtil {
 
 	private static final Logger LOGGER = Logger.getLogger(SwingUtil.class.getCanonicalName());
 
+	public static enum Direction {
+		LEFT, TOP, RIGHT, BOTTOM
+	};
+
 	public static void performSafely(final UnsafeOperation<?> operation) {
 		new Thread(() -> {
 			try {

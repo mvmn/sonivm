@@ -15,7 +15,8 @@ import java.awt.event.MouseMotionAdapter;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import javax.swing.JComponent;
@@ -24,11 +25,12 @@ import javax.swing.JLayer;
 import javax.swing.JPanel;
 import javax.swing.plaf.LayerUI;
 
+import lombok.Setter;
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
+import x.mvmn.sonivm.ui.util.swing.RectLocationAndSize;
 import x.mvmn.sonivm.ui.util.swing.RectanglePointRange;
-import x.mvmn.sonivm.util.Tuple2;
 
-public class RasterGraphicsWindow extends JFrame {
+public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize {
 	private static final long serialVersionUID = 6971200625034588294L;
 
 	protected final BufferedImage backgroundImage;
@@ -52,7 +54,9 @@ public class RasterGraphicsWindow extends JFrame {
 	protected volatile int resizedFromWidth = 0;
 
 	protected CopyOnWriteArrayList<RasterUIComponent> components = new CopyOnWriteArrayList<>();
-	protected CopyOnWriteArrayList<Consumer<Tuple2<Point, Point>>> moveListeners = new CopyOnWriteArrayList<>();
+	protected CopyOnWriteArrayList<BiConsumer<Point, Point>> moveListeners = new CopyOnWriteArrayList<>();
+	@Setter
+	protected volatile BiFunction<Point, Point, Point> moveAdjuster;
 	protected CopyOnWriteArrayList<Runnable> resizeListeners = new CopyOnWriteArrayList<>();
 	protected CopyOnWriteArrayList<Runnable> closeListeners = new CopyOnWriteArrayList<>();
 
@@ -303,14 +307,18 @@ public class RasterGraphicsWindow extends JFrame {
 		int deltaY = e.getYOnScreen() - this.dragFromY;
 		Point from = this.getLocation();
 		Point to = new Point(this.initialLocationBeforeMove.x + deltaX, this.initialLocationBeforeMove.y + deltaY);
+		if (moveAdjuster != null) {
+			to = moveAdjuster.apply(from, to);
+		}
+
 		this.setLocation(to);
 		// If movement was limited by macOS title bar then the actual location of the window
 		// might differ from the one set via setLocation
 		Point finalTo = this.getLocation();
-		this.moveListeners.stream().forEach(listener -> listener.accept(Tuple2.<Point, Point> builder().a(from).b(finalTo).build()));
+		this.moveListeners.stream().forEach(listener -> listener.accept(from, finalTo));
 	}
 
-	public void addMoveListener(Consumer<Tuple2<Point, Point>> moveListener) {
+	public void addMoveListener(BiConsumer<Point, Point> moveListener) {
 		this.moveListeners.add(moveListener);
 	}
 
@@ -320,5 +328,25 @@ public class RasterGraphicsWindow extends JFrame {
 
 	public void addCloseListener(Runnable closeListener) {
 		this.closeListeners.add(closeListener);
+	}
+
+	@Override
+	public int getLeft() {
+		return this.getLocation().x;
+	}
+
+	@Override
+	public int getTop() {
+		return this.getLocation().y;
+	}
+
+	@Override
+	public int getRight() {
+		return getLeft() + getWidth();
+	}
+
+	@Override
+	public int getBottom() {
+		return getTop() + getHeight();
 	}
 }

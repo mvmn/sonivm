@@ -2,6 +2,7 @@ package x.mvmn.sonivm.ui.retro;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Point;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
@@ -13,10 +14,10 @@ import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -24,14 +25,12 @@ import java.util.stream.Stream;
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.table.DefaultTableCellRenderer;
 
 import org.ini4j.Wini;
 
@@ -48,14 +47,16 @@ import x.mvmn.sonivm.ui.retro.rasterui.RasterUIIndicator;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUISlider;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIToggleButton;
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
+import x.mvmn.sonivm.ui.util.swing.RectLocationAndSize;
 import x.mvmn.sonivm.ui.util.swing.RectanglePointRange;
+import x.mvmn.sonivm.ui.util.swing.SwingUtil.Direction;
 import x.mvmn.sonivm.util.Tuple2;
 import x.mvmn.sonivm.util.Tuple3;
 import x.mvmn.sonivm.util.UnsafeFunction;
 
 public class RetroUIFactory {
 
-	private static final int SNAP_INTERVAL_PIXELS = 20;
+	private static final int SNAP_DISTANCE_PIXELS = 15;
 
 	public Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> construct(File winAmpSkinZipFile)
 			throws WSZLoadingException {
@@ -353,7 +354,7 @@ public class RetroUIFactory {
 		Wini plEditIni = loadIniFile(skinZip, "PLEDIT.TXT");
 		Color backgroundColor = SkinUtil.getColor(plEditIni, "Text", "NormalBG", Color.BLACK);
 		Color textColor = SkinUtil.getColor(plEditIni, "Text", "Normal", Color.YELLOW);
-		Color currentTrackTextColor = SkinUtil.getColor(plEditIni, "Text", "Current", Color.WHITE);
+		// Color currentTrackTextColor = SkinUtil.getColor(plEditIni, "Text", "Current", Color.WHITE);
 		Color selectionBackgroundColor = SkinUtil.getColor(plEditIni, "Text", "SelectedBG", Color.BLACK);
 		String[][] dummyTableData = IntStream.range(0, 100)
 				.mapToObj(i -> new String[] { "Test" + i, "asdasd" })
@@ -375,57 +376,161 @@ public class RetroUIFactory {
 		resultBuilder.c(RetroUIPlaylistWindow.builder().window(plEditWin).build());
 		//////////////////// //////////////////// //////////////////// //////////////////// ////////////////////
 
-		Supplier<Boolean> isEQWinInSnapPosition = () -> mainWin.getLocation().x == eqWin.getLocation().x
-				&& mainWin.getLocation().y + mainWin.getHeight() == eqWin.getLocation().y;
+		BiPredicate<RectLocationAndSize, RectLocationAndSize> areAdjacent = (w1, w2) -> w1.getLeft() == w2.getRight()
+				|| w1.getRight() == w2.getLeft() || w1.getBottom() == w2.getTop() || w1.getTop() == w2.getBottom();
 
-		Supplier<Boolean> isEQWinNearSnapPosition = () -> Math.abs(mainWin.getLocation().x - eqWin.getLocation().x) < SNAP_INTERVAL_PIXELS
-				&& Math.abs(mainWin.getLocation().y + mainWin.getHeight() - eqWin.getLocation().y) < SNAP_INTERVAL_PIXELS;
+		BiFunction<RectLocationAndSize, RectLocationAndSize, Integer> distanceRight = (w1, w2) -> Math.abs(w1.getRight() - w2.getLeft());
+		BiFunction<RectLocationAndSize, RectLocationAndSize, Integer> distanceBottom = (w1, w2) -> Math.abs(w1.getBottom() - w2.getTop());
 
-		AtomicBoolean eqWindowSnapped = new AtomicBoolean(isEQWinInSnapPosition.get());
-		AtomicBoolean plWindowSnapped = new AtomicBoolean();
-		Runnable moveEQWindowBelowMain = () -> eqWin.setLocation(mainWin.getLocation().x, mainWin.getLocation().y + mainWin.getHeight());
+		BiPredicate<RectLocationAndSize, RectLocationAndSize> overlapsByX = (w1,
+				w2) -> !(w1.getLeft() > w2.getRight() || w1.getRight() < w2.getLeft());
+		BiPredicate<RectLocationAndSize, RectLocationAndSize> overlapsByY = (w1,
+				w2) -> !(w1.getTop() > w2.getBottom() || w1.getBottom() < w2.getTop());
+
+		Function<Integer, BiFunction<RectLocationAndSize, RectLocationAndSize, Direction>> isNearFunctionFactory = distance -> (w1, w2) -> {
+			if (distanceRight.apply(w1, w2) <= distance && overlapsByY.test(w1, w2)) {
+				return Direction.RIGHT;
+			} else if (distanceRight.apply(w2, w1) <= distance && overlapsByY.test(w1, w2)) {
+				return Direction.LEFT;
+			} else if (distanceBottom.apply(w1, w2) <= distance && overlapsByX.test(w1, w2)) {
+				return Direction.TOP;
+			} else if (distanceBottom.apply(w2, w1) <= distance && overlapsByX.test(w1, w2)) {
+				return Direction.BOTTOM;
+			} else {
+				return null;
+			}
+		};
+
+		BiFunction<RectLocationAndSize, RectLocationAndSize, Direction> isNear = isNearFunctionFactory.apply(SNAP_DISTANCE_PIXELS);
+
+		BiFunction<RectLocationAndSize, RectLocationAndSize, Point> snap = (w1, w2) -> {
+			Direction nearDir = isNear.apply(w1, w2);
+			if (nearDir != null) {
+				int x = -1;
+				int y = -1;
+				switch (nearDir) {
+					case RIGHT:
+						x = w2.getLeft() - w1.getWidth();
+						y = w1.getTop();
+					break;
+					case LEFT:
+						x = w2.getRight();
+						y = w1.getTop();
+					break;
+					case TOP:
+						x = w1.getLeft();
+						y = w2.getTop() - w1.getHeight();
+					break;
+					case BOTTOM:
+						x = w1.getLeft();
+						y = w2.getBottom();
+					break;
+				}
+
+				switch (nearDir) {
+					case RIGHT:
+					case LEFT:
+						if (Math.abs(y - w2.getTop()) < SNAP_DISTANCE_PIXELS) {
+							y = w2.getTop();
+						}
+						if (Math.abs(y - w2.getBottom()) < SNAP_DISTANCE_PIXELS) {
+							y = w2.getBottom();
+						}
+						if (Math.abs(y + w1.getHeight() - w2.getTop()) < SNAP_DISTANCE_PIXELS) {
+							y = w2.getTop() - w1.getHeight();
+						}
+						if (Math.abs(y + w1.getHeight() - w2.getBottom()) < SNAP_DISTANCE_PIXELS) {
+							y = w2.getBottom() - w1.getHeight();
+						}
+					break;
+					case TOP:
+					case BOTTOM:
+						if (Math.abs(x - w2.getRight()) < SNAP_DISTANCE_PIXELS) {
+							x = w2.getRight();
+						}
+						if (Math.abs(x - w2.getLeft()) < SNAP_DISTANCE_PIXELS) {
+							x = w2.getLeft();
+						}
+						if (Math.abs(x + w1.getWidth() - w2.getRight()) < SNAP_DISTANCE_PIXELS) {
+							x = w2.getRight() - w1.getWidth();
+						}
+						if (Math.abs(x + w1.getWidth() - w2.getLeft()) < SNAP_DISTANCE_PIXELS) {
+							x = w2.getLeft() - w1.getWidth();
+						}
+					break;
+				}
+
+				if (x >= 0 && y >= 0) {
+					return new Point(x, y);
+				}
+			}
+			return new Point(w1.getLeft(), w1.getTop());
+		};
+
+		mainWin.setMoveAdjuster((p1, p2) -> {
+			RectanglePointRange winFutureLocation = RectanglePointRange.of(p2, mainWin.getSize());
+			Point p = snap.apply(winFutureLocation, eqWin);
+			p = snap.apply(RectanglePointRange.of(p, mainWin.getSize()), plEditWin);
+			return p;
+		});
+
+		eqWin.setMoveAdjuster((p1, p2) -> {
+			RectanglePointRange winFutureLocation = RectanglePointRange.of(p2, eqWin.getSize());
+			Point p = snap.apply(winFutureLocation, mainWin);
+			p = snap.apply(RectanglePointRange.of(p, eqWin.getSize()), plEditWin);
+			return p;
+		});
+
+		plEditWin.setMoveAdjuster((p1, p2) -> {
+			RectanglePointRange winFutureLocation = RectanglePointRange.of(p2, plEditWin.getSize());
+			Point p = snap.apply(winFutureLocation, mainWin);
+			p = snap.apply(RectanglePointRange.of(p, plEditWin.getSize()), eqWin);
+			return p;
+		});
 
 		mainWin.addComponentListener(new ComponentAdapter() {
 			@Override
 			public void componentMoved(ComponentEvent e) {
-				if (eqWindowSnapped.get()) {
-					moveEQWindowBelowMain.run();
-				} else {
-					eqWindowSnapped.set(isEQWinInSnapPosition.get());
-				}
+				// snap.accept(mainWin, eqWin);
+				// snap.accept(mainWin, plEditWin);
+				// if (eqWindowSnapped.get()) {
+				// moveEQWindowBelowMain.run();
+				// } else {
+				// eqWindowSnapped.set(isEQWinInSnapPosition.get());
+				// }
 			}
 
 			@Override
 			public void componentResized(ComponentEvent e) {
 				eqWin.setSize(mainWin.getSize());
 				plEditWin.setScaleFactor(mainWin.getScaleFactor());
-				if (eqWindowSnapped.get()) {
-					moveEQWindowBelowMain.run();
-				}
+				// if (eqWindowSnapped.get()) {
+				// moveEQWindowBelowMain.run();
+				// }
 			}
 
 			@Override
 			public void componentShown(ComponentEvent e) {
-				eqWindowSnapped.set(isEQWinInSnapPosition.get());
+				// eqWindowSnapped.set(isEQWinInSnapPosition.get());
 			}
 
 			@Override
 			public void componentHidden(ComponentEvent e) {
-				eqWindowSnapped.set(false);
+				// eqWindowSnapped.set(false);
 			}
 		});
 
-		eqWin.addMoveListener(e -> {
-			if (isEQWinNearSnapPosition.get()) {
-				moveEQWindowBelowMain.run();
-			}
-			eqWindowSnapped.set(isEQWinInSnapPosition.get());
+		eqWin.addMoveListener((p1, p2) -> {
+			// if (isEQWinNearSnapPosition.get()) {
+			// moveEQWindowBelowMain.run();
+			// }
+			// eqWindowSnapped.set(isEQWinInSnapPosition.get());
 		});
 
 		eqWin.addComponentListener(new ComponentAdapter() {
 			@Override
 			public void componentShown(ComponentEvent e) {
-				eqWindowSnapped.set(isEQWinInSnapPosition.get());
+				// eqWindowSnapped.set(isEQWinInSnapPosition.get());
 				// Need this because on rescaling if EQ window is hidden it is not re-rendered
 				// And then when set visible it is shown with old scaling
 				eqWin.repaint();
@@ -433,23 +538,24 @@ public class RetroUIFactory {
 
 			@Override
 			public void componentHidden(ComponentEvent e) {
-				eqWindowSnapped.set(false);
+				// eqWindowSnapped.set(false);
 			}
 		});
 
 		mainWin.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowActivated(WindowEvent e) {
-				titleBar.setActive(true);
-				titleBar.repaint();
-				if (eqWin.isVisible()) {
-					eqWin.toFront();
-					eqWin.repaint();
-				}
 				if (plEditWin.isVisible()) {
 					plEditWin.toFront();
 					plEditWin.repaint();
 				}
+				if (eqWin.isVisible()) {
+					eqWin.toFront();
+					eqWin.repaint();
+				}
+				mainWin.toFront();
+				titleBar.setActive(true);
+				titleBar.repaint();
 			}
 
 			@Override
@@ -462,16 +568,17 @@ public class RetroUIFactory {
 		eqWin.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowActivated(WindowEvent e) {
-				eqTitleBar.setActive(true);
-				eqTitleBar.repaint();
-				if (mainWin.isVisible()) {
-					mainWin.toFront();
-					mainWin.repaint();
-				}
 				if (plEditWin.isVisible()) {
 					plEditWin.toFront();
 					plEditWin.repaint();
 				}
+				if (mainWin.isVisible()) {
+					mainWin.toFront();
+					mainWin.repaint();
+				}
+				eqWin.toFront();
+				eqTitleBar.setActive(true);
+				eqTitleBar.repaint();
 			}
 
 			@Override
@@ -484,16 +591,17 @@ public class RetroUIFactory {
 		plEditWin.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowActivated(WindowEvent e) {
-				plEditWin.setActive(true);
-				plEditWin.repaint();
-				if (mainWin.isVisible()) {
-					mainWin.toFront();
-					mainWin.repaint();
-				}
 				if (eqWin.isVisible()) {
 					eqWin.toFront();
 					eqWin.repaint();
 				}
+				if (mainWin.isVisible()) {
+					mainWin.toFront();
+					mainWin.repaint();
+				}
+				plEditWin.toFront();
+				plEditWin.setActive(true);
+				plEditWin.repaint();
 			}
 
 			@Override
