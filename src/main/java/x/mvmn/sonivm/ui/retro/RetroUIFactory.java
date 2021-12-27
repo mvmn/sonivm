@@ -282,7 +282,7 @@ public class RetroUIFactory {
 
 		RasterUITextComponent nowPlayingText = mainWin
 				.addComponent(window -> new RasterUITextComponent(mainWin, backgroundColor, textColor, 154, 10, 111, 25));
-		nowPlayingText.setText("SONIVM Вітає Вас");
+		nowPlayingText.setText("SONIVM");
 		nowPlayingText.setOffset(-(nowPlayingText.getWidth() - nowPlayingText.getTextFullWidth()) / 2);
 
 		resultBuilder.a(RetroUIMainWindow.builder()
