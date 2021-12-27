@@ -466,14 +466,26 @@ public class SwingUtil {
 		Stream.of(button.getActionListeners()).forEach(actListener -> button.removeActionListener(actListener));
 	}
 
+	public static Rectangle getDefaultScreenBounds() {
+		return GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice().getDefaultConfiguration().getBounds();
+	}
+
+	public static Optional<Rectangle> getScreenBounds(String screenID) {
+		return Stream.of(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices())
+				.filter(scr -> scr.getIDstring().equals(screenID))
+				.map(scr -> scr.getDefaultConfiguration().getBounds())
+				.findAny();
+	}
+
 	public static Tuple4<Boolean, String, Point, Dimension> getWindowState(Component window) {
 		Point locationGlobal = window.getLocation();
 		Dimension size = window.getSize();
 
-		GraphicsDevice containingDevice = Stream.of(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices())
-				.filter(display -> display.getDefaultConfiguration().getBounds().contains(locationGlobal))
-				.findAny()
-				.orElse(null);
+		GraphicsDevice containingDevice = window.getGraphicsConfiguration().getDevice();
+		// Stream.of(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices())
+		// .filter(display -> display.getDefaultConfiguration().getBounds().contains(locationGlobal))
+		// .findAny()
+		// .orElse(null);
 		if (containingDevice == null) {
 			throw new RuntimeException("None of the screens contain " + locationGlobal);
 		}

@@ -2,7 +2,9 @@ package x.mvmn.sonivm.ui.retro;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
@@ -14,6 +16,7 @@ import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -33,6 +36,7 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 
+import org.apache.logging.log4j.util.TriConsumer;
 import org.ini4j.Wini;
 
 import net.lingala.zip4j.ZipFile;
@@ -50,9 +54,11 @@ import x.mvmn.sonivm.ui.retro.rasterui.RasterUIToggleButton;
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
 import x.mvmn.sonivm.ui.util.swing.RectLocationAndSize;
 import x.mvmn.sonivm.ui.util.swing.RectanglePointRange;
+import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil.Direction;
 import x.mvmn.sonivm.util.Tuple2;
 import x.mvmn.sonivm.util.Tuple3;
+import x.mvmn.sonivm.util.Tuple4;
 import x.mvmn.sonivm.util.UnsafeFunction;
 
 public class RetroUIFactory {
@@ -382,6 +388,19 @@ public class RetroUIFactory {
 		BiPredicate<RectLocationAndSize, RectLocationAndSize> areAdjacent = (w1, w2) -> w1.getLeft() == w2.getRight()
 				|| w1.getRight() == w2.getLeft() || w1.getBottom() == w2.getTop() || w1.getTop() == w2.getBottom();
 
+		BiFunction<RectLocationAndSize, RectLocationAndSize, Direction> getAdjacency = (w1, w2) -> {
+			if (w1.getLeft() == w2.getRight()) {
+				return Direction.LEFT;
+			} else if (w1.getRight() == w2.getLeft()) {
+				return Direction.RIGHT;
+			} else if (w1.getBottom() == w2.getTop()) {
+				return Direction.BOTTOM;
+			} else if (w1.getTop() == w2.getBottom()) {
+				return Direction.TOP;
+			}
+			return null;
+		};
+
 		BiFunction<RectLocationAndSize, RectLocationAndSize, Integer> distanceRight = (w1, w2) -> Math.abs(w1.getRight() - w2.getLeft());
 		BiFunction<RectLocationAndSize, RectLocationAndSize, Integer> distanceBottom = (w1, w2) -> Math.abs(w1.getBottom() - w2.getTop());
 
@@ -406,9 +425,9 @@ public class RetroUIFactory {
 
 		BiFunction<RectLocationAndSize, RectLocationAndSize, Direction> isNear = isNearFunctionFactory.apply(SNAP_DISTANCE_PIXELS);
 
-		BiFunction<RectLocationAndSize, RectLocationAndSize, Point> snap = (w1, w2) -> {
+		BiFunction<RectLocationAndSize, RasterGraphicsWindow, Point> snap = (w1, w2) -> {
 			Direction nearDir = isNear.apply(w1, w2);
-			if (nearDir != null) {
+			if (nearDir != null && w2.isVisible()) {
 				int x = 0;
 				int y = 0;
 				switch (nearDir) {
@@ -468,16 +487,148 @@ public class RetroUIFactory {
 			return new Point(w1.getLeft(), w1.getTop());
 		};
 
-		mainWin.setMoveAdjuster((p1, p2) -> {
-			try {
-				RectanglePointRange winFutureLocation = RectanglePointRange.of(p2, mainWin.getSize());
-				Point p = snap.apply(winFutureLocation, eqWin);
-				p = snap.apply(RectanglePointRange.of(p, mainWin.getSize()), plEditWin);
-				return p;
-			} catch (Exception e) {
-				e.printStackTrace();
-				return p2;
+		AtomicBoolean eqSnapped = new AtomicBoolean();
+		AtomicBoolean plSnapped = new AtomicBoolean();
+
+		Direction[] windowAdjacency = new Direction[3];
+
+		Runnable updateSnapping = () -> {
+			windowAdjacency[0] = null;
+			windowAdjacency[1] = null;
+			windowAdjacency[2] = null;
+
+			boolean eq = false;
+			boolean pl = false;
+			if (mainWin.isVisible() && eqWin.isVisible() && areAdjacent.test(mainWin, eqWin)) {
+				windowAdjacency[0] = getAdjacency.apply(mainWin, eqWin);
+				eq = true;
+				if (plEditWin.isVisible() && areAdjacent.test(eqWin, plEditWin)) {
+					windowAdjacency[2] = getAdjacency.apply(eqWin, plEditWin);
+					pl = true;
+				}
 			}
+			if (mainWin.isVisible() && eqWin.isVisible() && areAdjacent.test(mainWin, plEditWin)) {
+				windowAdjacency[1] = getAdjacency.apply(mainWin, plEditWin);
+				pl = true;
+				if (!eq && plEditWin.isVisible() && areAdjacent.test(eqWin, plEditWin)) {
+					windowAdjacency[2] = getAdjacency.apply(eqWin, plEditWin);
+					eq = true;
+				}
+			}
+			eqSnapped.set(eq);
+			plSnapped.set(pl);
+		};
+
+		mainWin.addPostMoveListener(p -> updateSnapping.run());
+		eqWin.addPostMoveListener(p -> updateSnapping.run());
+		plEditWin.addPostMoveListener(p -> updateSnapping.run());
+
+		mainWin.addMoveListener((p1, p2) -> {
+			if (eqSnapped.get()) {
+				eqWin.setLocation(eqWin.getLocation().x + (p2.x - p1.x), eqWin.getLocation().y + (p2.y - p1.y));
+			}
+			if (plSnapped.get()) {
+				plEditWin.setLocation(plEditWin.getLocation().x + (p2.x - p1.x), plEditWin.getLocation().y + (p2.y - p1.y));
+			}
+		});
+
+		TriConsumer<RasterGraphicsWindow, RasterGraphicsWindow, Direction> restoreAdjacency = (w1, w2, direction) -> {
+			switch (direction) {
+				case TOP:
+					w2.setLocation(w2.getLocation().x, w1.getLocation().y - w2.getHeight());
+				break;
+				case BOTTOM:
+					w2.setLocation(w2.getLocation().x, w1.getLocation().y + w1.getHeight());
+				break;
+				case LEFT:
+					w2.setLocation(w1.getLocation().x - w2.getWidth(), w2.getLocation().y);
+				break;
+				case RIGHT:
+					w2.setLocation(w1.getLocation().x + w1.getWidth(), w2.getLocation().y);
+				break;
+				default:
+			}
+		};
+
+		Consumer<RasterGraphicsWindow> ensureVisibility = win -> {
+			Tuple4<Boolean, String, Point, Dimension> windowState = SwingUtil.getWindowState(win);
+			Rectangle screenBounds = SwingUtil.getScreenBounds(windowState.getB()).orElse(SwingUtil.getDefaultScreenBounds());
+			if (!(screenBounds.contains(windowState.getC())
+					|| screenBounds.contains(windowState.getC().x + windowState.getD().width, windowState.getC().y))) {
+				SwingUtil.moveToScreenCenter(win);
+			}
+		};
+
+		mainWin.addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentResized(ComponentEvent e) {
+				eqWin.setSize(mainWin.getSize());
+				plEditWin.setScaleFactor(mainWin.getScaleFactor());
+
+				if (eqSnapped.get()) {
+					if (windowAdjacency[0] != null) {
+						restoreAdjacency.accept(mainWin, eqWin, windowAdjacency[0]);
+					} else if (plSnapped.get() && windowAdjacency[2] != null) {
+						restoreAdjacency.accept(eqWin, plEditWin, windowAdjacency[2]);
+					}
+				}
+				if (plSnapped.get()) {
+					if (windowAdjacency[1] != null) {
+						restoreAdjacency.accept(mainWin, plEditWin, windowAdjacency[1]);
+					} else if (eqSnapped.get() && windowAdjacency[2] != null) {
+						restoreAdjacency.accept(eqWin, plEditWin, windowAdjacency[2]);
+					}
+				}
+			}
+
+			@Override
+			public void componentShown(ComponentEvent e) {
+				ensureVisibility.accept(mainWin);
+				updateSnapping.run();
+			}
+
+			@Override
+			public void componentHidden(ComponentEvent e) {
+				updateSnapping.run();
+			}
+		});
+
+		eqWin.addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentShown(ComponentEvent e) {
+				eqWin.repaint();
+				ensureVisibility.accept(eqWin);
+			}
+
+			@Override
+			public void componentHidden(ComponentEvent e) {
+				updateSnapping.run();
+			}
+		});
+
+		plEditWin.addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentShown(ComponentEvent e) {
+				ensureVisibility.accept(plEditWin);
+				updateSnapping.run();
+			}
+
+			@Override
+			public void componentHidden(ComponentEvent e) {
+				updateSnapping.run();
+			}
+		});
+
+		mainWin.setMoveAdjuster((p1, p2) -> {
+			RectanglePointRange winFutureLocation = RectanglePointRange.of(p2, mainWin.getSize());
+			Point p = p2;
+			if (!eqSnapped.get()) {
+				p = snap.apply(winFutureLocation, eqWin);
+			}
+			if (!plSnapped.get()) {
+				p = snap.apply(RectanglePointRange.of(p, mainWin.getSize()), plEditWin);
+			}
+			return p;
 		});
 
 		eqWin.setMoveAdjuster((p1, p2) -> {
@@ -492,60 +643,6 @@ public class RetroUIFactory {
 			Point p = snap.apply(winFutureLocation, mainWin);
 			p = snap.apply(RectanglePointRange.of(p, plEditWin.getSize()), eqWin);
 			return p;
-		});
-
-		mainWin.addComponentListener(new ComponentAdapter() {
-			@Override
-			public void componentMoved(ComponentEvent e) {
-				// snap.accept(mainWin, eqWin);
-				// snap.accept(mainWin, plEditWin);
-				// if (eqWindowSnapped.get()) {
-				// moveEQWindowBelowMain.run();
-				// } else {
-				// eqWindowSnapped.set(isEQWinInSnapPosition.get());
-				// }
-			}
-
-			@Override
-			public void componentResized(ComponentEvent e) {
-				eqWin.setSize(mainWin.getSize());
-				plEditWin.setScaleFactor(mainWin.getScaleFactor());
-				// if (eqWindowSnapped.get()) {
-				// moveEQWindowBelowMain.run();
-				// }
-			}
-
-			@Override
-			public void componentShown(ComponentEvent e) {
-				// eqWindowSnapped.set(isEQWinInSnapPosition.get());
-			}
-
-			@Override
-			public void componentHidden(ComponentEvent e) {
-				// eqWindowSnapped.set(false);
-			}
-		});
-
-		eqWin.addMoveListener((p1, p2) -> {
-			// if (isEQWinNearSnapPosition.get()) {
-			// moveEQWindowBelowMain.run();
-			// }
-			// eqWindowSnapped.set(isEQWinInSnapPosition.get());
-		});
-
-		eqWin.addComponentListener(new ComponentAdapter() {
-			@Override
-			public void componentShown(ComponentEvent e) {
-				// eqWindowSnapped.set(isEQWinInSnapPosition.get());
-				// Need this because on rescaling if EQ window is hidden it is not re-rendered
-				// And then when set visible it is shown with old scaling
-				eqWin.repaint();
-			}
-
-			@Override
-			public void componentHidden(ComponentEvent e) {
-				// eqWindowSnapped.set(false);
-			}
 		});
 
 		mainWin.addWindowListener(new WindowAdapter() {

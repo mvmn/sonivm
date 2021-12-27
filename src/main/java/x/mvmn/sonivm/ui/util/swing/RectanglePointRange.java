@@ -15,6 +15,10 @@ public class RectanglePointRange implements RectLocationAndSize {
 	protected final int width;
 	protected final int height;
 
+	public RectanglePointRange(RectLocationAndSize source) {
+		this(source.getLeft(), source.getTop(), source.getRight(), source.getBottom());
+	}
+
 	public RectanglePointRange(int left, int top, int right, int bottom) {
 		if (left > right) {
 			throw new IllegalArgumentException("Left after right");

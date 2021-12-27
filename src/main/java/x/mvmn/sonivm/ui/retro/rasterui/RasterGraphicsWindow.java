@@ -17,6 +17,7 @@ import java.awt.image.BufferedImage;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import javax.swing.JComponent;
@@ -55,6 +56,7 @@ public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize 
 
 	protected CopyOnWriteArrayList<RasterUIComponent> components = new CopyOnWriteArrayList<>();
 	protected CopyOnWriteArrayList<BiConsumer<Point, Point>> moveListeners = new CopyOnWriteArrayList<>();
+	protected CopyOnWriteArrayList<Consumer<Point>> postMoveListeners = new CopyOnWriteArrayList<>();
 	@Setter
 	protected volatile BiFunction<Point, Point, Point> moveAdjuster;
 	protected CopyOnWriteArrayList<Runnable> resizeListeners = new CopyOnWriteArrayList<>();
@@ -225,6 +227,7 @@ public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize 
 		this.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseReleased(MouseEvent e) {
+				boolean wasMoved = isBeingMoved;
 				RasterGraphicsWindow.this.isBeingResized = false;
 				RasterGraphicsWindow.this.isBeingMoved = false;
 				if (isBeingClosed) {
@@ -235,6 +238,9 @@ public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize 
 					}
 				}
 				RasterGraphicsWindow.this.isBeingClosed = false;
+				if (wasMoved) {
+					postMoveListeners.forEach(it -> it.accept(e.getLocationOnScreen()));
+				}
 			}
 
 			@Override
@@ -320,6 +326,10 @@ public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize 
 
 	public void addMoveListener(BiConsumer<Point, Point> moveListener) {
 		this.moveListeners.add(moveListener);
+	}
+
+	public void addPostMoveListener(Consumer<Point> postMoveListener) {
+		this.postMoveListeners.add(postMoveListener);
 	}
 
 	public void addResizeListener(Runnable resizeListener) {
