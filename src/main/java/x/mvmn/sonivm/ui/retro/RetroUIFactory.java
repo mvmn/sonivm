@@ -78,7 +78,7 @@ public class RetroUIFactory {
 				.<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> builder();
 
 		ImageIO.setUseCache(false);
-		ZipFile skinZip = new ZipFile(winAmpSkinZipFile);
+		ZipFile skinZip = winAmpSkinZipFile != null ? new ZipFile(winAmpSkinZipFile) : null;
 
 		String mainWindowNumPoints = null;
 		String mainWindowPointList = null;
@@ -826,6 +826,16 @@ public class RetroUIFactory {
 
 	protected <T> T load(ZipFile skinZip, String fileName, UnsafeFunction<InputStream, T, ?> converter) throws WSZLoadingException {
 		try {
+			if (skinZip == null) {
+				try (InputStream is = RetroUIFactory.class.getResourceAsStream("/retroskin/sonivm/" + fileName.toUpperCase())) {
+					if (is == null) {
+						return null;
+					}
+					return converter.apply(is);
+				} catch (Exception e) {
+					throw new WSZLoadingException("Failed to load embedded Sonivm skin", e);
+				}
+			}
 			FileHeader fileHeader = skinZip.getFileHeaders()
 					.stream()
 					.filter(fh -> fh.getFileName().equalsIgnoreCase(fileName)
@@ -879,7 +889,7 @@ public class RetroUIFactory {
 	public static void main(String args[]) throws Exception {
 		Consumer<File> onSkinSelect = skinZipFile -> {
 			try {
-				System.out.println("Loading skin: " + skinZipFile.getName());
+				System.out.println("Loading skin: " + (skinZipFile != null ? skinZipFile.getName() : "Embedded skin"));
 				Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> retroUIWindows = new RetroUIFactory()
 						.construct(skinZipFile);
 				if (RetroUIFactory.retroUIWindows != null) {
@@ -948,5 +958,7 @@ public class RetroUIFactory {
 
 		skinSelector.pack();
 		skinSelector.setVisible(true);
+
+		onSkinSelect.accept(null);
 	}
 }
