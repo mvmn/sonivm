@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -285,9 +286,9 @@ public class RetroUIFactory {
 		textColor = darkDiff > brightDiff ? darkest : brightest;
 
 		RasterUITextComponent nowPlayingText = mainWin
-				.addComponent(window -> new RasterUITextComponent(mainWin, backgroundColor, textColor, 154, 10, 111, 25));
+				.addComponent(window -> new RasterUITextComponent(mainWin, backgroundColor, textColor, 154, 10, 111, 25, 16));
 		nowPlayingText.setText("SONIVM");
-		nowPlayingText.setOffset(-(nowPlayingText.getWidth() - nowPlayingText.getTextFullWidth()) / 2);
+		nowPlayingText.setOffset(10);
 
 		resultBuilder.a(RetroUIMainWindow.builder()
 				.window(mainWin)
@@ -935,7 +936,6 @@ public class RetroUIFactory {
 				retroUIWindows.getA().btnPause.addListener(() -> retroUIWindows.getA().setPlybackIndicatorState(true, true));
 
 				RetroUIFactory.retroUIWindows = retroUIWindows;
-
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -966,5 +966,29 @@ public class RetroUIFactory {
 		skinSelector.setVisible(true);
 
 		onSkinSelect.accept(null);
+
+		AtomicInteger offset = new AtomicInteger();
+		Thread titleScrollThread = new Thread(() -> {
+			while (true) {
+				Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> windows = RetroUIFactory.retroUIWindows;
+				if (windows != null) {
+					RasterUITextComponent nowPlaying = windows.getA().nowPlayingText;
+					int newOffset = offset.getAndIncrement();
+					if (nowPlaying.getTextFullWidth() + 16 <= newOffset) {
+						offset.set(0);
+						newOffset = 0;
+					}
+					nowPlaying.setOffset(newOffset);
+				}
+				try {
+					Thread.sleep(20);
+				} catch (InterruptedException e) {
+					Thread.interrupted();
+					return;
+				}
+			}
+		});
+		titleScrollThread.setDaemon(true);
+		titleScrollThread.start();
 	}
 }
