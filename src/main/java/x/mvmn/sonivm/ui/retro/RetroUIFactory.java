@@ -944,9 +944,11 @@ public class RetroUIFactory {
 		JFrame skinSelector = new JFrame();
 
 		File skinsFolder = new File("/Users/mvmn/Downloads/winamp_skins");
-		Set<String> skins = Stream.of(skinsFolder.listFiles())
-				.filter(f -> !f.isDirectory() && f.getName().toLowerCase().endsWith(".wsz"))
-				.map(File::getName)
+		Set<String> skins = Stream
+				.concat(Stream.of(" < Sonivm > "),
+						Stream.of(skinsFolder.listFiles())
+								.filter(f -> !f.isDirectory() && f.getName().toLowerCase().endsWith(".wsz"))
+								.map(File::getName))
 				.collect(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(str -> str.toLowerCase()))));
 		JList<String> skinList = new JList<>(skins.toArray(new String[skins.size()]));
 
@@ -955,7 +957,7 @@ public class RetroUIFactory {
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
 				String skinFileName = skinList.getModel().getElementAt(skinList.getSelectedIndex());
-				onSkinSelect.accept(new File(skinsFolder, skinFileName));
+				onSkinSelect.accept(skinFileName.equals(" < Sonivm > ") ? null : new File(skinsFolder, skinFileName));
 			}
 		});
 
@@ -973,7 +975,7 @@ public class RetroUIFactory {
 				Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> windows = RetroUIFactory.retroUIWindows;
 				if (windows != null) {
 					RasterUITextComponent nowPlaying = windows.getA().nowPlayingText;
-					int newOffset = offset.getAndIncrement();
+					int newOffset = offset.getAndAdd(5);
 					if (nowPlaying.getTextFullWidth() + 16 <= newOffset) {
 						offset.set(0);
 						newOffset = 0;
@@ -981,7 +983,8 @@ public class RetroUIFactory {
 					nowPlaying.setOffset(newOffset);
 				}
 				try {
-					Thread.sleep(20);
+					Thread.sleep(100);
+					Thread.yield();
 				} catch (InterruptedException e) {
 					Thread.interrupted();
 					return;
