@@ -643,8 +643,10 @@ public class RetroUIFactory {
 		Consumer<RasterGraphicsWindow> ensureVisibility = win -> {
 			Tuple4<Boolean, String, Point, Dimension> windowState = SwingUtil.getWindowState(win);
 			Rectangle screenBounds = SwingUtil.getScreenBounds(windowState.getB()).orElse(SwingUtil.getDefaultScreenBounds());
-			if (!(screenBounds.contains(windowState.getC())
-					|| screenBounds.contains(windowState.getC().x + windowState.getD().width, windowState.getC().y))) {
+			Point topLeft = new Point(screenBounds.x + windowState.getC().x, screenBounds.y + windowState.getC().y);
+			Point topRightPlus16Px = new Point(screenBounds.x + windowState.getC().x + windowState.getD().width,
+					screenBounds.y + windowState.getC().y + 16);
+			if (!(screenBounds.contains(topLeft) || screenBounds.contains(topRightPlus16Px))) {
 				SwingUtil.moveToScreenCenter(win);
 			}
 		};
@@ -688,6 +690,7 @@ public class RetroUIFactory {
 			public void componentShown(ComponentEvent e) {
 				eqWin.repaint();
 				ensureVisibility.accept(eqWin);
+				updateSnapping.run();
 			}
 
 			@Override
@@ -848,11 +851,11 @@ public class RetroUIFactory {
 			boolean retry = false;
 			int maxRetries = 10;
 			do {
+				retry = false;
 				try {
 					result = ImageIO.read(new ByteArrayInputStream(img));
-					retry = false;
 				} catch (EOFException eof) {
-					if (maxRetries < 1) {
+					if (maxRetries-- < 1) {
 						throw eof;
 					}
 					// Dumbest crutch ever for the weird EOF error in JRE BMP reader
@@ -860,7 +863,7 @@ public class RetroUIFactory {
 					img = Arrays.copyOf(img, img.length + 1024);
 					retry = true;
 				}
-			} while (retry && maxRetries-- > 0);
+			} while (retry);
 			return result;
 		});
 	}
