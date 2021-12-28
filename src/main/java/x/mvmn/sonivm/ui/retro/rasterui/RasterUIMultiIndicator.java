@@ -27,5 +27,6 @@ public class RasterUIMultiIndicator extends RasterUIComponent {
 
 	public void setState(int state) {
 		this.state = Math.min(Math.max(0, state), stateImages.length - 1);
+		repaint();
 	}
 }

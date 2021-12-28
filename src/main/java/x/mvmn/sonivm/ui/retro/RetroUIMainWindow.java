@@ -42,6 +42,22 @@ public class RetroUIMainWindow {
 
 	protected final RasterUIMultiIndicator playStateIndicator;
 	protected final RasterUIMultiIndicator[] playTimeNumbers;
-	
+
 	protected final RasterUITextComponent nowPlayingText;
+
+	public void setPlaybackNumbers(int min, int sec, boolean negative) {
+		int minH = (min / 10) % 10;
+		int minL = min % 10;
+		int secH = (sec / 10) % 10;
+		int secL = sec % 10;
+		playTimeNumbers[0].setState(negative ? 12 : 11);
+		playTimeNumbers[1].setState(minH);
+		playTimeNumbers[2].setState(minL);
+		playTimeNumbers[3].setState(secH);
+		playTimeNumbers[4].setState(secL);
+	}
+
+	public void setPlybackIndicatorState(boolean playing, boolean paused) {
+		playStateIndicator.setState(playing ? paused ? 1 : 0 : 2);
+	}
 }

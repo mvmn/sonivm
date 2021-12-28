@@ -928,6 +928,12 @@ public class RetroUIFactory {
 					retroUIWindows.getC().getWindow().setLocation(100, 332);
 					retroUIWindows.getC().getWindow().setVisible(true);
 				}
+				retroUIWindows.getA().setPlaybackNumbers(12, 34, true);
+				retroUIWindows.getA().setPlybackIndicatorState(false, false);
+				retroUIWindows.getA().btnPlay.addListener(() -> retroUIWindows.getA().setPlybackIndicatorState(true, false));
+				retroUIWindows.getA().btnStop.addListener(() -> retroUIWindows.getA().setPlybackIndicatorState(false, false));
+				retroUIWindows.getA().btnPause.addListener(() -> retroUIWindows.getA().setPlybackIndicatorState(true, true));
+
 				RetroUIFactory.retroUIWindows = retroUIWindows;
 
 			} catch (Exception e) {
