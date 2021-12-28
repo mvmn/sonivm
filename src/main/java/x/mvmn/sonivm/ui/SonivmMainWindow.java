@@ -130,9 +130,10 @@ public class SonivmMainWindow extends JFrame {
 				if (dropLocation != null && !dropLocation.isInsertRow() && !dropLocation.isInsertColumn() && dropLocation.getRow() == row
 				// && dropLocation.getColumn() == column
 				) {
-					isSelected = true;
-					fgSelected = lookupInUIDefaults("Table.dropCellForeground", fgSelected);
-					bgSelected = lookupInUIDefaults("Table.dropCellBackground", bgSelected);
+					// isSelected = true;
+					// fgSelected = lookupInUIDefaults("Table.dropCellForeground", fgSelected);
+					// bgSelected = lookupInUIDefaults("Table.dropCellBackground", bgSelected);
+					renderJLabel.setBorder(BorderFactory.createMatteBorder(2, 0, 0, 0, fgSelected));
 				}
 
 				// if (hasFocus) {

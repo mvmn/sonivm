@@ -28,7 +28,7 @@ public class PlayQueueTableDnDTransferHandler extends TransferHandler {
 	private static final Logger LOGGER = Logger.getLogger(PlayQueueTableDnDTransferHandler.class.getName());
 
 	public static final DataFlavor DATA_FLAVOR_STRING_ROW_INDEXES_RANGE = new DataFlavor(
-			DataFlavor.javaSerializedObjectMimeType + ";class=x.mvmn.sonivm.model.IntRange", "String Row Indexes Range");
+			DataFlavor.javaSerializedObjectMimeType + ";class=x.mvmn.sonivm.util.IntRange", "String Row Indexes Range");
 
 	private final JTable playbackQueueTable;
 	private final SonivmController controller;
