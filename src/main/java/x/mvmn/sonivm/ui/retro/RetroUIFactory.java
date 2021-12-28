@@ -144,34 +144,9 @@ public class RetroUIFactory {
 		RasterUIButton btnEject = mainWin.addComponent(window -> new RasterUIButton(window,
 				ImageUtil.subImageOrBlank(buttonsBmp, 114, 0, 22, 16), ImageUtil.subImageOrBlank(buttonsBmp, 114, 16, 22, 16), 136, 89));
 		// btnEject.addListener(() -> System.out.println("Pressed eject"));
-
-		BufferedImage balanceSliderBmp = loadImage(skinZip, "BALANCE.BMP");
-		if (balanceSliderBmp == null) {
-			balanceSliderBmp = new BufferedImage(47, 418, BufferedImage.TYPE_INT_ARGB);
-		}
-		BufferedImage[] balanceSliderBackgrounds = new BufferedImage[28];
-		for (int i = 0; i < balanceSliderBackgrounds.length; i++) {
-			balanceSliderBackgrounds[i] = new BufferedImage(38, 13, BufferedImage.TYPE_INT_ARGB);
-			ImageUtil.drawOnto(balanceSliderBackgrounds[i], ImageUtil.subImageOrBlank(balanceSliderBmp, 9, i * 15, 38, 13), 0, 0);
-		}
-		BufferedImage balanceReleased;
-		BufferedImage balancePressed;
-		if (balanceSliderBmp.getHeight() - 422 > 0) {
-			balanceReleased = ImageUtil.subImageOrBlank(balanceSliderBmp, 15, 422, 14, balanceSliderBmp.getHeight() - 422);
-			balancePressed = ImageUtil.subImageOrBlank(balanceSliderBmp, 0, 422, 14, balanceSliderBmp.getHeight() - 422);
-		} else {
-			balanceReleased = new BufferedImage(14, 11, BufferedImage.TYPE_INT_ARGB);
-			balancePressed = new BufferedImage(14, 11, BufferedImage.TYPE_INT_ARGB);
-		}
-
-		ExtRasterUISlider balanceSlider = mainWin
-				.addComponent(window -> new ExtRasterUISlider(window, balanceSliderBackgrounds, balanceReleased, balancePressed, 177, 57,
-						38 - 14, (38 - 14) / 2, false, val -> (int) Math.round(Math.abs((38 - 14) / 2 - val) * 28 / 12.0d), 0, 1));
-		// balanceSlider.addListener(() -> System.out.println("Balance: " + balanceSlider.getSliderPosition()));
-
 		BufferedImage volumeSliderBmp = loadImage(skinZip, "VOLUME.BMP");
 		BufferedImage[] volumeSliderBackgrounds = new BufferedImage[28];
-		for (int i = 0; i < balanceSliderBackgrounds.length; i++) {
+		for (int i = 0; i < volumeSliderBackgrounds.length; i++) {
 			volumeSliderBackgrounds[i] = new BufferedImage(68, 13, BufferedImage.TYPE_INT_ARGB);
 			ImageUtil.drawOnto(volumeSliderBackgrounds[i], ImageUtil.subImageOrBlank(volumeSliderBmp, 0, i * 15, 68, 13), 0, 0);
 		}
@@ -189,6 +164,33 @@ public class RetroUIFactory {
 		ExtRasterUISlider volumeSlider = mainWin.addComponent(window -> new ExtRasterUISlider(window, volumeSliderBackgrounds,
 				volumeReleased, volumePressed, 107, 57, 68 - 14, 68 - 14, false, val -> (int) Math.round(val * 28.0d / 54.0d), 0, 1));
 		// volumeSlider.addListener(() -> System.out.println("Volume: " + volumeSlider.getSliderPosition()));
+
+		BufferedImage balanceSliderBmp = loadImage(skinZip, "BALANCE.BMP");
+		BufferedImage[] balanceSliderBackgrounds = new BufferedImage[28];
+		BufferedImage balanceReleased = volumeReleased;
+		BufferedImage balancePressed = volumePressed;
+		if (balanceSliderBmp == null) {
+			for (int i = 0; i < balanceSliderBackgrounds.length; i++) {
+				balanceSliderBackgrounds[i] = ImageUtil.subImageOrBlank(volumeSliderBackgrounds[i], 15, 0, 38, 13);
+			}
+		} else {
+			for (int i = 0; i < balanceSliderBackgrounds.length; i++) {
+				balanceSliderBackgrounds[i] = new BufferedImage(38, 13, BufferedImage.TYPE_INT_ARGB);
+				ImageUtil.drawOnto(balanceSliderBackgrounds[i], ImageUtil.subImageOrBlank(balanceSliderBmp, 9, i * 15, 38, 13), 0, 0);
+			}
+			if (balanceSliderBmp.getHeight() - 422 > 0) {
+				balanceReleased = ImageUtil.subImageOrBlank(balanceSliderBmp, 15, 422, 14, balanceSliderBmp.getHeight() - 422);
+				balancePressed = ImageUtil.subImageOrBlank(balanceSliderBmp, 0, 422, 14, balanceSliderBmp.getHeight() - 422);
+			}
+		}
+
+		final BufferedImage balanceReleasedFinal = balanceReleased;
+		final BufferedImage balancePressedFinal = balancePressed;
+
+		ExtRasterUISlider balanceSlider = mainWin
+				.addComponent(window -> new ExtRasterUISlider(window, balanceSliderBackgrounds, balanceReleasedFinal, balancePressedFinal,
+						177, 57, 38 - 14, (38 - 14) / 2, false, val -> (int) Math.round(Math.abs((38 - 14) / 2 - val) * 28 / 12.0d), 0, 1));
+		// balanceSlider.addListener(() -> System.out.println("Balance: " + balanceSlider.getSliderPosition()));
 
 		BufferedImage shufRepBmp = loadImage(skinZip, "SHUFREP.BMP");
 
