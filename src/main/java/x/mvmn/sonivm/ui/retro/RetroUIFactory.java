@@ -888,6 +888,44 @@ public class RetroUIFactory {
 	private static volatile Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> retroUIWindows;
 
 	public static void main(String args[]) throws Exception {
+
+		ComponentAdapter scrollThreadAdaptor = new ComponentAdapter() {
+			private volatile Thread titleScrollThread;
+			AtomicInteger offset = new AtomicInteger();
+
+			@Override
+			public void componentShown(ComponentEvent e) {
+				titleScrollThread = new Thread(() -> {
+					while (true) {
+						Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> windows = RetroUIFactory.retroUIWindows;
+						if (windows != null) {
+							RasterUITextComponent nowPlaying = windows.getA().nowPlayingText;
+							int newOffset = offset.getAndAdd(5);
+							if (nowPlaying.getTextFullWidth() + 16 <= newOffset) {
+								offset.set(0);
+								newOffset = 0;
+							}
+							nowPlaying.setOffset(newOffset);
+						}
+						try {
+							Thread.sleep(100);
+							Thread.yield();
+						} catch (InterruptedException ex) {
+							Thread.interrupted();
+							return;
+						}
+					}
+				});
+				titleScrollThread.setDaemon(true);
+				titleScrollThread.start();
+			}
+
+			@Override
+			public void componentHidden(ComponentEvent e) {
+				titleScrollThread.interrupt();
+			}
+		};
+
 		Consumer<File> onSkinSelect = skinZipFile -> {
 			try {
 				System.out.println("Loading skin: " + (skinZipFile != null ? skinZipFile.getName() : "Embedded skin"));
@@ -896,7 +934,6 @@ public class RetroUIFactory {
 				if (RetroUIFactory.retroUIWindows != null) {
 					retroUIWindows.getA().getWindow().setLocation(RetroUIFactory.retroUIWindows.getA().getWindow().getLocation());
 					retroUIWindows.getA().getWindow().setSize(RetroUIFactory.retroUIWindows.getA().getWindow().getSize());
-					retroUIWindows.getA().getWindow().setVisible(true);
 
 					retroUIWindows.getB().getWindow().setLocation(RetroUIFactory.retroUIWindows.getB().getWindow().getLocation());
 					retroUIWindows.getB().getWindow().setSize(RetroUIFactory.retroUIWindows.getB().getWindow().getSize());
@@ -904,6 +941,9 @@ public class RetroUIFactory {
 					retroUIWindows.getB().getWindow().setVisible(eqVisible);
 
 					retroUIWindows.getA().btnEqToggle.setButtonOn(eqVisible);
+					retroUIWindows.getA().getWindow().addComponentListener(scrollThreadAdaptor);
+
+					retroUIWindows.getA().getWindow().setVisible(true);
 
 					RasterFrameWindow plWin = RetroUIFactory.retroUIWindows.getC().getWindow();
 					retroUIWindows.getC().getWindow().setLocation(plWin.getLocation());
@@ -914,12 +954,10 @@ public class RetroUIFactory {
 					retroUIWindows.getA().btnPlaylistToggle.setButtonOn(plWin.isVisible());
 
 					RetroUIFactory.retroUIWindows.getA().getWindow().setVisible(false);
-					RetroUIFactory.retroUIWindows.getA().getWindow().dispose();
 					RetroUIFactory.retroUIWindows.getB().getWindow().setVisible(false);
-					RetroUIFactory.retroUIWindows.getB().getWindow().dispose();
 					plWin.setVisible(false);
-					plWin.dispose();
 				} else {
+					retroUIWindows.getA().getWindow().addComponentListener(scrollThreadAdaptor);
 					retroUIWindows.getA().getWindow().setLocation(100, 100);
 					retroUIWindows.getA().getWindow().setVisible(true);
 
@@ -969,29 +1007,5 @@ public class RetroUIFactory {
 
 		onSkinSelect.accept(null);
 
-		AtomicInteger offset = new AtomicInteger();
-		Thread titleScrollThread = new Thread(() -> {
-			while (true) {
-				Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> windows = RetroUIFactory.retroUIWindows;
-				if (windows != null) {
-					RasterUITextComponent nowPlaying = windows.getA().nowPlayingText;
-					int newOffset = offset.getAndAdd(5);
-					if (nowPlaying.getTextFullWidth() + 16 <= newOffset) {
-						offset.set(0);
-						newOffset = 0;
-					}
-					nowPlaying.setOffset(newOffset);
-				}
-				try {
-					Thread.sleep(100);
-					Thread.yield();
-				} catch (InterruptedException e) {
-					Thread.interrupted();
-					return;
-				}
-			}
-		});
-		titleScrollThread.setDaemon(true);
-		titleScrollThread.start();
 	}
 }
