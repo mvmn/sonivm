@@ -23,8 +23,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.annotation.PostConstruct;
-import javax.swing.JTable;
-import javax.swing.table.TableColumnModel;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -373,7 +371,7 @@ public class SoniumControllerImpl implements SonivmController {
 				insertPosition -= rowCount;
 			}
 
-			mainWindow.getPlayQueueTable().getSelectionModel().setSelectionInterval(insertPosition, insertPosition + rowCount - 1);
+			mainWindow.setSelectedPlayQueueRows(insertPosition, insertPosition + rowCount - 1);
 
 			return true;
 		} else {
@@ -475,25 +473,8 @@ public class SoniumControllerImpl implements SonivmController {
 	private void savePlayQueueColumnsState() {
 		LOGGER.info("Saving UI state.");
 		try {
-			JTable tblPlayQueue = mainWindow.getPlayQueueTable();
-			TableColumnModel columnModel = tblPlayQueue.getColumnModel();
-			int[] columnWidths = new int[columnModel.getColumnCount()];
-			int totalWidth = 0;
-			for (int i = 0; i < columnModel.getColumnCount(); i++) {
-				int width = columnModel.getColumn(i).getWidth();
-				totalWidth += width;
-				columnWidths[i] = width;
-			}
-			for (int i = 0; i < columnWidths.length; i++) {
-				columnWidths[i] = (columnWidths[i] * 10000) / totalWidth;
-			}
-			preferencesService.setPlayQueueColumnWidths(columnWidths);
-
-			int[] columnPositions = new int[columnModel.getColumnCount()];
-			for (int i = 0; i < columnModel.getColumnCount(); i++) {
-				columnPositions[i] = tblPlayQueue.convertColumnIndexToView(i);
-			}
-			preferencesService.setPlayQueueColumnPositions(columnPositions);
+			preferencesService.setPlayQueueColumnWidths(mainWindow.getColumnWidths());
+			preferencesService.setPlayQueueColumnPositions(mainWindow.getColumnPositions());
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to store column width for playback queue table", e);
 		}
@@ -816,14 +797,7 @@ public class SoniumControllerImpl implements SonivmController {
 		try {
 			int[] playQueueColumnPositions = preferencesService.getPlayQueueColumnPositions();
 			if (playQueueColumnPositions != null && playQueueColumnPositions.length > 0) {
-				SwingUtil.runOnEDT(() -> {
-					JTable tblPlayQueue = mainWindow.getPlayQueueTable();
-					TableColumnModel columnModel = tblPlayQueue.getColumnModel();
-
-					for (int i = 0; i < columnModel.getColumnCount() && i < playQueueColumnPositions.length; i++) {
-						columnModel.moveColumn(tblPlayQueue.convertColumnIndexToView(i), playQueueColumnPositions[i]);
-					}
-				}, true);
+				SwingUtil.runOnEDT(() -> mainWindow.setPlayQueueColumnPositions(playQueueColumnPositions), true);
 			}
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to read+apply column positions for playback queue table", e);
@@ -832,19 +806,7 @@ public class SoniumControllerImpl implements SonivmController {
 		try {
 			int[] playQueueColumnWidths = preferencesService.getPlayQueueColumnWidths();
 			if (playQueueColumnWidths != null && playQueueColumnWidths.length > 0) {
-				SwingUtil.runOnEDT(() -> {
-					TableColumnModel columnModel = mainWindow.getPlayQueueTable().getColumnModel();
-
-					int totalWidth = 0;
-					for (int i = 0; i < columnModel.getColumnCount(); i++) {
-						totalWidth += columnModel.getColumn(i).getWidth();
-					}
-
-					for (int i = 0; i < columnModel.getColumnCount() && i < playQueueColumnWidths.length; i++) {
-						long width10k = playQueueColumnWidths[i] * totalWidth;
-						columnModel.getColumn(i).setPreferredWidth((int) (width10k / 10000));
-					}
-				}, true);
+				SwingUtil.runOnEDT(() -> mainWindow.setPlayQueueColumnWidths(playQueueColumnWidths), true);
 			}
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to read+apply column width for playback queue table", e);

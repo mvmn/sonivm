@@ -43,6 +43,7 @@ import javax.swing.UIManager;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableColumnModel;
 
 import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
@@ -554,9 +555,9 @@ public class SonivmMainWindow extends JFrame {
 		searchActionMap.put("Stop", AbstractActionAdaptor.of(controller::onStop));
 	}
 
-	public JTable getPlayQueueTable() {
-		return tblPlayQueue;
-	}
+	// public JTable getPlayQueueTable() {
+	// return tblPlayQueue;
+	// }
 
 	public void allowSeek(int maxSliderValue) {
 		this.seekSlider.setMaximum(maxSliderValue);
@@ -674,5 +675,55 @@ public class SonivmMainWindow extends JFrame {
 
 	public void setAutoStop(boolean autoStop) {
 		this.cbAutoStop.setSelected(autoStop);
+	}
+
+	public void setSelectedPlayQueueRows(int start, int end) {
+		tblPlayQueue.getSelectionModel().setSelectionInterval(start, end);
+	}
+
+	public int[] getColumnWidths() {
+		TableColumnModel columnModel = tblPlayQueue.getColumnModel();
+		int[] columnWidths = new int[columnModel.getColumnCount()];
+		int totalWidth = 0;
+		for (int i = 0; i < columnModel.getColumnCount(); i++) {
+			int width = columnModel.getColumn(i).getWidth();
+			totalWidth += width;
+			columnWidths[i] = width;
+		}
+		for (int i = 0; i < columnWidths.length; i++) {
+			columnWidths[i] = (columnWidths[i] * 10000) / totalWidth;
+		}
+		return columnWidths;
+	}
+
+	public int[] getColumnPositions() {
+		TableColumnModel columnModel = tblPlayQueue.getColumnModel();
+		int[] columnPositions = new int[columnModel.getColumnCount()];
+		for (int i = 0; i < columnModel.getColumnCount(); i++) {
+			columnPositions[i] = tblPlayQueue.convertColumnIndexToView(i);
+		}
+		return columnPositions;
+	}
+
+	public void setPlayQueueColumnPositions(int[] playQueueColumnPositions) {
+		TableColumnModel columnModel = tblPlayQueue.getColumnModel();
+
+		for (int i = 0; i < columnModel.getColumnCount() && i < playQueueColumnPositions.length; i++) {
+			columnModel.moveColumn(tblPlayQueue.convertColumnIndexToView(i), playQueueColumnPositions[i]);
+		}
+	}
+
+	public void setPlayQueueColumnWidths(int[] playQueueColumnWidths) {
+		TableColumnModel columnModel = tblPlayQueue.getColumnModel();
+
+		int totalWidth = 0;
+		for (int i = 0; i < columnModel.getColumnCount(); i++) {
+			totalWidth += columnModel.getColumn(i).getWidth();
+		}
+
+		for (int i = 0; i < columnModel.getColumnCount() && i < playQueueColumnWidths.length; i++) {
+			long width10k = playQueueColumnWidths[i] * totalWidth;
+			columnModel.getColumn(i).setPreferredWidth((int) (width10k / 10000));
+		}
 	}
 }

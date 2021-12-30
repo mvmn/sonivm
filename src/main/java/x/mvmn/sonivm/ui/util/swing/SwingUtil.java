@@ -28,6 +28,7 @@ import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -48,6 +49,8 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.plaf.basic.BasicSliderUI;
@@ -564,5 +567,29 @@ public class SwingUtil {
 		} while (fontHeight > height);
 
 		return result;
+	}
+
+	public static void addValueChangeByUserListener(JSlider slider, ChangeListener changeListener) {
+
+		AtomicBoolean userInteractionInProgress = new AtomicBoolean(false);
+		slider.addMouseListener(new MouseAdapter() {
+			public void mousePressed(MouseEvent e) {
+				userInteractionInProgress.set(true);
+			}
+
+			public void mouseReleased(MouseEvent e) {
+				userInteractionInProgress.set(false);
+			}
+		});
+
+		slider.addChangeListener(new ChangeListener() {
+
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				if (userInteractionInProgress.get()) {
+					changeListener.stateChanged(e);
+				}
+			}
+		});
 	}
 }
