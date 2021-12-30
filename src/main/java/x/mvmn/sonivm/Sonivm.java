@@ -2,30 +2,18 @@ package x.mvmn.sonivm;
 
 import java.awt.Desktop;
 import java.awt.Image;
-import java.awt.SystemTray;
-import java.awt.TrayIcon;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
-import javax.sound.sampled.AudioSystem;
-import javax.swing.ButtonGroup;
-import javax.swing.JMenuBar;
-import javax.swing.UIManager;
-import javax.swing.UIManager.LookAndFeelInfo;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -37,17 +25,9 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 
-import x.mvmn.sonivm.impl.AudioDeviceOption;
-import x.mvmn.sonivm.prefs.PreferencesService;
-import x.mvmn.sonivm.ui.EqualizerWindow;
-import x.mvmn.sonivm.ui.JMenuBarBuilder;
-import x.mvmn.sonivm.ui.JMenuBarBuilder.JMenuBuilder;
 import x.mvmn.sonivm.ui.SonivmController;
-import x.mvmn.sonivm.ui.SonivmMainWindow;
-import x.mvmn.sonivm.ui.SupportedFileExtensionsDialog;
-import x.mvmn.sonivm.ui.UsernamePasswordDialog;
+import x.mvmn.sonivm.ui.SonivmUI;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
-import x.mvmn.sonivm.util.Pair;
 
 @SpringBootApplication
 @Component
@@ -61,16 +41,7 @@ public class Sonivm implements Runnable {
 	private SonivmController sonivmController;
 
 	@Autowired
-	private SonivmMainWindow mainWindow;
-
-	@Autowired
-	private EqualizerWindow eqWindow;
-
-	@Autowired
-	private TrayIcon sonivmTrayIcon;
-
-	@Autowired
-	private PreferencesService preferencesService;
+	private SonivmUI sonivmUI;
 
 	public static void main(String[] args) {
 		initConsoleLogging();
@@ -105,7 +76,7 @@ public class Sonivm implements Runnable {
 
 		// Run the app
 		Sonivm launcher = SpringApplication.run(Sonivm.class, args).getBean(Sonivm.class);
-		SwingUtil.runOnEDT(() -> launcher.run(), false);
+		SwingUtil.runOnEDT(launcher::run, false);
 	}
 
 	private static void initConsoleLogging() {
@@ -223,148 +194,12 @@ public class Sonivm implements Runnable {
 	}
 
 	public void run() {
-		mainWindow.setIconImage(sonivmIcon);
-		List<AudioDeviceOption> audioDevices = getAudioDevicesPlusDefault();
-		mainWindow.setJMenuBar(initMenuBar(audioDevices));
-		eqWindow.setJMenuBar(initMenuBar(audioDevices));
-		SwingUtil.prefSizeRatioOfScreenSize(mainWindow, 3f / 4f);
+		SwingUtil.prefSizeRatioOfScreenSize(sonivmUI.getMainWindow(), 3f / 4f);
 		sonivmController.onBeforeUiPack();
-		mainWindow.pack();
-		SwingUtil.moveToScreenCenter(mainWindow);
+		sonivmUI.getMainWindow().pack();
+		SwingUtil.moveToScreenCenter(sonivmUI.getMainWindow());
 		sonivmController.onBeforeUiSetVisible();
-		SwingUtil.runOnEDT(() -> {
-			try {
-				SystemTray.getSystemTray().add(sonivmTrayIcon);
-			} catch (Throwable t) {
-				LOGGER.log(Level.SEVERE, "Failed to add system tray icon", t);
-			}
-		}, false);
 
 		initQuitHandler();
-	}
-
-	private JMenuBar initMenuBar(List<AudioDeviceOption> audioDevices) {
-		int scrobblePercentage = preferencesService.getPercentageToScrobbleAt(70);
-
-		JMenuBuilder<JMenuBarBuilder> menuBuilder = new JMenuBarBuilder().menu("Options");
-
-		JMenuBuilder<JMenuBuilder<JMenuBuilder<JMenuBarBuilder>>> menuBuilderLastFMScrobblePercentage = menuBuilder.subMenu("LastFM")
-				.item("Set credentials...")
-				.actr(actEvent -> {
-					try {
-						String user = this.preferencesService.getUsername();
-						String password = this.preferencesService.getPassword();
-						new UsernamePasswordDialog(null, "Set credentials", true, new Pair<String, String>(user, password), unPwdPair -> {
-							new Thread(() -> {
-								try {
-									this.preferencesService.setUsername(unPwdPair.getK());
-									this.preferencesService.setPassword(new String(unPwdPair.getV()));
-									sonivmController.onLastFMCredsOrKeysUpdate();
-								} catch (Exception e) {
-									LOGGER.log(Level.WARNING, "Failed to store LastFM credentials to prefs", e);
-								}
-							}).start();
-						}).setVisible(true);
-					} catch (Exception e) {
-						LOGGER.log(Level.WARNING, "Failed to obtain LastFM credentials from prefs", e);
-					}
-				})
-				.build()
-				.item("Set API keys...")
-				.actr(actEvent -> {
-					try {
-						String key = this.preferencesService.getApiKey();
-						String secret = this.preferencesService.getApiSecret();
-						new UsernamePasswordDialog(null, "Set API keys", true, new Pair<String, String>(key, secret), unPwdPair -> {
-							new Thread(() -> {
-								try {
-									this.preferencesService.setApiKey(unPwdPair.getK());
-									this.preferencesService.setApiSecret(new String(unPwdPair.getV()));
-									sonivmController.onLastFMCredsOrKeysUpdate();
-								} catch (Exception e) {
-									LOGGER.log(Level.WARNING, "Failed to store LastFM API keys to prefs", e);
-								}
-							}).start();
-						}, "API Key", "API Secret").setVisible(true);
-					} catch (Exception e) {
-						LOGGER.log(Level.WARNING, "Failed to obtain LastFM API keys from prefs", e);
-					}
-				})
-				.build()
-				.subMenu("Scrobble at");
-		ButtonGroup rbGroupLastFMScrobblePercentage = new ButtonGroup();
-		Stream.of(10, 30, 50, 70, 90)
-				.forEach(scrobblePercentageOption -> menuBuilderLastFMScrobblePercentage.item("" + scrobblePercentageOption + "%")
-						.radioButton()
-						.group(rbGroupLastFMScrobblePercentage)
-						.checked(scrobblePercentageOption == scrobblePercentage)
-						.actr(e -> sonivmController.onLastFMScrobblePercentageChange(scrobblePercentageOption))
-						.build());
-		menuBuilderLastFMScrobblePercentage.build().build();
-
-		menuBuilder.item("Supported file extensions...").actr(actEvent -> {
-			Set<String> supportedFileExtensions = preferencesService.getSupportedFileExtensions();
-			new SupportedFileExtensionsDialog().display(supportedFileExtensions,
-					newExtensions -> preferencesService.setSupportedFileExtensions(newExtensions));
-		}).build();
-
-		JMenuBuilder<JMenuBuilder<JMenuBarBuilder>> menuBuilderAudioDevice = menuBuilder.subMenu("AudioDevice");
-		ButtonGroup rbGroupAudioDevices = new ButtonGroup();
-		audioDevices.forEach(ad -> menuBuilderAudioDevice.item(ad.toString())
-				.radioButton()
-				.checked(ad.getAudioDeviceInfo() == null)
-				.group(rbGroupAudioDevices)
-				.actr(actEvent -> sonivmController.onSetAudioDevice(ad))
-				.build());
-		menuBuilderAudioDevice.build();
-
-		String currentLnF = SwingUtil.getLookAndFeelName(UIManager.getLookAndFeel());
-		JMenuBuilder<JMenuBuilder<JMenuBarBuilder>> menuBuilderLnF = menuBuilder.subMenu("Look&Feel");
-		ButtonGroup rbGroupLookAndFeels = new ButtonGroup();
-		Arrays.stream(UIManager.getInstalledLookAndFeels())
-				.map(LookAndFeelInfo::getName)
-				.forEach(lnf -> menuBuilderLnF.item(lnf)
-						.radioButton()
-						.group(rbGroupLookAndFeels)
-						.checked(currentLnF.equals(lnf))
-						.actr(e -> sonivmController.onSetLookAndFeel(lnf))
-						.build());
-		menuBuilderLnF.build();
-
-		Logger rootLogger = Logger.getLogger("x.mvmn.sonivm");
-		Level currentLogLevel = rootLogger.getLevel();
-
-		JMenuBuilder<JMenuBuilder<JMenuBarBuilder>> menuBuilderLogLEvel = menuBuilder.subMenu("Log level");
-		ButtonGroup rbGroupLogLevels = new ButtonGroup();
-		Stream.of(Level.INFO, Level.WARNING, Level.SEVERE, Level.FINE, Level.FINER, Level.FINEST, Level.ALL, Level.CONFIG, Level.OFF)
-				.forEach(level -> menuBuilderLogLEvel.item(level.getName())
-						.radioButton()
-						.checked(level.equals(currentLogLevel))
-						.group(rbGroupLogLevels)
-						.actr(actEvent -> {
-							rootLogger.setLevel(level);
-							Stream.of(rootLogger.getHandlers()).forEach(handler -> handler.setLevel(level));
-						})
-						.build());
-		menuBuilderLogLEvel.build();
-
-		return menuBuilder.build()
-				.menu("Windows")
-				.item("Sonivm")
-				.actr(actEvent -> SwingUtil.showAndBringToFront(mainWindow))
-				.build()
-				.item("Equalizer")
-				.actr(actEvent -> SwingUtil.showAndBringToFront(eqWindow))
-				.build()
-				.build()
-				.build();
-	}
-
-	private List<AudioDeviceOption> getAudioDevicesPlusDefault() {
-		return Stream
-				.concat(Stream.of(AudioDeviceOption.builder().audioDeviceInfo(null).build()),
-						Stream.of(AudioSystem.getMixerInfo())
-								.map(mixerInfo -> AudioDeviceOption.builder().audioDeviceInfo(mixerInfo).build()))
-				.collect(Collectors.toList());
 	}
 }

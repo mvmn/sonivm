@@ -4,8 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Queue;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -13,7 +11,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
@@ -24,7 +21,6 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
 import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.Mixer;
-import javax.sound.sampled.Mixer.Info;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
@@ -41,15 +37,12 @@ import x.mvmn.sonivm.audio.PlaybackEvent.ErrorType;
 import x.mvmn.sonivm.audio.PlaybackEventListener;
 import x.mvmn.sonivm.audio.impl.AudioServiceTask.Type;
 import x.mvmn.sonivm.util.AudioFileUtil;
+import x.mvmn.sonivm.audio.PlaybackState;
 
 @Service
 public class AudioServiceImpl implements AudioService, Runnable {
 
 	private static final Logger LOGGER = Logger.getLogger(AudioServiceImpl.class.getCanonicalName());
-
-	private static enum State {
-		STOPPED, PLAYING, PAUSED;
-	}
 
 	private final Queue<AudioServiceTask> taskQueue = new ConcurrentLinkedQueue<>();
 	private final ExecutorService playbackEventListenerExecutor = Executors.newFixedThreadPool(1);
@@ -58,7 +51,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private volatile boolean useEqualizer = false;
 
 	private volatile boolean shutdownRequested = false;
-	private volatile State state = State.STOPPED;
+	private volatile PlaybackState state = PlaybackState.STOPPED;
 
 	private volatile FFAudioInputStream currentFFAudioInputStream;
 	private volatile AudioInputStream currentNormalizedStream;
@@ -102,7 +95,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 					}
 				} else {
 					try {
-						if (State.PLAYING == state) {
+						if (PlaybackState.PLAYING == state) {
 							int readBytes = -1;
 							byte[] buffer = playbackBuffer;
 							readBytes = (useEqualizer ? currentEqInputStream : currentNormalizedStream).read(buffer);
@@ -150,7 +143,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		}
 		LOGGER.info("Playback thread shutting down. Shutdown requested flag state: " + shutdownRequested);
 		playbackEventListenerExecutor.shutdown();
-		if (State.STOPPED != this.state) {
+		if (PlaybackState.STOPPED != this.state) {
 			try {
 				doStop();
 			} catch (Exception e) {
@@ -180,7 +173,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		}
 		switch (task.getType()) {
 			case UPDATE_VOLUME:
-				if (State.STOPPED != this.state) {
+				if (PlaybackState.STOPPED != this.state) {
 					doUpdateVolume();
 				}
 			break;
@@ -188,10 +181,10 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				handlePauseRequest();
 			break;
 			case PLAY:
-				if (State.PAUSED == this.state) {
+				if (PlaybackState.PAUSED == this.state) {
 					this.currentSourceDataLine.start();
-					this.state = State.PLAYING;
-				} else if (State.STOPPED == this.state) {
+					this.state = PlaybackState.PLAYING;
+				} else if (PlaybackState.STOPPED == this.state) {
 					String filePath = task.getData();
 					FFAudioFileReader ffAudioFileReader = new FFAudioFileReader();
 					File file = new File(filePath);
@@ -261,7 +254,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 							doSeek(task.getNumericData());
 						}
 
-						this.state = State.PLAYING;
+						this.state = PlaybackState.PLAYING;
 						executeListenerActions(PlaybackEvent.builder()
 								.type(PlaybackEvent.Type.DATALINE_CHANGE)
 								.dataLineControls(currentSourceDataLine.getControls())
@@ -281,7 +274,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				}
 			break;
 			case SEEK:
-				if (State.PLAYING == this.state || State.PAUSED == this.state) {
+				if (PlaybackState.PLAYING == this.state || PlaybackState.PAUSED == this.state) {
 					if (this.currentStreamIsSeekable && requestedSeekPositionMillisec != null) {
 						int seekPosition = requestedSeekPositionMillisec; // task.getNumericData()
 						doSeek(seekPosition);
@@ -290,7 +283,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				requestedSeekPositionMillisec = null;
 			break;
 			case STOP:
-				if (State.STOPPED != this.state) {
+				if (PlaybackState.STOPPED != this.state) {
 					doStop();
 				}
 			break;
@@ -312,7 +305,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 					LOGGER.fine("Switching audio device to " + audioDeviceName);
 				}
 				selectedAudioDevice = mixerInfo;
-				if (State.PLAYING == this.state) {
+				if (PlaybackState.PLAYING == this.state) {
 					if (LOGGER.isLoggable(Level.FINE)) {
 						LOGGER.fine("On-the-fly switching audio device to " + audioDeviceName);
 					}
@@ -340,9 +333,9 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	}
 
 	protected void handlePauseRequest() {
-		if (State.PLAYING == this.state) {
+		if (PlaybackState.PLAYING == this.state) {
 			this.currentSourceDataLine.stop();
-			this.state = State.PAUSED;
+			this.state = PlaybackState.PAUSED;
 		}
 	}
 
@@ -358,7 +351,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		this.currentFFAudioInputStream.close();
 		this.playbackBuffer = null;
 		this.previousDataLineMillisecondsPosition = 0L;
-		this.state = State.STOPPED;
+		this.state = PlaybackState.STOPPED;
 	}
 
 	private void doUpdateVolume() {
@@ -401,11 +394,6 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		} else {
 			LOGGER.fine("Gain or volume control not supported - skipping set volume");
 		}
-	}
-
-	@Override
-	public Set<String> listAudioDevices() {
-		return Stream.of(AudioSystem.getMixerInfo()).map(Info::getName).collect(Collectors.toCollection(TreeSet::new));
 	}
 
 	@Override
@@ -519,17 +507,17 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 	@Override
 	public boolean isPaused() {
-		return State.PAUSED == this.state;
+		return PlaybackState.PAUSED == this.state;
 	}
 
 	@Override
 	public boolean isPlaying() {
-		return State.PLAYING == this.state;
+		return PlaybackState.PLAYING == this.state;
 	}
 
 	@Override
 	public boolean isStopped() {
-		return State.STOPPED == this.state;
+		return PlaybackState.STOPPED == this.state;
 	}
 
 	@Override

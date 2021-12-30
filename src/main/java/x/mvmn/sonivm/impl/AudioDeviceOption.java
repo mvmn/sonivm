@@ -14,4 +14,8 @@ public class AudioDeviceOption {
 	public String toString() {
 		return audioDeviceInfo != null ? audioDeviceInfo.getName() : "< Default >";
 	}
+
+	public static AudioDeviceOption of(Mixer.Info audioDeviceInfo) {
+		return new AudioDeviceOption(audioDeviceInfo);
+	}
 }

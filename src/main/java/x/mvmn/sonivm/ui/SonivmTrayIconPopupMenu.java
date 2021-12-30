@@ -24,18 +24,15 @@ public class SonivmTrayIconPopupMenu {
 	private final MenuItem miNextTrack = new MenuItem(">> Next track");
 
 	@Autowired
-	private SonivmMainWindow mainWindow;
-
-	@Autowired
-	private EqualizerWindow equalizerWindow;
+	private SonivmUI sonivmUI;
 
 	@Autowired
 	private SonivmController controller;
 
 	@PostConstruct
 	public void init() {
-		miNowPlaying.addActionListener(actEvent -> SwingUtil.showAndBringToFront(mainWindow));
-		miEqualizer.addActionListener(actEvent -> SwingUtil.showAndBringToFront(equalizerWindow));
+		miNowPlaying.addActionListener(actEvent -> sonivmUI.showMainWindow());
+		miEqualizer.addActionListener(actEvent -> sonivmUI.showEqWindow());
 
 		miPreviousTrack.addActionListener(actEvent -> controller.onPreviousTrack());
 		miPlayPause.addActionListener(actEvent -> controller.onPlayPause());

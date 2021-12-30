@@ -9,15 +9,15 @@ import x.mvmn.sonivm.util.IntRange;
 
 public interface PlaybackQueueService {
 
+	int getQueueSize();
+
 	int getCurrentQueuePosition();
+
+	void setCurrentQueuePosition(int newPosition);
 
 	PlaybackQueueEntry getCurrentEntry();
 
 	PlaybackQueueEntry getEntryByIndex(int index);
-
-	int getQueueSize();
-
-	void setCurrentQueuePosition(int newPosition);
 
 	void clearQueue();
 

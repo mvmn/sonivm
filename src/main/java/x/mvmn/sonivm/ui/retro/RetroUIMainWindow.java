@@ -3,6 +3,7 @@ package x.mvmn.sonivm.ui.retro;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import x.mvmn.sonivm.audio.PlaybackState;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterGraphicsWindow;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIBooleanIndicator;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIButton;
@@ -57,7 +58,18 @@ public class RetroUIMainWindow {
 		playTimeNumbers[4].setState(secL);
 	}
 
-	public void setPlybackIndicatorState(boolean playing, boolean paused) {
-		playStateIndicator.setState(playing ? paused ? 1 : 0 : 2);
+	public void setPlybackIndicatorState(PlaybackState playbackState) {
+		switch (playbackState) {
+			case PLAYING:
+				playStateIndicator.setState(0);
+			break;
+			case PAUSED:
+				playStateIndicator.setState(1);
+			break;
+			default:
+			case STOPPED:
+				playStateIndicator.setState(2);
+			break;
+		}
 	}
 }

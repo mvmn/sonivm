@@ -49,6 +49,7 @@ import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.io.inputstream.ZipInputStream;
 import net.lingala.zip4j.model.FileHeader;
+import x.mvmn.sonivm.audio.PlaybackState;
 import x.mvmn.sonivm.ui.retro.exception.WSZLoadingException;
 import x.mvmn.sonivm.ui.retro.rasterui.ExtRasterUISlider;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterFrameWindow;
@@ -968,10 +969,10 @@ public class RetroUIFactory {
 					retroUIWindows.getC().getWindow().setVisible(true);
 				}
 				retroUIWindows.getA().setPlaybackNumbers(12, 34, true);
-				retroUIWindows.getA().setPlybackIndicatorState(false, false);
-				retroUIWindows.getA().btnPlay.addListener(() -> retroUIWindows.getA().setPlybackIndicatorState(true, false));
-				retroUIWindows.getA().btnStop.addListener(() -> retroUIWindows.getA().setPlybackIndicatorState(false, false));
-				retroUIWindows.getA().btnPause.addListener(() -> retroUIWindows.getA().setPlybackIndicatorState(true, true));
+				retroUIWindows.getA().setPlybackIndicatorState(PlaybackState.STOPPED);
+				retroUIWindows.getA().btnPlay.addListener(() -> retroUIWindows.getA().setPlybackIndicatorState(PlaybackState.PLAYING));
+				retroUIWindows.getA().btnStop.addListener(() -> retroUIWindows.getA().setPlybackIndicatorState(PlaybackState.STOPPED));
+				retroUIWindows.getA().btnPause.addListener(() -> retroUIWindows.getA().setPlybackIndicatorState(PlaybackState.PAUSED));
 
 				RetroUIFactory.retroUIWindows = retroUIWindows;
 			} catch (Exception e) {

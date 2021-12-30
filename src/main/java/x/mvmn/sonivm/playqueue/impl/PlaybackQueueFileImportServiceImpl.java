@@ -26,12 +26,12 @@ import x.mvmn.sonivm.cue.CueData.CueDataFileData;
 import x.mvmn.sonivm.cue.CueData.CueDataTrackData;
 import x.mvmn.sonivm.cue.CueSheetParser;
 import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
+import x.mvmn.sonivm.playqueue.PlaybackQueueEntry.TrackMetadata;
 import x.mvmn.sonivm.playqueue.PlaybackQueueFileImportService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
-import x.mvmn.sonivm.playqueue.PlaybackQueueEntry.TrackMetadata;
 import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.tag.TagRetrievalService;
-import x.mvmn.sonivm.ui.SonivmMainWindow;
+import x.mvmn.sonivm.ui.SonivmUI;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.AudioFileUtil;
 import x.mvmn.sonivm.util.TimeDateUtil;
@@ -48,7 +48,7 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 	private TagRetrievalService tagRetrievalService;
 
 	@Autowired
-	private SonivmMainWindow sonivmMainWindow;
+	private SonivmUI sonivmUI;
 
 	@Autowired
 	private PreferencesService preferencesService;
@@ -175,11 +175,12 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 				TrackMetadata meta = tagRetrievalService.getAudioFileMetadata(new File(queueEntry.getTargetFileFullPath()));
 				queueEntry.setTrackMetadata(meta);
 				playbackQueueService.signalUpdateInTrackInfo(queueEntry);
-				SwingUtil.runOnEDT(() -> sonivmMainWindow.updateStatus("Loaded tags for " + queueEntry.getTargetFileFullPath()), false);
+				SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().updateStatus("Loaded tags for " + queueEntry.getTargetFileFullPath()),
+						false);
 			} catch (Throwable t) {
 				String message = "Failed to read tags for file " + queueEntry.getTargetFileFullPath();
 				LOGGER.log(Level.WARNING, message, t);
-				SwingUtil.runOnEDT(() -> sonivmMainWindow.updateStatus(message), false);
+				SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().updateStatus(message), false);
 			}
 		});
 	}

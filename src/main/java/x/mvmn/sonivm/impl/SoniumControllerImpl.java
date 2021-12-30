@@ -42,10 +42,9 @@ import x.mvmn.sonivm.playqueue.PlaybackQueueEntryCompareBiPredicate;
 import x.mvmn.sonivm.playqueue.PlaybackQueueFileImportService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
-import x.mvmn.sonivm.ui.EqualizerWindow;
 import x.mvmn.sonivm.ui.SonivmController;
-import x.mvmn.sonivm.ui.SonivmMainWindow;
 import x.mvmn.sonivm.ui.SonivmTrayIconPopupMenu;
+import x.mvmn.sonivm.ui.SonivmUI;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.IntRange;
 import x.mvmn.sonivm.util.StringUtil;
@@ -67,10 +66,7 @@ public class SoniumControllerImpl implements SonivmController {
 	private PlaybackQueueFileImportService playbackQueueFileImportService;
 
 	@Autowired
-	private SonivmMainWindow mainWindow;
-
-	@Autowired
-	private EqualizerWindow eqWindow;
+	private SonivmUI sonivmUI;
 
 	@Autowired
 	private PreferencesService preferencesService;
@@ -148,7 +144,7 @@ public class SoniumControllerImpl implements SonivmController {
 	}
 
 	private void onTrackFinished() {
-		if (mainWindow.isAutoStop()) {
+		if (sonivmUI.getMainWindow().isAutoStop()) {
 			doStop();
 		} else {
 			doNextTrack(false);
@@ -313,7 +309,7 @@ public class SoniumControllerImpl implements SonivmController {
 				}
 				updatePlayingState(true);
 			}
-			SwingUtil.runOnEDT(() -> mainWindow.scrollToTrack(trackQueuePosition), false);
+			SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().scrollToTrack(trackQueuePosition), false);
 		}
 	}
 
@@ -335,11 +331,11 @@ public class SoniumControllerImpl implements SonivmController {
 		playbackQueueService.setCurrentQueuePosition(-1);
 		updatePlayingState(false);
 		SwingUtil.runOnEDT(() -> {
-			mainWindow.disallowSeek();
-			mainWindow.setCurrentPlayTimeDisplay(0, 0);
-			mainWindow.updateNowPlaying(null);
+			sonivmUI.getMainWindow().disallowSeek();
+			sonivmUI.getMainWindow().setCurrentPlayTimeDisplay(0, 0);
+			sonivmUI.getMainWindow().updateNowPlaying(null);
 			trayIconPopupMenu.updateNowPlaying(null);
-			mainWindow.updateStatus("");
+			sonivmUI.getMainWindow().updateStatus("");
 		}, false);
 	}
 
@@ -359,7 +355,7 @@ public class SoniumControllerImpl implements SonivmController {
 				insertPosition -= rowCount;
 			}
 
-			mainWindow.setSelectedPlayQueueRows(insertPosition, insertPosition + rowCount - 1);
+			sonivmUI.getMainWindow().setSelectedPlayQueueRows(insertPosition, insertPosition + rowCount - 1);
 
 			return true;
 		} else {
@@ -373,8 +369,8 @@ public class SoniumControllerImpl implements SonivmController {
 
 		try {
 			LOGGER.info("Storing window positions/sizes/visibility");
-			this.preferencesService.saveMainWindowState(SwingUtil.getWindowState(this.mainWindow));
-			this.preferencesService.saveEQWindowState(SwingUtil.getWindowState(this.eqWindow));
+			this.preferencesService.saveMainWindowState(SwingUtil.getWindowState(sonivmUI.getMainWindow()));
+			this.preferencesService.saveEQWindowState(SwingUtil.getWindowState(sonivmUI.getEqWindow()));
 		} catch (Throwable t) {
 			LOGGER.log(Level.WARNING, "Failed to store main and EQ window states", t);
 		}
@@ -386,11 +382,11 @@ public class SoniumControllerImpl implements SonivmController {
 			} catch (Throwable t) {
 				LOGGER.log(Level.SEVERE, "Failed to remove tray icon", t);
 			}
-			mainWindow.setVisible(false);
-			mainWindow.dispose();
+			sonivmUI.getMainWindow().setVisible(false);
+			sonivmUI.getMainWindow().dispose();
 			LOGGER.info("Hid and disposed main window");
-			eqWindow.setVisible(false);
-			eqWindow.dispose();
+			sonivmUI.getEqWindow().setVisible(false);
+			sonivmUI.getEqWindow().dispose();
 			LOGGER.info("Hid and disposed equalizer window");
 		}, true);
 
@@ -414,7 +410,7 @@ public class SoniumControllerImpl implements SonivmController {
 		try {
 			this.preferencesService.setShuffleMode(shuffleState);
 			this.preferencesService.setRepeatMode(repeatState);
-			this.preferencesService.setAutoStop(this.mainWindow.isAutoStop());
+			this.preferencesService.setAutoStop(sonivmUI.getMainWindow().isAutoStop());
 		} catch (Throwable t) {
 			LOGGER.log(Level.WARNING, "Failed to store shuffle/repeat preferences", t);
 		}
@@ -461,8 +457,8 @@ public class SoniumControllerImpl implements SonivmController {
 	private void savePlayQueueColumnsState() {
 		LOGGER.info("Saving UI state.");
 		try {
-			preferencesService.setPlayQueueColumnWidths(mainWindow.getPlayQueueTableColumnWidths());
-			preferencesService.setPlayQueueColumnPositions(mainWindow.getPlayQueueTableColumnPositions());
+			preferencesService.setPlayQueueColumnWidths(sonivmUI.getMainWindow().getPlayQueueTableColumnWidths());
+			preferencesService.setPlayQueueColumnPositions(sonivmUI.getMainWindow().getPlayQueueTableColumnPositions());
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to store column width for playback queue table", e);
 		}
@@ -473,7 +469,9 @@ public class SoniumControllerImpl implements SonivmController {
 		switch (event.getType()) {
 			case ERROR:
 				LOGGER.log(Level.WARNING, "Playback error occurred: " + event.getErrorType() + " " + event.getError());
-				SwingUtil.runOnEDT(() -> mainWindow.updateStatus("Playback error " + event.getErrorType() + " " + event.getError()), false);
+				SwingUtil.runOnEDT(
+						() -> sonivmUI.getMainWindow().updateStatus("Playback error " + event.getErrorType() + " " + event.getError()),
+						false);
 				if (event.getErrorType() == ErrorType.FILE_NOT_FOUND || event.getErrorType() == ErrorType.FILE_FORMAT_ERROR) {
 					onTrackFinished();
 				}
@@ -512,8 +510,8 @@ public class SoniumControllerImpl implements SonivmController {
 					int seekSliderNewPosition = (int) (playbackPositionMillis / 100);
 
 					SwingUtil.runOnEDT(() -> {
-						mainWindow.updateSeekSliderPosition(seekSliderNewPosition);
-						mainWindow.setCurrentPlayTimeDisplay((int) (playbackPositionMillis / 1000), totalDurationSeconds);
+						sonivmUI.getMainWindow().updateSeekSliderPosition(seekSliderNewPosition);
+						sonivmUI.getMainWindow().setCurrentPlayTimeDisplay((int) (playbackPositionMillis / 1000), totalDurationSeconds);
 					}, false);
 					long totalListenTimeSeconds = this.currentTrackTotalListeningTimeMillisec
 							.addAndGet(event.getPlaybackDeltaMilliseconds()) / 1000;
@@ -557,17 +555,18 @@ public class SoniumControllerImpl implements SonivmController {
 		this.currentTrackInfo = trackInfo;
 		playbackQueueService.signalUpdateInRow(queuePos);
 		SwingUtil.runOnEDT(() -> {
-			mainWindow.updateSeekSliderPosition(0);
+			sonivmUI.getMainWindow().updateSeekSliderPosition(0);
 			if (audioInfo.isSeekable()) {
-				mainWindow.allowSeek(trackDurationSeconds * 10);
+				sonivmUI.getMainWindow().allowSeek(trackDurationSeconds * 10);
 			} else {
-				mainWindow.disallowSeek();
+				sonivmUI.getMainWindow().disallowSeek();
 			}
-			mainWindow.updateNowPlaying(trackInfo);
+			sonivmUI.getMainWindow().updateNowPlaying(trackInfo);
 			trayIconPopupMenu.updateNowPlaying(trackInfo);
-			mainWindow.updateStatus(audioInfo.getAudioFileFormat() != null
-					? audioInfo.getAudioFileFormat().getFormat().toString().replaceAll(",\\s*$", "").replaceAll(",\\s*,", ",")
-					: "");
+			sonivmUI.getMainWindow()
+					.updateStatus(audioInfo.getAudioFileFormat() != null
+							? audioInfo.getAudioFileFormat().getFormat().toString().replaceAll(",\\s*$", "").replaceAll(",\\s*,", ",")
+							: "");
 		}, false);
 		if (scrobblingEnabled) {
 			lastFmSetNowPlaying(this.currentTrackInfo);
@@ -602,7 +601,7 @@ public class SoniumControllerImpl implements SonivmController {
 			}
 			boolean finalSuccess = success;
 			String finalStatus = status;
-			SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(finalSuccess, finalStatus), false);
+			SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().updateLastFMStatus(finalSuccess, finalStatus), false);
 
 			if (success) {
 				reSubmitFailedLastFMSubmissions();
@@ -617,7 +616,7 @@ public class SoniumControllerImpl implements SonivmController {
 			if (!result.getA()) {
 				lastFMQueueService.queueTrack(scrobbleData);
 			}
-			SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(result.getA(), result.getB()), false);
+			SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().updateLastFMStatus(result.getA(), result.getB()), false);
 		});
 	}
 
@@ -678,11 +677,13 @@ public class SoniumControllerImpl implements SonivmController {
 					}
 					lastFMSession.set(result);
 					LOGGER.info("Successfully established LastFM session");
-					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(true, "Established LastFM session"), false);
+					SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().updateLastFMStatus(true, "Established LastFM session"), false);
 				} catch (Exception e) {
 					LOGGER.log(Level.WARNING, "Failed to establish LastFM session", e);
-					SwingUtil.runOnEDT(() -> mainWindow.updateLastFMStatus(false, "Failed to establish LastFM session: "
-							+ e.getClass().getSimpleName() + " " + StringUtil.blankForNull(e.getMessage())), false);
+					SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow()
+							.updateLastFMStatus(false, "Failed to establish LastFM session: " + e.getClass().getSimpleName() + " "
+									+ StringUtil.blankForNull(e.getMessage())),
+							false);
 				}
 			}
 		}
@@ -713,13 +714,13 @@ public class SoniumControllerImpl implements SonivmController {
 
 	private void updatePlayingState(boolean playing) {
 		SwingUtil.runOnEDT(() -> {
-			mainWindow.setPlayPauseButtonState(playing);
+			sonivmUI.getMainWindow().setPlayPauseButtonState(playing);
 			trayIconPopupMenu.setPlayPauseButtonState(playing);
 		}, false);
 	}
 
 	private void updateStaus(String value) {
-		SwingUtil.runOnEDT(() -> mainWindow.updateStatus(value), false);
+		SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().updateStatus(value), false);
 	}
 
 	@Override
@@ -738,13 +739,13 @@ public class SoniumControllerImpl implements SonivmController {
 			try {
 				ShuffleMode shuffleMode = this.preferencesService.getShuffleMode();
 				this.shuffleState = shuffleMode;
-				this.mainWindow.setShuffleMode(shuffleMode);
+				this.sonivmUI.getMainWindow().setShuffleMode(shuffleMode);
 
 				RepeatMode repeatMode = this.preferencesService.getRepeatMode();
 				this.repeatState = repeatMode;
-				this.mainWindow.setRepeatMode(repeatMode);
+				this.sonivmUI.getMainWindow().setRepeatMode(repeatMode);
 
-				this.mainWindow.setAutoStop(this.preferencesService.isAutoStop());
+				this.sonivmUI.getMainWindow().setAutoStop(this.preferencesService.isAutoStop());
 			} catch (Exception e) {
 				LOGGER.log(Level.WARNING, "Failed to read shuffle/repeat/autostop preferences", e);
 			}
@@ -763,9 +764,9 @@ public class SoniumControllerImpl implements SonivmController {
 		LOGGER.info("Restoring window positions/sizes/visibility");
 		try {
 			Tuple4<Boolean, String, Point, Dimension> mainWindowState = preferencesService.getMainWindowState();
-			SwingUtil.runOnEDT(() -> applyWindowState(mainWindow, mainWindowState, true), true);
+			SwingUtil.runOnEDT(() -> applyWindowState(sonivmUI.getMainWindow(), mainWindowState, true), true);
 			Tuple4<Boolean, String, Point, Dimension> eqWindowState = preferencesService.getEQWindowState();
-			SwingUtil.runOnEDT(() -> applyWindowState(eqWindow, eqWindowState, false), true);
+			SwingUtil.runOnEDT(() -> applyWindowState(sonivmUI.getEqWindow(), eqWindowState, false), true);
 		} catch (Throwable t) {
 			LOGGER.log(Level.WARNING, "Failed to restore window states", t);
 		}
@@ -785,7 +786,7 @@ public class SoniumControllerImpl implements SonivmController {
 		try {
 			int[] playQueueColumnPositions = preferencesService.getPlayQueueColumnPositions();
 			if (playQueueColumnPositions != null && playQueueColumnPositions.length > 0) {
-				SwingUtil.runOnEDT(() -> mainWindow.setPlayQueueTableColumnPositions(playQueueColumnPositions), true);
+				SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().setPlayQueueTableColumnPositions(playQueueColumnPositions), true);
 			}
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to read+apply column positions for playback queue table", e);
@@ -794,7 +795,7 @@ public class SoniumControllerImpl implements SonivmController {
 		try {
 			int[] playQueueColumnWidths = preferencesService.getPlayQueueColumnWidths();
 			if (playQueueColumnWidths != null && playQueueColumnWidths.length > 0) {
-				SwingUtil.runOnEDT(() -> mainWindow.setPlayQueueTableColumnWidths(playQueueColumnWidths), true);
+				SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().setPlayQueueTableColumnWidths(playQueueColumnWidths), true);
 			}
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to read+apply column width for playback queue table", e);
@@ -851,15 +852,6 @@ public class SoniumControllerImpl implements SonivmController {
 		this.lastFMSession.set(null);
 	}
 
-	@Override
-	public void toggleShowEqualizer() {
-		if (!eqWindow.isVisible()) {
-			SwingUtil.showAndBringToFront(eqWindow);
-		} else {
-			eqWindow.setVisible(false);
-		}
-	}
-
 	private void restoreEqState() {
 		try {
 			LOGGER.info("Restoring EQ state");
@@ -886,5 +878,10 @@ public class SoniumControllerImpl implements SonivmController {
 		} catch (Throwable t) {
 			LOGGER.log(Level.WARNING, "Failed to save EQ state", t);
 		}
+	}
+
+	@Override
+	public void toggleShowEqualizer() {
+		sonivmUI.toggleEqWindow();
 	}
 }
