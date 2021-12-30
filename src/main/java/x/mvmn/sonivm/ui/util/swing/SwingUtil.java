@@ -464,7 +464,7 @@ public class SwingUtil {
 	public static void showAndBringToFront(Window window) {
 		window.setVisible(true);
 		window.toFront();
-		window.requestFocus();
+		window.repaint();
 	}
 
 	public static void removeAllActionListeners(AbstractButton button) {
@@ -487,14 +487,6 @@ public class SwingUtil {
 		Dimension size = window.getSize();
 
 		GraphicsDevice containingDevice = window.getGraphicsConfiguration().getDevice();
-		// Stream.of(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices())
-		// .filter(display -> display.getDefaultConfiguration().getBounds().contains(locationGlobal))
-		// .findAny()
-		// .orElse(null);
-		if (containingDevice == null) {
-			throw new RuntimeException("None of the screens contain " + locationGlobal);
-		}
-
 		int screenSpecificX = Math.abs(containingDevice.getDefaultConfiguration().getBounds().x - locationGlobal.x);
 		int screenSpecificY = Math.abs(containingDevice.getDefaultConfiguration().getBounds().y - locationGlobal.y);
 
