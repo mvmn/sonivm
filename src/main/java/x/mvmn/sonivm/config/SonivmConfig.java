@@ -57,6 +57,7 @@ public class SonivmConfig {
 			BufferedImage sonivmIcon) {
 
 		initLookAndFeel(preferencesService);
+		SwingUtil.runOnEDT(() -> SwingUtil.setTaskbarIcon(sonivmIcon), true);
 
 		SonivmMainWindow mainWindow = new SonivmMainWindow(appVersion, sonivmController, playbackQueueTableModel);
 		mainWindow.setIconImage(sonivmIcon);
@@ -70,8 +71,8 @@ public class SonivmConfig {
 
 	@Bean
 	@Scope("singleton")
-	public TrayIcon sonivmTrayIcon(SonivmTrayIconPopupMenu sonivmTrayIconPopupMenu) {
-		TrayIcon trayIcon = new TrayIcon(Sonivm.sonivmIcon);
+	public TrayIcon sonivmTrayIcon(SonivmTrayIconPopupMenu sonivmTrayIconPopupMenu, BufferedImage sonivmIcon) {
+		TrayIcon trayIcon = new TrayIcon(sonivmIcon);
 		trayIcon.setImageAutoSize(true);
 		trayIcon.setPopupMenu(sonivmTrayIconPopupMenu.getUIComponent());
 

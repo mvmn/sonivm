@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.CheckboxMenuItem;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Frame;
@@ -11,6 +12,7 @@ import java.awt.Graphics;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.LayoutManager;
 import java.awt.Menu;
 import java.awt.MenuItem;
@@ -22,8 +24,12 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Map;
@@ -57,6 +63,7 @@ import javax.swing.plaf.basic.BasicSliderUI;
 import javax.swing.text.JTextComponent;
 import javax.swing.text.NumberFormatter;
 
+import x.mvmn.sonivm.Sonivm;
 import x.mvmn.sonivm.ui.ExceptionDisplayer;
 import x.mvmn.sonivm.ui.ExceptionDisplayer.ErrorData;
 import x.mvmn.sonivm.util.Tuple2;
@@ -583,5 +590,110 @@ public class SwingUtil {
 				}
 			}
 		});
+	}
+
+	public static void setTaskbarIcon(BufferedImage image) {
+		try {
+			Class<?> util = Class.forName("com.apple.eawt.Application");
+			Method getApplication = util.getMethod("getApplication", new Class[0]);
+			Object application = getApplication.invoke(util);
+			Method setDockIconImage = util.getMethod("setDockIconImage", new Class[] { Image.class });
+			setDockIconImage.invoke(application, image);
+
+			// Taskbar.getTaskbar().setIconImage(sonivmIcon); // Requires Java 1.9+
+		} catch (ClassNotFoundException cnfe) {
+			LOGGER.info("Not macOS, or on Java9+ - can't register dock icon image Java8/macOS style due to class not found: "
+					+ cnfe.getMessage() + ". Trying Java9+ way.");
+			setTaskbarIconJava9(image);
+		} catch (Throwable t) {
+			LOGGER.log(Level.WARNING, "Failed to set main macOS doc icon.", t);
+		}
+	}
+
+	private static void setTaskbarIconJava9(BufferedImage image) {
+		try {
+			Class<?> util = Class.forName("java.awt.Taskbar");
+			Method getTaskbar = util.getMethod("getTaskbar", new Class[0]);
+			Object taskbarInstance = getTaskbar.invoke(null);
+			Method setIconImage = util.getMethod("setIconImage", new Class[] { Image.class });
+			setIconImage.invoke(taskbarInstance, image);
+		} catch (ClassNotFoundException cnfe) {
+			LOGGER.info("Class not found on performing java.awt.Taskbar.getTaskbar().setIconImage: " + cnfe.getMessage());
+		} catch (Throwable t) {
+			LOGGER.log(Level.WARNING, "Failed to set taskbar icon.", t);
+		}
+	}
+
+	public static void registerQuitHandler(Runnable quitListener) {
+		try {
+			Class<?> quitHandlerClass = Class.forName("com.apple.eawt.QuitHandler");
+			Object quitHandler = Proxy.newProxyInstance(Sonivm.class.getClassLoader(), new Class[] { quitHandlerClass },
+					new InvocationHandler() {
+
+						@Override
+						public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+							try {
+								quitListener.run();
+								LOGGER.info("Calling macOS specific QuitResponse.performQuit()");
+								Object quitResponse = args[1];
+								Method performQuitMethod = quitResponse.getClass().getMethod("performQuit");
+								performQuitMethod.invoke(quitResponse);
+							} catch (Throwable t) {
+								LOGGER.log(Level.SEVERE, "Error in quit handler", t);
+							}
+							return null;
+						}
+					});
+
+			Class<?> util = Class.forName("com.apple.eawt.Application");
+			Method getApplication = util.getMethod("getApplication", new Class[0]);
+			Object application = getApplication.invoke(util);
+			Method setQuitHandler = util.getMethod("setQuitHandler", new Class[] { quitHandlerClass });
+			setQuitHandler.invoke(application, quitHandler);
+		} catch (ClassNotFoundException cnfe) {
+			LOGGER.info("Not macOS, or on Java9+ - can't register quit handler Java8/macOS style due to class not found: "
+					+ cnfe.getMessage() + ". Trying Java9+ way.");
+			registerQuitHandlerJava9(quitListener);
+		} catch (Throwable t) {
+			LOGGER.log(Level.WARNING, "Failed to register quit handler", t);
+		}
+	}
+
+	private static void registerQuitHandlerJava9(Runnable quitListener) {
+		// Requires Java 1.9+
+		try {
+			Class<?> quitHandlerClass = Class.forName("java.awt.desktop.QuitHandler");
+			Desktop desktop = Desktop.getDesktop();
+			Method setQuitHandler = desktop.getClass().getMethod("setQuitHandler", new Class[] { quitHandlerClass });
+
+			Object quitHandler = Proxy.newProxyInstance(Sonivm.class.getClassLoader(), new Class[] { quitHandlerClass },
+					new InvocationHandler() {
+
+						@Override
+						public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+							try {
+								quitListener.run();
+								LOGGER.info("Calling QuitResponse.performQuit()");
+								Object quitResponse = args[1];
+								Method performQuitMethod = quitResponse.getClass().getMethod("performQuit");
+								performQuitMethod.invoke(quitResponse);
+							} catch (Throwable t) {
+								LOGGER.log(Level.SEVERE, "Error in quit handler", t);
+							}
+							return null;
+						}
+					});
+			setQuitHandler.invoke(desktop, quitHandler);
+
+			// desktop.setQuitHandler(new QuitHandler() {
+			// @Override
+			// public void handleQuitRequestWith(QuitEvent e, QuitResponse response) {
+			// sonivmController.onQuit();
+			// response.performQuit();
+			// }
+			// });
+		} catch (Throwable t) {
+			LOGGER.log(Level.WARNING, "Failed to register Java9 quit handler", t);
+		}
 	}
 }
