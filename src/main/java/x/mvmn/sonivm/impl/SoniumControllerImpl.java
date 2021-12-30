@@ -751,29 +751,10 @@ public class SoniumControllerImpl implements SonivmController {
 	@Override
 	public void onBeforeUiSetVisible() {
 		restoreEqState();
-		restorePlayQueueColumnsState();
 		lastFmScrobbleTaskExecutor.execute(() -> reSubmitFailedLastFMSubmissions());
 	}
 
-	private void restorePlayQueueColumnsState() {
-		try {
-			int[] playQueueColumnPositions = preferencesService.getPlayQueueColumnPositions();
-			if (playQueueColumnPositions != null && playQueueColumnPositions.length > 0) {
-				SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().setPlayQueueTableColumnPositions(playQueueColumnPositions), true);
-			}
-		} catch (Exception e) {
-			LOGGER.log(Level.WARNING, "Failed to read+apply column positions for playback queue table", e);
-		}
 
-		try {
-			int[] playQueueColumnWidths = preferencesService.getPlayQueueColumnWidths();
-			if (playQueueColumnWidths != null && playQueueColumnWidths.length > 0) {
-				SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().setPlayQueueTableColumnWidths(playQueueColumnWidths), true);
-			}
-		} catch (Exception e) {
-			LOGGER.log(Level.WARNING, "Failed to read+apply column width for playback queue table", e);
-		}
-	}
 
 	@Override
 	public void onSetAudioDevice(AudioDeviceOption audioDeviceOption) {

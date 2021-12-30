@@ -47,7 +47,11 @@ public class SonivmUI {
 		LOGGER.info("Restoring window positions/sizes/visibility");
 		try {
 			Tuple4<Boolean, String, Point, Dimension> mainWindowState = preferencesService.getMainWindowState();
-			SwingUtil.runOnEDT(() -> applyWindowState(mainWindow, mainWindowState, true), true);
+			SwingUtil.runOnEDT(() -> {
+				applyWindowState(mainWindow, mainWindowState, true);
+				restorePlayQueueColumnsState();
+
+			}, true);
 			Tuple4<Boolean, String, Point, Dimension> eqWindowState = preferencesService.getEQWindowState();
 			SwingUtil.runOnEDT(() -> applyWindowState(eqWindow, eqWindowState, false), true);
 		} catch (Throwable t) {
@@ -62,6 +66,26 @@ public class SonivmUI {
 			window.pack();
 			SwingUtil.moveToScreenCenter(window);
 			window.setVisible(visibleByDefault);
+		}
+	}
+
+	private void restorePlayQueueColumnsState() {
+		try {
+			int[] playQueueColumnPositions = preferencesService.getPlayQueueColumnPositions();
+			if (playQueueColumnPositions != null && playQueueColumnPositions.length > 0) {
+				SwingUtil.runOnEDT(() -> mainWindow.setPlayQueueTableColumnPositions(playQueueColumnPositions), true);
+			}
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to read+apply column positions for playback queue table", e);
+		}
+
+		try {
+			int[] playQueueColumnWidths = preferencesService.getPlayQueueColumnWidths();
+			if (playQueueColumnWidths != null && playQueueColumnWidths.length > 0) {
+				SwingUtil.runOnEDT(() -> mainWindow.setPlayQueueTableColumnWidths(playQueueColumnWidths), true);
+			}
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to read+apply column width for playback queue table", e);
 		}
 	}
 }
