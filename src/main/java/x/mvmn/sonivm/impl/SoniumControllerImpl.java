@@ -7,20 +7,14 @@ import java.awt.TrayIcon;
 import java.awt.Window;
 import java.io.File;
 import java.security.GeneralSecurityException;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import javax.annotation.PostConstruct;
 
@@ -111,9 +105,6 @@ public class SoniumControllerImpl implements SonivmController {
 
 	private final ExecutorService lastFmScrobbleTaskExecutor = Executors.newFixedThreadPool(1);
 	private final AtomicReference<Session> lastFMSession = new AtomicReference<>();
-
-	private volatile List<Integer> searchMatches = Collections.emptyList();
-	private volatile int currentSearchMatch = -1;
 
 	@PostConstruct
 	public void initPostConstruct() {
@@ -473,8 +464,8 @@ public class SoniumControllerImpl implements SonivmController {
 	private void savePlayQueueColumnsState() {
 		LOGGER.info("Saving UI state.");
 		try {
-			preferencesService.setPlayQueueColumnWidths(mainWindow.getColumnWidths());
-			preferencesService.setPlayQueueColumnPositions(mainWindow.getColumnPositions());
+			preferencesService.setPlayQueueColumnWidths(mainWindow.getPlayQueueTableColumnWidths());
+			preferencesService.setPlayQueueColumnPositions(mainWindow.getPlayQueueTableColumnPositions());
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to store column width for playback queue table", e);
 		}
@@ -797,7 +788,7 @@ public class SoniumControllerImpl implements SonivmController {
 		try {
 			int[] playQueueColumnPositions = preferencesService.getPlayQueueColumnPositions();
 			if (playQueueColumnPositions != null && playQueueColumnPositions.length > 0) {
-				SwingUtil.runOnEDT(() -> mainWindow.setPlayQueueColumnPositions(playQueueColumnPositions), true);
+				SwingUtil.runOnEDT(() -> mainWindow.setPlayQueueTableColumnPositions(playQueueColumnPositions), true);
 			}
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to read+apply column positions for playback queue table", e);
@@ -806,7 +797,7 @@ public class SoniumControllerImpl implements SonivmController {
 		try {
 			int[] playQueueColumnWidths = preferencesService.getPlayQueueColumnWidths();
 			if (playQueueColumnWidths != null && playQueueColumnWidths.length > 0) {
-				SwingUtil.runOnEDT(() -> mainWindow.setPlayQueueColumnWidths(playQueueColumnWidths), true);
+				SwingUtil.runOnEDT(() -> mainWindow.setPlayQueueTableColumnWidths(playQueueColumnWidths), true);
 			}
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to read+apply column width for playback queue table", e);
@@ -861,93 +852,6 @@ public class SoniumControllerImpl implements SonivmController {
 			LOGGER.log(Level.WARNING, "Security exception on getting LastFM password from prefs", e);
 		}
 		this.lastFMSession.set(null);
-	}
-
-	@Override
-	public void onSearchValueChange() {
-		String text = mainWindow.getSearchText();
-		boolean fullPhrase = mainWindow.isSearchFullPhrase();
-		new Thread(() -> {
-			if (text == null || text.trim().isEmpty()) {
-				searchMatches = Collections.emptyList();
-			} else {
-				searchMatches = IntStream.of(playbackQueueService.findTracks(searchPredicate(text, fullPhrase)))
-						.mapToObj(Integer::valueOf)
-						.collect(Collectors.toList());
-			}
-			currentSearchMatch = -1;
-			SwingUtil.runOnEDT(() -> {
-				mainWindow.setSearchMatchedRows(searchMatches);
-				onSearchNextMatch();
-			}, false);
-		}).start();
-	}
-
-	private Predicate<PlaybackQueueEntry> searchPredicate(String searchText, boolean searchFullPhrase) {
-		searchText = StringUtil.stripAccents(searchText.toLowerCase()).replaceAll("\\s+", " ").trim();
-		String[] searchTerms;
-		if (searchFullPhrase) {
-			searchTerms = new String[] { searchText };
-		} else {
-			searchTerms = searchText.split(" ");
-		}
-		return queueEntry -> queueEntryMatchesSearch(queueEntry, searchTerms);
-	}
-
-	private static final List<Function<PlaybackQueueEntry, String>> QUEUE_ENTRY_TO_SEARCH_FIELDS = Arrays.asList(
-			PlaybackQueueEntry::getArtist, PlaybackQueueEntry::getAlbum, PlaybackQueueEntry::getTitle, PlaybackQueueEntry::getDate,
-			PlaybackQueueEntry::getGenre);
-
-	private boolean queueEntryMatchesSearch(PlaybackQueueEntry queueEntry, String[] searchTerms) {
-		for (String term : searchTerms) {
-			boolean match = false;
-			for (Function<PlaybackQueueEntry, String> getFieldFunct : QUEUE_ENTRY_TO_SEARCH_FIELDS) {
-				if (normalizeForSearch(getFieldFunct.apply(queueEntry)).contains(term)) {
-					match = true;
-					break;
-				}
-			}
-			if (!match) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	private String normalizeForSearch(String val) {
-		return StringUtil.stripAccents(StringUtil.blankForNull(val).toLowerCase()).replaceAll("\\s+", " ").trim();
-	}
-
-	@Override
-	public void onSearchNextMatch() {
-		int matchesCount = searchMatches.size();
-		if (matchesCount > 0) {
-			currentSearchMatch++;
-			if (currentSearchMatch >= matchesCount) {
-				currentSearchMatch = 0;
-			}
-		}
-		gotoSearchMatch();
-	}
-
-	@Override
-	public void onSearchPreviousMatch() {
-		int matchesCount = searchMatches.size();
-		if (matchesCount > 0) {
-			currentSearchMatch--;
-			if (currentSearchMatch < 0) {
-				currentSearchMatch = matchesCount - 1;
-			}
-		}
-		gotoSearchMatch();
-	}
-
-	private void gotoSearchMatch() {
-		if (currentSearchMatch > -1 && currentSearchMatch < searchMatches.size()) {
-			int row = searchMatches.get(currentSearchMatch);
-			mainWindow.scrollToTrack(row);
-			mainWindow.selectTrack(row);
-		}
 	}
 
 	@Override

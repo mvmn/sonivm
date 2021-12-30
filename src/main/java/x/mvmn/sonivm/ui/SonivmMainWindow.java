@@ -6,6 +6,7 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
@@ -15,6 +16,7 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -61,15 +63,12 @@ public class SonivmMainWindow extends JFrame {
 	private final JLabel lblNowPlayingTrack;
 	private final JLabel lblPlayTimeElapsed;
 	private final JLabel lblPlayTimeRemaining;
-	// private final JLabel lblPlayTimeTotal;
 	private final JTable tblPlayQueue;
-	// private final JTree treeTrackLibrary;
 	private final JButton btnPlayPause;
 	private final JButton btnStop;
 	private final JButton btnNextTrack;
 	private final JButton btnPreviousTrack;
-	// private final JSlider seekSlider;
-	private final JProgressBar seekSlider;
+	private final JProgressBar playbackProgressBar;
 	private final JSlider volumeSlider;
 	private final JComboBox<RepeatMode> cmbRepeatMode;
 	private final JComboBox<ShuffleMode> cmbShuffleMode;
@@ -87,7 +86,8 @@ public class SonivmMainWindow extends JFrame {
 	private final JButton btnToggleShowEq;
 	private final JCheckBox cbAutoStop;
 
-	// private volatile boolean seekSliderIsDragged;
+	private volatile List<Integer> searchMatches = Collections.emptyList();
+	private volatile int currentSearchMatch = -1;
 
 	public SonivmMainWindow(String title, SonivmController controller, PlaybackQueueTableModel playbackQueueTableModel) {
 		super(title);
@@ -189,8 +189,6 @@ public class SonivmMainWindow extends JFrame {
 		// rightRendererForDate.setHorizontalAlignment(JLabel.RIGHT);
 		// tblPlayQueue.getColumnModel().getColumn(6).setCellRenderer(rightRendererForDate);
 
-		// treeTrackLibrary = new JTree();
-
 		btnPlayPause = new JButton("->");
 		btnStop = new JButton("[x]");
 		btnNextTrack = new JButton(">>");
@@ -199,7 +197,6 @@ public class SonivmMainWindow extends JFrame {
 		lblNowPlayingTrack = new JLabel("");
 		lblPlayTimeElapsed = new JLabel("00:00 / 00:00");
 		lblPlayTimeRemaining = new JLabel("-00:00 / 00:00");
-		// lblPlayTimeTotal = new JLabel("00:00");
 		lblQueueSize = new JLabel("" + playbackQueueTableModel.getRowCount());
 
 		tfSearch = new JTextField("");
@@ -224,12 +221,9 @@ public class SonivmMainWindow extends JFrame {
 
 		btnToggleShowEq = new JButton("EQ");
 
-		// seekSlider = new JSlider(0, 0);
-		// seekSlider.setEnabled(false);
-		seekSlider = new JProgressBar(0, 0);
-		seekSlider.setIndeterminate(false);
-		seekSlider.setFocusable(false);
-		// SwingUtil.makeJSliderMoveToClickPoistion(seekSlider);
+		playbackProgressBar = new JProgressBar(0, 0);
+		playbackProgressBar.setIndeterminate(false);
+		playbackProgressBar.setFocusable(false);
 
 		volumeSlider = new JSlider(JSlider.VERTICAL, 0, 100, 100);
 		volumeSlider.setFocusable(false);
@@ -251,7 +245,7 @@ public class SonivmMainWindow extends JFrame {
 				.addEast(playbackButtonsPanel)
 				.addCenter(SwingUtil.panel(BorderLayout::new)
 						.addWest(lblPlayTimeElapsed)
-						.addCenter(seekSlider)
+						.addCenter(playbackProgressBar)
 						.addEast(lblPlayTimeRemaining)
 						.build())
 				.addNorth(SwingUtil.panel(() -> new BorderLayout())
@@ -273,11 +267,11 @@ public class SonivmMainWindow extends JFrame {
 		{
 			int lastFMIconSize = 16;
 			lastFMDefault = ImageUtil.resizeImageIcon(ImageUtil.fromClasspathResource("/lastfm_default.png"), lastFMIconSize,
-					lastFMIconSize, java.awt.Image.SCALE_SMOOTH);
+					lastFMIconSize, Image.SCALE_SMOOTH);
 			lastFMConnected = ImageUtil.resizeImageIcon(ImageUtil.fromClasspathResource("/lastfm_connected.png"), lastFMIconSize,
-					lastFMIconSize, java.awt.Image.SCALE_SMOOTH);
+					lastFMIconSize, Image.SCALE_SMOOTH);
 			lastFMDisconnected = ImageUtil.resizeImageIcon(ImageUtil.fromClasspathResource("/lastfm_disconnected.png"), lastFMIconSize,
-					lastFMIconSize, java.awt.Image.SCALE_SMOOTH);
+					lastFMIconSize, Image.SCALE_SMOOTH);
 		}
 
 		lastFMStatusIcon = new JLabel();
@@ -308,7 +302,7 @@ public class SonivmMainWindow extends JFrame {
 				.build();
 		bottomPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 		volumeSlider.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
-		seekSlider.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
+		playbackProgressBar.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
 		lblPlayTimeElapsed.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
 		lblPlayTimeRemaining.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 8));
 		lblNowPlayingTrack.setFont(lblNowPlayingTrack.getFont().deriveFont(Font.BOLD));
@@ -318,16 +312,10 @@ public class SonivmMainWindow extends JFrame {
 		lblDropTarget.setBorder(BorderFactory.createEtchedBorder());
 
 		JScrollPane scrollTblPlayQueue = new JScrollPane(tblPlayQueue);
-		// @SuppressWarnings("unused")
-		// JSplitPane spLibraryAndPlayQueue = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, false, new JScrollPane(treeTrackLibrary),
-		// scrollTblPlayQueue);
-
 		tblPlayQueue.setDragEnabled(true);
 		tblPlayQueue.setDropMode(DropMode.USE_SELECTION);
 		tblPlayQueue.setTransferHandler(new PlayQueueTableDnDTransferHandler(tblPlayQueue, controller));
 
-		// DropTarget dropTarget = new PlaybackQueueDropTarget(controller, tblPlayQueue);
-		// tblPlayQueue.setDropTarget(dropTarget);
 		scrollTblPlayQueue.setDropTarget(new PlaybackQueueDropTarget(controller, tblPlayQueue));
 		lblDropTarget.setDropTarget(new PlaybackQueueDropTarget(controller, tblPlayQueue));
 
@@ -335,7 +323,6 @@ public class SonivmMainWindow extends JFrame {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				if (e.getClickCount() == 2) {
-					// TODO: refactor this dirty hack - send event of double click and let queue service handle the scroll
 					int nowPlayingQueuePos = playbackQueueTableModel.getIndexOfHighlightedRow();
 					if (nowPlayingQueuePos > -1) {
 						scrollToTrack(nowPlayingQueuePos);
@@ -348,7 +335,6 @@ public class SonivmMainWindow extends JFrame {
 
 		this.getContentPane().setLayout(new BorderLayout());
 		this.getContentPane().add(topPanel, BorderLayout.NORTH);
-		// this.getContentPane().add(spLibraryAndPlayQueue, BorderLayout.CENTER);
 		this.getContentPane()
 				.add(SwingUtil.panel(BorderLayout::new)
 						.add(scrollTblPlayQueue, BorderLayout.CENTER)
@@ -371,28 +357,7 @@ public class SonivmMainWindow extends JFrame {
 
 	private void registerActionsWithController(SonivmController controller) {
 		volumeSlider.addChangeListener(event -> controller.onVolumeChange(volumeSlider.getValue()));
-		// seekSlider.addChangeListener(event -> {
-		// // if (seekSliderIsDragged) {
-		// controller.onSeek(seekSlider.getValue());
-		// // }
-		// });
-		// seekSlider.addMouseListener(new MouseAdapter() {
-		// @Override
-		// public void mousePressed(MouseEvent e) {
-		// seekSliderIsDragged = true;
-		// }
-		//
-		// @Override
-		// public void mouseReleased(MouseEvent e) {
-		// seekSliderIsDragged = false;
-		// }
-		//
-		// @Override
-		// public void mouseClicked(MouseEvent e) {
-		// // controller.onSeek(seekSlider.getValue());
-		// }
-		// });
-		SwingUtil.makeJProgressBarMoveToClickPosition(seekSlider, val -> controller.onSeek(val));
+		SwingUtil.makeJProgressBarMoveToClickPosition(playbackProgressBar, val -> controller.onSeek(val));
 
 		btnPlayPause.addActionListener(event -> controller.onPlayPause());
 		btnStop.addActionListener(event -> controller.onStop());
@@ -467,22 +432,22 @@ public class SonivmMainWindow extends JFrame {
 		tfSearch.getDocument().addDocumentListener(new DocumentListener() {
 			@Override
 			public void removeUpdate(DocumentEvent e) {
-				controller.onSearchValueChange();
+				applySearch();
 			}
 
 			@Override
 			public void insertUpdate(DocumentEvent e) {
-				controller.onSearchValueChange();
+				applySearch();
 			}
 
 			@Override
 			public void changedUpdate(DocumentEvent e) {}
 		});
 
-		cbSearchFullPhrase.addItemListener(e -> controller.onSearchValueChange());
+		cbSearchFullPhrase.addItemListener(e -> applySearch());
 
-		btnSearchNextMatch.addActionListener(actEvent -> controller.onSearchNextMatch());
-		btnSearchPreviousMatch.addActionListener(actEvent -> controller.onSearchPreviousMatch());
+		btnSearchNextMatch.addActionListener(actEvent -> onSearchNextMatch());
+		btnSearchPreviousMatch.addActionListener(actEvent -> onSearchPreviousMatch());
 		btnSearchClear.addActionListener(actEvent -> tfSearch.setText(""));
 
 		InputMap searchInputMap = tfSearch.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
@@ -508,12 +473,12 @@ public class SonivmMainWindow extends JFrame {
 				int code = e.getKeyCode();
 				switch (code) {
 					case KeyEvent.VK_UP: {
-						controller.onSearchPreviousMatch();
+						onSearchPreviousMatch();
 						break;
 					}
 
 					case KeyEvent.VK_DOWN: {
-						controller.onSearchNextMatch();
+						onSearchNextMatch();
 						break;
 					}
 				}
@@ -555,30 +520,20 @@ public class SonivmMainWindow extends JFrame {
 		searchActionMap.put("Stop", AbstractActionAdaptor.of(controller::onStop));
 	}
 
-	// public JTable getPlayQueueTable() {
-	// return tblPlayQueue;
-	// }
-
 	public void allowSeek(int maxSliderValue) {
-		this.seekSlider.setMaximum(maxSliderValue);
-		// this.seekSlider.setEnabled(true);
-		// this.seekSlider.setIndeterminate(false);
+		this.playbackProgressBar.setMaximum(maxSliderValue);
 	}
 
 	public void disallowSeek() {
-		this.seekSlider.setValue(0);
-		this.seekSlider.setMaximum(0);
-		// this.seekSlider.setEnabled(false);
-		// this.seekSlider.setIndeterminate(true);
+		this.playbackProgressBar.setValue(0);
+		this.playbackProgressBar.setMaximum(0);
 	}
 
 	public void updateSeekSliderPosition(int sliderNewPosition) {
-		// if (!seekSliderIsDragged) {
-		seekSlider.setValue(sliderNewPosition);
-		seekSlider.invalidate();
-		seekSlider.revalidate();
-		seekSlider.repaint();
-		// }
+		playbackProgressBar.setValue(sliderNewPosition);
+		playbackProgressBar.invalidate();
+		playbackProgressBar.revalidate();
+		playbackProgressBar.repaint();
 	}
 
 	public void updateStatus(String status) {
@@ -588,10 +543,6 @@ public class SonivmMainWindow extends JFrame {
 
 	public void setPlayPauseButtonState(boolean playing) {
 		btnPlayPause.setText(playing ? "||" : "->");
-	}
-
-	public void setTotalPlayTimeDisplay(long totalSeconds) {
-		// lblPlayTimeTotal.setText(TimeUnitUtil.prettyPrintFromSeconds(totalSeconds));
 	}
 
 	public void setCurrentPlayTimeDisplay(int playedSeconds, int totalSeconds) {
@@ -681,7 +632,7 @@ public class SonivmMainWindow extends JFrame {
 		tblPlayQueue.getSelectionModel().setSelectionInterval(start, end);
 	}
 
-	public int[] getColumnWidths() {
+	public int[] getPlayQueueTableColumnWidths() {
 		TableColumnModel columnModel = tblPlayQueue.getColumnModel();
 		int[] columnWidths = new int[columnModel.getColumnCount()];
 		int totalWidth = 0;
@@ -696,7 +647,7 @@ public class SonivmMainWindow extends JFrame {
 		return columnWidths;
 	}
 
-	public int[] getColumnPositions() {
+	public int[] getPlayQueueTableColumnPositions() {
 		TableColumnModel columnModel = tblPlayQueue.getColumnModel();
 		int[] columnPositions = new int[columnModel.getColumnCount()];
 		for (int i = 0; i < columnModel.getColumnCount(); i++) {
@@ -705,7 +656,7 @@ public class SonivmMainWindow extends JFrame {
 		return columnPositions;
 	}
 
-	public void setPlayQueueColumnPositions(int[] playQueueColumnPositions) {
+	public void setPlayQueueTableColumnPositions(int[] playQueueColumnPositions) {
 		TableColumnModel columnModel = tblPlayQueue.getColumnModel();
 
 		for (int i = 0; i < columnModel.getColumnCount() && i < playQueueColumnPositions.length; i++) {
@@ -713,7 +664,7 @@ public class SonivmMainWindow extends JFrame {
 		}
 	}
 
-	public void setPlayQueueColumnWidths(int[] playQueueColumnWidths) {
+	public void setPlayQueueTableColumnWidths(int[] playQueueColumnWidths) {
 		TableColumnModel columnModel = tblPlayQueue.getColumnModel();
 
 		int totalWidth = 0;
@@ -724,6 +675,53 @@ public class SonivmMainWindow extends JFrame {
 		for (int i = 0; i < columnModel.getColumnCount() && i < playQueueColumnWidths.length; i++) {
 			long width10k = playQueueColumnWidths[i] * totalWidth;
 			columnModel.getColumn(i).setPreferredWidth((int) (width10k / 10000));
+		}
+	}
+
+	public void applySearch() {
+		String text = getSearchText();
+		boolean fullPhrase = isSearchFullPhrase();
+		new Thread(() -> {
+			if (text == null || text.trim().isEmpty()) {
+				searchMatches = Collections.emptyList();
+			} else {
+				searchMatches = playbackQueueTableModel.search(text, fullPhrase);
+			}
+			currentSearchMatch = -1;
+			SwingUtil.runOnEDT(() -> {
+				setSearchMatchedRows(searchMatches);
+				onSearchNextMatch();
+			}, false);
+		}).start();
+	}
+
+	public void onSearchNextMatch() {
+		int matchesCount = searchMatches.size();
+		if (matchesCount > 0) {
+			currentSearchMatch++;
+			if (currentSearchMatch >= matchesCount) {
+				currentSearchMatch = 0;
+			}
+		}
+		gotoSearchMatch();
+	}
+
+	public void onSearchPreviousMatch() {
+		int matchesCount = searchMatches.size();
+		if (matchesCount > 0) {
+			currentSearchMatch--;
+			if (currentSearchMatch < 0) {
+				currentSearchMatch = matchesCount - 1;
+			}
+		}
+		gotoSearchMatch();
+	}
+
+	private void gotoSearchMatch() {
+		if (currentSearchMatch > -1 && currentSearchMatch < searchMatches.size()) {
+			int row = searchMatches.get(currentSearchMatch);
+			scrollToTrack(row);
+			selectTrack(row);
 		}
 	}
 }

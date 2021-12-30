@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import x.mvmn.sonivm.playqueue.PlaybackQueueChangeListener;
-import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
@@ -17,9 +16,6 @@ public class PlayQueueChangeListenerImpl implements PlaybackQueueChangeListener 
 
 	@Autowired
 	private PlaybackQueueTableModel playbackQueueTableModel;
-
-	@Autowired
-	private SonivmController sonivmController;
 
 	@Override
 	public void onTableRowsUpdate(int firstRow, int lastRow, boolean waitForUiUpdate) {
@@ -40,6 +36,6 @@ public class PlayQueueChangeListenerImpl implements PlaybackQueueChangeListener 
 
 	private void onQueueContentsChange() {
 		SwingUtil.runOnEDT(() -> sonivmMainWindow.updatePlayQueueSizeLabel(), false);
-		sonivmController.onSearchValueChange();
+		sonivmMainWindow.applySearch();
 	}
 }
