@@ -13,6 +13,7 @@ import javax.swing.table.AbstractTableModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.util.StringUtil;
 import x.mvmn.sonivm.util.TimeDateUtil;

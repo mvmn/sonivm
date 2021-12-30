@@ -6,8 +6,15 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import javax.swing.JButton;
@@ -22,17 +29,22 @@ import javax.swing.JPopupMenu;
 import javax.swing.JSlider;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import x.mvmn.sonivm.eq.EqualizerPresetService;
 import x.mvmn.sonivm.eq.SonivmEqualizerService;
 import x.mvmn.sonivm.eq.model.EqualizerPreset;
 import x.mvmn.sonivm.eq.model.EqualizerState;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
+import x.mvmn.sonivm.util.Tuple2;
 
 public class EqualizerWindow extends JFrame {
 	private static final long serialVersionUID = -659390575435440032L;
+
+	private static final Logger LOGGER = Logger.getLogger(EqualizerWindow.class.getCanonicalName());
 	// TODO: account for bandCount
 	private static final String[] BAND_LABELS = { "60", "170", "310", "600", "1K", "3K", "6K", "12K", "14K", "16K" };
 
 	private final SonivmEqualizerService eqService;
+	private final EqualizerPresetService equalizerPresetService;
 
 	private final JSlider[] bandSliders;
 	private final JSlider gainSlider;
@@ -43,12 +55,13 @@ public class EqualizerWindow extends JFrame {
 	private final JButton btnExport;
 	private final JButton btnLoad;
 
-	public EqualizerWindow(String title, int bandCount, SonivmEqualizerService eqService) {
+	public EqualizerWindow(String title, int bandCount, SonivmEqualizerService eqService, EqualizerPresetService equalizerPresetService) {
 		super(title);
 
 		this.setResizable(false);
 
 		this.eqService = eqService;
+		this.equalizerPresetService = equalizerPresetService;
 
 		this.cbEnabled = new JCheckBox("EQ on", false);
 		cbEnabled.addActionListener(actEvent -> eqService.onEqualizerEnableToggle(cbEnabled.isSelected()));
@@ -58,7 +71,7 @@ public class EqualizerWindow extends JFrame {
 			JSlider bandSlider = new JSlider(JSlider.VERTICAL, 0, 1000, 500);
 			bandSliders[i] = bandSlider;
 			final int bandNumber = i;
-			bandSlider.addChangeListener(changeEvent -> this.onBandChange(bandNumber));
+			SwingUtil.addValueChangeByUserListener(bandSlider, changeEvent -> this.onBandChange(bandNumber));
 			SwingUtil.makeJSliderMoveToClickPoistion(bandSliders[i]);
 			SwingUtil.onDoubleClick(bandSlider, e -> bandSlider.setValue(500));
 		}
@@ -68,12 +81,13 @@ public class EqualizerWindow extends JFrame {
 			for (JSlider bandSlider : bandSliders) {
 				bandSlider.setValue(500);
 			}
+			onAllBandsChange();
 		});
 		btnSave = new JButton("Save...");
 		btnSave.addActionListener(actEvent -> {
 			String presetName = JOptionPane.showInputDialog(this, "Enter preset name", "");
 			if (presetName != null && !presetName.trim().isEmpty()) {
-				eqService.onSavePreset(presetName, toPreset());
+				onSavePreset(presetName, toPreset());
 			}
 		});
 		btnImport = new JButton("Import EQF...");
@@ -83,7 +97,7 @@ public class EqualizerWindow extends JFrame {
 			jfc.setMultiSelectionEnabled(false);
 			jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 			if (JFileChooser.APPROVE_OPTION == jfc.showOpenDialog(this)) {
-				eqService.onImportPreset(jfc.getSelectedFile(), this);
+				onImportPreset(jfc.getSelectedFile());
 			}
 		});
 		btnExport = new JButton("Export EQF...");
@@ -95,7 +109,7 @@ public class EqualizerWindow extends JFrame {
 				jfc.setMultiSelectionEnabled(false);
 				jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 				if (JFileChooser.APPROVE_OPTION == jfc.showSaveDialog(this)) {
-					eqService.onExportPreset(jfc.getSelectedFile(), presetName, toPreset());
+					onExportPreset(jfc.getSelectedFile(), presetName, toPreset());
 				}
 			}
 		});
@@ -104,7 +118,7 @@ public class EqualizerWindow extends JFrame {
 		btnLoad.addActionListener(actEvent -> buildPresetsMenu().show(btnLoad, btnLoad.getWidth(), 0));
 
 		gainSlider = new JSlider(JSlider.VERTICAL, 0, 1000, 500);
-		gainSlider.addChangeListener(changeEvent -> this.onGainChange());
+		SwingUtil.addValueChangeByUserListener(gainSlider, changeEvent -> this.onGainChange());
 		SwingUtil.onDoubleClick(gainSlider, e -> gainSlider.setValue(500));
 		SwingUtil.makeJSliderMoveToClickPoistion(gainSlider);
 
@@ -254,22 +268,29 @@ public class EqualizerWindow extends JFrame {
 		bandLabels.forEach(lbl -> lbl.setMinimumSize(new Dimension(longestLabelWidth, lbl.getMinimumSize().height)));
 		this.pack();
 
+		this.addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentShown(ComponentEvent e) {
+				setState(eqService.getCurrentState());
+			}
+		});
+
 		this.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 		SwingUtil.moveToScreenCenter(this);
 	}
 
 	protected JPopupMenu buildPresetsMenu() {
 		JPopupMenu presetsMenu = new JPopupMenu("Presets");
-		eqService.listPresets()
+		equalizerPresetService.listPresets()
 				.stream()
 				.map(presetName -> new JMenuItem(presetName))
-				.peek(jMenuItem -> jMenuItem.addActionListener(actEvent -> eqService.onLoadPreset(jMenuItem.getText(), this)))
+				.peek(jMenuItem -> jMenuItem.addActionListener(actEvent -> onLoadPreset(jMenuItem.getText())))
 				.forEach(presetsMenu::add);
 		return presetsMenu;
 	}
 
 	protected void onGainChange() {
-		eqService.onGainChange(gainSlider.getValue());
+		eqService.setGain(gainSlider.getValue());
 	}
 
 	protected void onBandChange(int bandNumber) {
@@ -300,5 +321,52 @@ public class EqualizerWindow extends JFrame {
 				.bands(Stream.of(bandSliders).mapToInt(JSlider::getValue).toArray())
 				.gain(gainSlider.getValue())
 				.build();
+	}
+
+	private void onSavePreset(String name, EqualizerPreset equalizerPreset) {
+		new Thread(() -> {
+			try {
+				equalizerPresetService.savePreset(name, equalizerPreset);
+			} catch (Throwable t) {
+				LOGGER.log(Level.WARNING, "Failed to save preset " + name, t);
+			}
+		}).start();
+	}
+
+	private void onLoadPreset(String name) {
+		new Thread(() -> {
+			try {
+				EqualizerPreset preset = equalizerPresetService.loadPreset(name);
+				eqService.setPreset(preset);
+				SwingUtil.runOnEDT(() -> setPreset(preset), false);
+			} catch (Throwable t) {
+				LOGGER.log(Level.WARNING, "Failed to load preset " + name, t);
+			}
+		}).start();
+	}
+
+	private void onExportPreset(File file, String name, EqualizerPreset equalizerPreset) {
+		new Thread(() -> {
+			try (FileOutputStream fos = new FileOutputStream(file)) {
+				equalizerPresetService.exportWinAmpEqfPreset(name, equalizerPreset, fos);
+			} catch (Throwable t) {
+				LOGGER.log(Level.WARNING, "Failed to export WinAmp EQF preset to file " + file.getAbsolutePath(), t);
+			}
+		}).start();
+	}
+
+	private void onImportPreset(File presetFile) {
+		if (presetFile.exists() && presetFile.length() == 299) {
+			new Thread(() -> {
+				try (FileInputStream fis = new FileInputStream(presetFile)) {
+					Tuple2<String, EqualizerPreset> presetWithName = equalizerPresetService.importWinAmpEqfPreset(fis);
+					equalizerPresetService.savePreset(presetWithName.getA(), presetWithName.getB());
+					setPreset(presetWithName.getB());
+					SwingUtil.runOnEDT(() -> setPreset(presetWithName.getB()), false);
+				} catch (Throwable t) {
+					LOGGER.log(Level.WARNING, "Failed to import WinAmp EQF preset from file " + presetFile.getAbsolutePath(), t);
+				}
+			}).start();
+		}
 	}
 }

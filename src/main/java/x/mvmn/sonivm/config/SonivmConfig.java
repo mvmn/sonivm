@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 import x.mvmn.sonivm.Sonivm;
+import x.mvmn.sonivm.eq.EqualizerPresetService;
 import x.mvmn.sonivm.eq.SonivmEqualizerService;
 import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.ui.EqualizerWindow;
@@ -40,8 +41,8 @@ public class SonivmConfig {
 
 	@Bean
 	@Scope("singleton")
-	public EqualizerWindow equalizerWindow(SonivmEqualizerService changeListener) {
-		return new EqualizerWindow(appVersion + " equalizer", 10, changeListener);
+	public EqualizerWindow equalizerWindow(SonivmEqualizerService changeListener, EqualizerPresetService eqPresetService) {
+		return new EqualizerWindow(appVersion + " equalizer", 10, changeListener, eqPresetService);
 	}
 
 	@Bean

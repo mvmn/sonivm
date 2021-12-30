@@ -6,8 +6,8 @@ import java.security.GeneralSecurityException;
 import java.util.Collection;
 import java.util.Set;
 
-import x.mvmn.sonivm.ui.model.RepeatMode;
-import x.mvmn.sonivm.ui.model.ShuffleMode;
+import x.mvmn.sonivm.impl.RepeatMode;
+import x.mvmn.sonivm.impl.ShuffleMode;
 import x.mvmn.sonivm.util.Tuple4;
 
 public interface PreferencesService {

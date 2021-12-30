@@ -1,4 +1,4 @@
-package x.mvmn.sonivm.ui.model;
+package x.mvmn.sonivm.impl;
 
 import javax.sound.sampled.Mixer;
 

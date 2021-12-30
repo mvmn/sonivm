@@ -37,6 +37,7 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 
+import x.mvmn.sonivm.impl.AudioDeviceOption;
 import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.ui.EqualizerWindow;
 import x.mvmn.sonivm.ui.JMenuBarBuilder;
@@ -45,7 +46,6 @@ import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
 import x.mvmn.sonivm.ui.SupportedFileExtensionsDialog;
 import x.mvmn.sonivm.ui.UsernamePasswordDialog;
-import x.mvmn.sonivm.ui.model.AudioDeviceOption;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.Pair;
 

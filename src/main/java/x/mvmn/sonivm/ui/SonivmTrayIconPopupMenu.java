@@ -8,7 +8,7 @@ import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
+import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 
 @Component

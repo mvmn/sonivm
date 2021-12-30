@@ -37,6 +37,8 @@ import x.mvmn.sonivm.audio.PlaybackEvent.ErrorType;
 import x.mvmn.sonivm.eq.SonivmEqualizerService;
 import x.mvmn.sonivm.eq.model.EqualizerState;
 import x.mvmn.sonivm.lastfm.LastFMQueueService;
+import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
+import x.mvmn.sonivm.playqueue.PlaybackQueueEntryCompareBiPredicate;
 import x.mvmn.sonivm.playqueue.PlaybackQueueFileImportService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
@@ -44,11 +46,6 @@ import x.mvmn.sonivm.ui.EqualizerWindow;
 import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
 import x.mvmn.sonivm.ui.SonivmTrayIconPopupMenu;
-import x.mvmn.sonivm.ui.model.AudioDeviceOption;
-import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
-import x.mvmn.sonivm.ui.model.PlaybackQueueEntryCompareBiPredicate;
-import x.mvmn.sonivm.ui.model.RepeatMode;
-import x.mvmn.sonivm.ui.model.ShuffleMode;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.IntRange;
 import x.mvmn.sonivm.util.StringUtil;
@@ -871,8 +868,7 @@ public class SoniumControllerImpl implements SonivmController {
 					.gain(preferencesService.getEqGain())
 					.bands(preferencesService.getEqBands())
 					.build();
-			// equalizerService.setState(eqState);
-			eqWindow.setState(eqState);
+			equalizerService.setState(eqState);
 			LOGGER.info("Restoring EQ state succeeded");
 		} catch (Throwable t) {
 			LOGGER.log(Level.WARNING, "Failed to restore EQ state", t);

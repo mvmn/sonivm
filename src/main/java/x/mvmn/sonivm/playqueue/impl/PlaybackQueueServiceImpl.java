@@ -11,8 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import x.mvmn.sonivm.playqueue.PlaybackQueueChangeListener;
+import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
-import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
 import x.mvmn.sonivm.util.IntRange;
 
 @Service

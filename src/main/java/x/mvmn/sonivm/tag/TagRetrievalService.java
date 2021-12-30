@@ -2,7 +2,7 @@ package x.mvmn.sonivm.tag;
 
 import java.io.File;
 
-import x.mvmn.sonivm.ui.model.PlaybackQueueEntry.TrackMetadata;
+import x.mvmn.sonivm.playqueue.PlaybackQueueEntry.TrackMetadata;
 
 public interface TagRetrievalService {
 

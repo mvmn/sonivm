@@ -562,20 +562,20 @@ public class SwingUtil {
 	}
 
 	public static void addValueChangeByUserListener(JSlider slider, ChangeListener changeListener) {
-
 		AtomicBoolean userInteractionInProgress = new AtomicBoolean(false);
 		slider.addMouseListener(new MouseAdapter() {
+			@Override
 			public void mousePressed(MouseEvent e) {
 				userInteractionInProgress.set(true);
 			}
 
+			@Override
 			public void mouseReleased(MouseEvent e) {
 				userInteractionInProgress.set(false);
 			}
 		});
 
 		slider.addChangeListener(new ChangeListener() {
-
 			@Override
 			public void stateChanged(ChangeEvent e) {
 				if (userInteractionInProgress.get()) {

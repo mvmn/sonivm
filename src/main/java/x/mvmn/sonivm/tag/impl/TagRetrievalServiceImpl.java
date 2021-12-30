@@ -8,8 +8,8 @@ import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 import org.springframework.stereotype.Service;
 
+import x.mvmn.sonivm.playqueue.PlaybackQueueEntry.TrackMetadata;
 import x.mvmn.sonivm.tag.TagRetrievalService;
-import x.mvmn.sonivm.ui.model.PlaybackQueueEntry.TrackMetadata;
 import x.mvmn.sonivm.util.StringUtil;
 import x.mvmn.sonivm.util.TimeDateUtil;
 

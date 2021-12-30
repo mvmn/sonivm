@@ -1,11 +1,7 @@
 package x.mvmn.sonivm.eq.impl;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.util.Collection;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,26 +12,19 @@ import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.eq.SonivmEqualizerService;
 import x.mvmn.sonivm.eq.model.EqualizerPreset;
 import x.mvmn.sonivm.eq.model.EqualizerState;
-import x.mvmn.sonivm.ui.EqualizerWindow;
-import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.Tuple2;
 
 @Service
 public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 
-	private static final Logger LOGGER = Logger.getLogger(SonivmEqualizerServiceImpl.class.getCanonicalName());
-
 	private volatile Tuple2<IIRControls, Integer> eqControlsAndChannelsCount;
 	private volatile int lastGainValue = 500;
-	// TODO: inject band count
-	private volatile int[] lastBandValues = IntStream.generate(() -> 500).limit(10).toArray();
+	private final CopyOnWriteArrayList<Integer> lastBandValues = new CopyOnWriteArrayList<Integer>(
+			IntStream.generate(() -> 500).limit(10).mapToObj(Integer::valueOf).collect(Collectors.toList()));
 	private volatile boolean eqEnabled = false;
 
 	@Autowired
 	private AudioService audioService;
-
-	@Autowired
-	private EqualizerPresetService equalizerPresetService;
 
 	@Override
 	public void setEqControls(IIRControls eqControls, int channels) {
@@ -48,7 +37,7 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 	}
 
 	@Override
-	public void onGainChange(int valuePerMille) {
+	public void setGain(int valuePerMille) {
 		this.lastGainValue = valuePerMille;
 		Tuple2<IIRControls, Integer> eqControlsAndChannelsCount = this.eqControlsAndChannelsCount;
 		if (eqControlsAndChannelsCount != null) {
@@ -64,7 +53,7 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 
 	@Override
 	public void onBandChange(int bandNumber, int valuePerMille) {
-		this.lastBandValues[bandNumber] = valuePerMille;
+		this.lastBandValues.set(bandNumber, valuePerMille);
 		Tuple2<IIRControls, Integer> eqControlsAndChannelsCount = this.eqControlsAndChannelsCount;
 		if (eqControlsAndChannelsCount != null) {
 			float max = eqControlsAndChannelsCount.getA().getMaximumBandDbValue();
@@ -80,8 +69,8 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 	}
 
 	private void applyLatestValues() {
-		onGainChange(lastGainValue);
-		int[] lastBandValues = this.lastBandValues;
+		setGain(lastGainValue);
+		int[] lastBandValues = this.lastBandValues.stream().mapToInt(Integer::intValue).toArray();
 		for (int i = 0; i < lastBandValues.length; i++) {
 			onBandChange(i, lastBandValues[i]);
 		}
@@ -95,70 +84,25 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 
 	@Override
 	public EqualizerState getCurrentState() {
-		return EqualizerState.builder().enabled(eqEnabled).gain(lastGainValue).bands(lastBandValues).build();
+		return EqualizerState.builder()
+				.enabled(eqEnabled)
+				.gain(lastGainValue)
+				.bands(lastBandValues.stream().mapToInt(Integer::intValue).toArray())
+				.build();
 	}
 
 	@Override
 	public void setState(EqualizerState eqState) {
 		onEqualizerEnableToggle(eqState.isEnabled());
-		onGainChange(eqState.getGain());
-		int[] bandStates = eqState.getBands();
+		setPreset(eqState);
+	}
+
+	@Override
+	public void setPreset(EqualizerPreset eqPreset) {
+		setGain(eqPreset.getGain());
+		int[] bandStates = eqPreset.getBands();
 		for (int i = 0; i < bandStates.length; i++) {
 			onBandChange(i, bandStates[i]);
 		}
-	}
-
-	@Override
-	public void onSavePreset(String name, EqualizerPreset equalizerPreset) {
-		new Thread(() -> {
-			try {
-				equalizerPresetService.savePreset(name, equalizerPreset);
-			} catch (Throwable t) {
-				LOGGER.log(Level.WARNING, "Failed to save preset " + name, t);
-			}
-		}).start();
-	}
-
-	@Override
-	public void onLoadPreset(String name, EqualizerWindow eqWindow) {
-		new Thread(() -> {
-			try {
-				EqualizerPreset preset = equalizerPresetService.loadPreset(name);
-				SwingUtil.runOnEDT(() -> eqWindow.setPreset(preset), false);
-			} catch (Throwable t) {
-				LOGGER.log(Level.WARNING, "Failed to load preset " + name, t);
-			}
-		}).start();
-	}
-
-	@Override
-	public void onExportPreset(File file, String name, EqualizerPreset equalizerPreset) {
-		new Thread(() -> {
-			try (FileOutputStream fos = new FileOutputStream(file)) {
-				equalizerPresetService.exportWinAmpEqfPreset(name, equalizerPreset, fos);
-			} catch (Throwable t) {
-				LOGGER.log(Level.WARNING, "Failed to export WinAmp EQF preset to file " + file.getAbsolutePath(), t);
-			}
-		}).start();
-	}
-
-	@Override
-	public void onImportPreset(File presetFile, EqualizerWindow eqWindow) {
-		if (presetFile.exists() && presetFile.length() == 299) {
-			new Thread(() -> {
-				try (FileInputStream fis = new FileInputStream(presetFile)) {
-					Tuple2<String, EqualizerPreset> presetWithName = equalizerPresetService.importWinAmpEqfPreset(fis);
-					equalizerPresetService.savePreset(presetWithName.getA(), presetWithName.getB());
-					SwingUtil.runOnEDT(() -> eqWindow.setPreset(presetWithName.getB()), false);
-				} catch (Throwable t) {
-					LOGGER.log(Level.WARNING, "Failed to import WinAmp EQF preset from file " + presetFile.getAbsolutePath(), t);
-				}
-			}).start();
-		}
-	}
-
-	@Override
-	public Collection<String> listPresets() {
-		return equalizerPresetService.listPresets();
 	}
 }

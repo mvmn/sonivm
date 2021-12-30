@@ -4,9 +4,9 @@ import java.io.File;
 import java.util.List;
 
 import x.mvmn.sonivm.audio.PlaybackEventListener;
-import x.mvmn.sonivm.ui.model.AudioDeviceOption;
-import x.mvmn.sonivm.ui.model.RepeatMode;
-import x.mvmn.sonivm.ui.model.ShuffleMode;
+import x.mvmn.sonivm.impl.AudioDeviceOption;
+import x.mvmn.sonivm.impl.RepeatMode;
+import x.mvmn.sonivm.impl.ShuffleMode;
 
 public interface SonivmController extends PlaybackEventListener {
 

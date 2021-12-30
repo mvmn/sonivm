@@ -19,9 +19,9 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 
 import x.mvmn.sonivm.Sonivm;
+import x.mvmn.sonivm.impl.RepeatMode;
+import x.mvmn.sonivm.impl.ShuffleMode;
 import x.mvmn.sonivm.prefs.PreferencesService;
-import x.mvmn.sonivm.ui.model.RepeatMode;
-import x.mvmn.sonivm.ui.model.ShuffleMode;
 import x.mvmn.sonivm.util.EncryptionUtil;
 import x.mvmn.sonivm.util.EncryptionUtil.KeyAndNonce;
 import x.mvmn.sonivm.util.Tuple4;

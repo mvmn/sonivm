@@ -47,10 +47,10 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumnModel;
 
-import x.mvmn.sonivm.ui.model.PlaybackQueueEntry;
+import x.mvmn.sonivm.impl.RepeatMode;
+import x.mvmn.sonivm.impl.ShuffleMode;
+import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
-import x.mvmn.sonivm.ui.model.RepeatMode;
-import x.mvmn.sonivm.ui.model.ShuffleMode;
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.TimeDateUtil;

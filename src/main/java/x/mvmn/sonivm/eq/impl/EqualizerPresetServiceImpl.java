@@ -23,6 +23,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import x.mvmn.sonivm.eq.EqualizerPresetService;
 import x.mvmn.sonivm.eq.model.EqualizerPreset;
 import x.mvmn.sonivm.util.Tuple2;
 import x.mvmn.sonivm.util.WinAmpEqualizerFileUtil;

@@ -1,4 +1,4 @@
-package x.mvmn.sonivm.eq.impl;
+package x.mvmn.sonivm.eq;
 
 import java.io.IOException;
 import java.io.InputStream;

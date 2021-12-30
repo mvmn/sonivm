@@ -1,4 +1,4 @@
-package x.mvmn.sonivm.ui.model;
+package x.mvmn.sonivm.playqueue;
 
 import java.util.Arrays;
 import java.util.List;

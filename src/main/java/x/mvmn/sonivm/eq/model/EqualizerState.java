@@ -15,4 +15,8 @@ public class EqualizerState extends EqualizerPreset {
 		super(gain, bands);
 		this.enabled = enabled;
 	}
+
+	public String toString() {
+		return super.toString() + ";enabled=" + enabled;
+	}
 }

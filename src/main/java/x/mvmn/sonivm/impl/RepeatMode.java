@@ -1,4 +1,4 @@
-package x.mvmn.sonivm.ui.model;
+package x.mvmn.sonivm.impl;
 
 public enum RepeatMode {
 	OFF, PLAYLIST, ARTIST, ALBUM, TRACK;
