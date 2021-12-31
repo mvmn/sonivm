@@ -11,7 +11,7 @@ public interface SonivmEqualizerService {
 
 	void setEqControls(IIRControls eqControls, int channels);
 
-	void onEqualizerEnableToggle(boolean equalizerEnabled);
+	void setEQEnabled(boolean equalizerEnabled);
 
 	EqualizerState getCurrentState();
 

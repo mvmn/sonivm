@@ -77,7 +77,7 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 	}
 
 	@Override
-	public void onEqualizerEnableToggle(boolean equalizerEnabled) {
+	public void setEQEnabled(boolean equalizerEnabled) {
 		eqEnabled = equalizerEnabled;
 		audioService.setUseEqualizer(equalizerEnabled);
 	}
@@ -93,7 +93,7 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 
 	@Override
 	public void setState(EqualizerState eqState) {
-		onEqualizerEnableToggle(eqState.isEnabled());
+		setEQEnabled(eqState.isEnabled());
 		setPreset(eqState);
 	}
 

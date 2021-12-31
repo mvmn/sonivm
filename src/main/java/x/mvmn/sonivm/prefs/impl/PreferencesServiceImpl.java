@@ -297,7 +297,7 @@ public class PreferencesServiceImpl implements PreferencesService {
 
 	@Override
 	public Tuple4<Boolean, String, Point, Dimension> getRetroUIPlaylistWindowState() {
-		return this.restoreWindowState(KEY_MAIN_WINDOW_STATE);
+		return this.restoreWindowState(KEY_RETROUI_PLAYLIST_WINDOW_STATE);
 	}
 
 	@Override

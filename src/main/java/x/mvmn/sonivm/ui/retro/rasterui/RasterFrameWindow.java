@@ -145,9 +145,12 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 
 		this.getContentPane().setLayout(null);
 		this.getContentPane().add(wrappedComponentScrollPane);
+		wrappedComponentScrollPane.setOpaque(true);
 
 		updateComponentLocations();
+
 		updateExtPixelSizes();
+
 		renderBackground();
 	}
 
@@ -268,6 +271,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 			g2.drawImage(backgroundImage.getScaledInstance(width, -1, BufferedImage.SCALE_SMOOTH), 0, 0, null);
 		}
 		applyTransparencyMask(g2);
+		g2.dispose();
 		this.wrappedComponentScrollPane.repaint();
 	}
 
@@ -338,7 +342,6 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 	protected void updateExtPixelSizes() {
 		this.extensionWidthPixels = widthExtenderWidth * widthExtension;
 		this.extensionHeightPixels = heightExtenderHeight * heightExtension;
-
 	}
 
 	protected void onSizeExtensionsChange() {
@@ -357,7 +360,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 		int heightScaled = newScaleCoord(scaleFactor, height);
 		this.backgroundImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 		renderBackground();
-		this.setSize(widthScaled, heightScaled);
+		super.setSize(widthScaled, heightScaled);
 		updateComponentLocations();
 	}
 

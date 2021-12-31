@@ -152,6 +152,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 					.getWindow()
 					.setSizeExtensions(preferencesService.getRetroUIPlaylistSizeExtX(), preferencesService.getRetroUIPlaylistSizeExtY());
 			SwingUtil.restoreWindowState(retroUIWindows.getC().getWindow(), preferencesService.getRetroUIPlaylistWindowState());
+			
 		}, false);
 	}
 

@@ -63,7 +63,7 @@ public class EqualizerWindow extends JFrame {
 		this.equalizerPresetService = equalizerPresetService;
 
 		this.cbEnabled = new JCheckBox("EQ on", false);
-		cbEnabled.addActionListener(actEvent -> eqService.onEqualizerEnableToggle(cbEnabled.isSelected()));
+		cbEnabled.addActionListener(actEvent -> eqService.setEQEnabled(cbEnabled.isSelected()));
 
 		bandSliders = new JSlider[bandCount];
 		for (int i = 0; i < bandCount; i++) {

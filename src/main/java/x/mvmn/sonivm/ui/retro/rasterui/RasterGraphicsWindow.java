@@ -80,7 +80,7 @@ public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize 
 		this.resizeZone = resizeZone;
 		this.closeZone = closeZone;
 
-		this.setSize(width, height);
+		super.setSize(width, height);
 		this.setMinimumSize(new Dimension(width, height));
 		this.getContentPane().setLayout(new BorderLayout());
 
