@@ -1,14 +1,15 @@
-package x.mvmn.sonivm.ui;
+package x.mvmn.sonivm;
 
 import java.io.File;
 import java.util.List;
+import java.util.function.Consumer;
 
-import x.mvmn.sonivm.audio.PlaybackEventListener;
+import x.mvmn.sonivm.audio.AudioServiceEventListener;
 import x.mvmn.sonivm.impl.AudioDeviceOption;
 import x.mvmn.sonivm.impl.RepeatMode;
 import x.mvmn.sonivm.impl.ShuffleMode;
 
-public interface SonivmController extends PlaybackEventListener {
+public interface PlaybackController extends AudioServiceEventListener {
 
 	void onVolumeChange(int value);
 
@@ -26,15 +27,13 @@ public interface SonivmController extends PlaybackEventListener {
 
 	void onQuit();
 
-	void onDropFilesToQueue(int queuePosition, List<File> files);
+	void onDropFilesToQueue(int queuePosition, List<File> files, Consumer<String> importProgressListener);
 
 	boolean onDropQueueRowsInsideQueue(int queuePosition, int firstRow, int lastRow);
 
 	void onDeleteRowsFromQueue(int firstRow, int lastRow);
 
-	void onBeforeUiPack();
-
-	void onBeforeUiSetVisible();
+	void restorePlaybackState();
 
 	void onSetAudioDevice(AudioDeviceOption audiodeviceoption);
 
@@ -44,9 +43,19 @@ public interface SonivmController extends PlaybackEventListener {
 
 	void onRepeatModeSwitch(RepeatMode repeatMode);
 
+	void onAutoStopChange(boolean autoStop);
+
 	void onLastFMScrobblePercentageChange(int scrobblePercentageOption);
 
 	void onLastFMCredsOrKeysUpdate();
 
-	void toggleShowEqualizer();
+	ShuffleMode getShuffleMode();
+
+	RepeatMode getRepeatMode();
+
+	boolean isAutoStop();
+
+	int getTrackQueuePosition();
+
+	void addPlaybackListener(PlaybackListener listener);
 }

@@ -31,7 +31,7 @@ public class PlayQueueTableDnDTransferHandler extends TransferHandler {
 			DataFlavor.javaSerializedObjectMimeType + ";class=x.mvmn.sonivm.util.IntRange", "String Row Indexes Range");
 
 	private final JTable playbackQueueTable;
-	private final SonivmController controller;
+	private final SonivmUIController controller;
 
 	@Override
 	public int getSourceActions(JComponent c) {

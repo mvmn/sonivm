@@ -16,7 +16,7 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 
-import x.mvmn.sonivm.ui.SonivmController;
+import x.mvmn.sonivm.ui.SonivmUI;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 
 @SpringBootApplication
@@ -26,7 +26,7 @@ public class Sonivm implements Runnable {
 	private static final Logger LOGGER = Logger.getLogger(Sonivm.class.getCanonicalName());
 
 	@Autowired
-	private SonivmController sonivmController;
+	private SonivmUI sonivmUI;
 
 	public static void main(String[] args) {
 		initConsoleLogging();
@@ -68,9 +68,6 @@ public class Sonivm implements Runnable {
 	}
 
 	public void run() {
-		sonivmController.onBeforeUiPack();
-		sonivmController.onBeforeUiSetVisible();
-
-		SwingUtil.registerQuitHandler(sonivmController::onQuit);
+		sonivmUI.show();
 	}
 }

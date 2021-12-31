@@ -1,4 +1,4 @@
-package x.mvmn.sonivm.ui;
+package x.mvmn.sonivm.ui.util.swing.menu;
 
 import javax.swing.JMenu;
 

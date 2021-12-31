@@ -85,11 +85,13 @@ public class SonivmMainWindow extends JFrame {
 	private final JLabel lblQueueSize;
 	private final JButton btnToggleShowEq;
 	private final JCheckBox cbAutoStop;
+	private final JLabel lblDropTarget;
+	private final JScrollPane scrollTblPlayQueue;
 
 	private volatile List<Integer> searchMatches = Collections.emptyList();
 	private volatile int currentSearchMatch = -1;
 
-	public SonivmMainWindow(String title, SonivmController controller, PlaybackQueueTableModel playbackQueueTableModel) {
+	public SonivmMainWindow(String title, PlaybackQueueTableModel playbackQueueTableModel) {
 		super(title);
 		this.playbackQueueTableModel = playbackQueueTableModel;
 
@@ -307,17 +309,13 @@ public class SonivmMainWindow extends JFrame {
 		lblPlayTimeRemaining.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 8));
 		lblNowPlayingTrack.setFont(lblNowPlayingTrack.getFont().deriveFont(Font.BOLD));
 
-		JLabel lblDropTarget = new JLabel("add to queue", JLabel.CENTER);
+		lblDropTarget = new JLabel("add to queue", JLabel.CENTER);
 		lblDropTarget.setToolTipText("Drag&drop here to add/move to the end of the playback queue");
 		lblDropTarget.setBorder(BorderFactory.createEtchedBorder());
 
-		JScrollPane scrollTblPlayQueue = new JScrollPane(tblPlayQueue);
+		scrollTblPlayQueue = new JScrollPane(tblPlayQueue);
 		tblPlayQueue.setDragEnabled(true);
 		tblPlayQueue.setDropMode(DropMode.USE_SELECTION);
-		tblPlayQueue.setTransferHandler(new PlayQueueTableDnDTransferHandler(tblPlayQueue, controller));
-
-		scrollTblPlayQueue.setDropTarget(new PlaybackQueueDropTarget(controller, tblPlayQueue));
-		lblDropTarget.setDropTarget(new PlaybackQueueDropTarget(controller, tblPlayQueue));
 
 		MouseListener onNowPlayingDoubleClick = new MouseAdapter() {
 			@Override
@@ -344,18 +342,21 @@ public class SonivmMainWindow extends JFrame {
 		this.getContentPane().add(bottomPanel, BorderLayout.SOUTH);
 
 		this.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+	}
 
-		registerActionsWithController(controller);
-		//
+	public void registerHandler(SonivmUIController controller) {
+		tblPlayQueue.setTransferHandler(new PlayQueueTableDnDTransferHandler(tblPlayQueue, controller));
+
+		scrollTblPlayQueue.setDropTarget(new PlaybackQueueDropTarget(controller, tblPlayQueue));
+		lblDropTarget.setDropTarget(new PlaybackQueueDropTarget(controller, tblPlayQueue));
+
 		// this.addWindowListener(new WindowAdapter() {
 		// @Override
 		// public void windowClosing(WindowEvent wndEvent) {
 		// controller.onQuit();
 		// }
 		// });
-	}
 
-	private void registerActionsWithController(SonivmController controller) {
 		volumeSlider.addChangeListener(event -> controller.onVolumeChange(volumeSlider.getValue()));
 		SwingUtil.makeJProgressBarMoveToClickPosition(playbackProgressBar, val -> controller.onSeek(val));
 
@@ -428,6 +429,7 @@ public class SonivmMainWindow extends JFrame {
 
 		cmbRepeatMode.addActionListener(actEvent -> controller.onRepeatModeSwitch((RepeatMode) cmbRepeatMode.getSelectedItem()));
 		cmbShuffleMode.addActionListener(actEvent -> controller.onShuffleModeSwitch((ShuffleMode) cmbShuffleMode.getSelectedItem()));
+		cbAutoStop.addChangeListener(e -> controller.onAutoStopChange(cbAutoStop.isSelected()));
 
 		tfSearch.getDocument().addDocumentListener(new DocumentListener() {
 			@Override
@@ -536,7 +538,7 @@ public class SonivmMainWindow extends JFrame {
 		playbackProgressBar.repaint();
 	}
 
-	public void updateStatus(String status) {
+	public void setStatusDisplay(String status) {
 		this.lblStatus.setText(status);
 		this.lblStatus.setToolTipText(status);
 	}
@@ -575,7 +577,9 @@ public class SonivmMainWindow extends JFrame {
 	}
 
 	public void scrollToTrack(int rowNumber) {
-		this.tblPlayQueue.scrollRectToVisible(new Rectangle(tblPlayQueue.getCellRect(rowNumber, 0, true)));
+		if (rowNumber > -1) {
+			this.tblPlayQueue.scrollRectToVisible(new Rectangle(tblPlayQueue.getCellRect(rowNumber, 0, true)));
+		}
 	}
 
 	public void selectTrack(int rowNumber) {
@@ -618,10 +622,6 @@ public class SonivmMainWindow extends JFrame {
 
 	public void setRepeatMode(RepeatMode repeatMode) {
 		this.cmbRepeatMode.setSelectedItem(repeatMode);
-	}
-
-	public boolean isAutoStop() {
-		return this.cbAutoStop.isSelected();
 	}
 
 	public void setAutoStop(boolean autoStop) {

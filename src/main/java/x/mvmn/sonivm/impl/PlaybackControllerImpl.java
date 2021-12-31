@@ -1,15 +1,12 @@
 package x.mvmn.sonivm.impl;
 
-import java.awt.SystemTray;
-import java.awt.TrayIcon;
 import java.io.File;
 import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,36 +18,29 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import de.umass.lastfm.Authenticator;
-import de.umass.lastfm.Session;
-import de.umass.lastfm.Track;
-import de.umass.lastfm.scrobble.ScrobbleData;
-import de.umass.lastfm.scrobble.ScrobbleResult;
-import x.mvmn.sonivm.SonivmShutdownListener;
+import lombok.Getter;
+import x.mvmn.sonivm.PlaybackController;
+import x.mvmn.sonivm.PlaybackListener;
 import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
-import x.mvmn.sonivm.audio.PlaybackEvent;
-import x.mvmn.sonivm.audio.PlaybackEvent.ErrorType;
+import x.mvmn.sonivm.audio.AudioServiceEvent;
+import x.mvmn.sonivm.audio.AudioServiceEvent.ErrorType;
+import x.mvmn.sonivm.audio.PlaybackState;
 import x.mvmn.sonivm.eq.SonivmEqualizerService;
 import x.mvmn.sonivm.eq.model.EqualizerState;
-import x.mvmn.sonivm.lastfm.LastFMQueueService;
+import x.mvmn.sonivm.lastfm.LastFMScrobblingService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
 import x.mvmn.sonivm.playqueue.PlaybackQueueEntryCompareBiPredicate;
 import x.mvmn.sonivm.playqueue.PlaybackQueueFileImportService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
-import x.mvmn.sonivm.ui.SonivmController;
-import x.mvmn.sonivm.ui.SonivmTrayIconPopupMenu;
-import x.mvmn.sonivm.ui.SonivmUI;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.IntRange;
-import x.mvmn.sonivm.util.StringUtil;
-import x.mvmn.sonivm.util.Tuple2;
 
 @Component
-public class SoniumControllerImpl implements SonivmController {
+public class PlaybackControllerImpl implements PlaybackController {
 
-	private static final Logger LOGGER = Logger.getLogger(SoniumControllerImpl.class.getSimpleName());
+	private static final Logger LOGGER = Logger.getLogger(PlaybackControllerImpl.class.getSimpleName());
 
 	@Autowired
 	private AudioService audioService;
@@ -62,38 +52,31 @@ public class SoniumControllerImpl implements SonivmController {
 	private PlaybackQueueFileImportService playbackQueueFileImportService;
 
 	@Autowired
-	private SonivmUI sonivmUI;
-
-	@Autowired
 	private PreferencesService preferencesService;
 
 	@Autowired
-	private LastFMQueueService lastFMQueueService;
-
-	@Autowired(required = false)
-	private List<SonivmShutdownListener> shutdownListeners;
-
-	@Autowired
-	private TrayIcon sonivmTrayIcon;
-
-	@Autowired
-	private SonivmTrayIconPopupMenu trayIconPopupMenu;
+	private LastFMScrobblingService lastFMScrobblingService;
 
 	@Autowired
 	private SonivmEqualizerService equalizerService;
 
+	// State
 	private volatile AudioFileInfo currentAudioFileInfo;
 	private volatile PlaybackQueueEntry currentTrackInfo;
-	private volatile ShuffleMode shuffleState = ShuffleMode.OFF;
-	private volatile RepeatMode repeatState = RepeatMode.OFF;
+
+	@Getter
+	private volatile ShuffleMode shuffleMode = ShuffleMode.OFF;
+	@Getter
+	private volatile RepeatMode repeatMode = RepeatMode.OFF;
+	@Getter
+	private volatile boolean autoStop = false;
 
 	private volatile AtomicLong currentTrackTotalListeningTimeMillisec = new AtomicLong(0L);
 	private volatile int scrobbleThresholdPercent = 70;
 	private volatile boolean scrobblingEnabled = false;
 	private volatile boolean currentTrackScrobbled = true;
 
-	private final ExecutorService lastFmScrobbleTaskExecutor = Executors.newFixedThreadPool(1);
-	private final AtomicReference<Session> lastFMSession = new AtomicReference<>();
+	private final CopyOnWriteArrayList<PlaybackListener> listeners = new CopyOnWriteArrayList<>();
 
 	@PostConstruct
 	public void initPostConstruct() {
@@ -140,7 +123,7 @@ public class SoniumControllerImpl implements SonivmController {
 	}
 
 	private void onTrackFinished() {
-		if (sonivmUI.getMainWindow().isAutoStop()) {
+		if (autoStop) {
 			doStop();
 		} else {
 			doNextTrack(false);
@@ -155,8 +138,8 @@ public class SoniumControllerImpl implements SonivmController {
 	private void doNextTrack(boolean userRequested) {
 		int trackCount = playbackQueueService.getQueueSize();
 		int currentTrackQueuePos = playbackQueueService.getCurrentQueuePosition();
-		ShuffleMode shuffleState = this.shuffleState;
-		RepeatMode repeatState = this.repeatState;
+		ShuffleMode shuffleState = this.shuffleMode;
+		RepeatMode repeatState = this.repeatMode;
 
 		if (!userRequested && RepeatMode.TRACK == repeatState) {
 			repeatCurrentTrack();
@@ -305,7 +288,6 @@ public class SoniumControllerImpl implements SonivmController {
 				}
 				updatePlayingState(true);
 			}
-			SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().scrollToTrack(trackQueuePosition), false);
 		}
 	}
 
@@ -325,20 +307,12 @@ public class SoniumControllerImpl implements SonivmController {
 		this.currentAudioFileInfo = null;
 		this.currentTrackInfo = null;
 		playbackQueueService.setCurrentQueuePosition(-1);
-		updatePlayingState(false);
-		SwingUtil.runOnEDT(() -> {
-			sonivmUI.getMainWindow().disallowSeek();
-			sonivmUI.getMainWindow().setCurrentPlayTimeDisplay(0, 0);
-			sonivmUI.getMainWindow().updateNowPlaying(null);
-			trayIconPopupMenu.updateNowPlaying(null);
-			sonivmUI.getMainWindow().updateStatus("");
-		}, false);
+		listeners.forEach(listener -> listener.onPlaybackStateChange(PlaybackState.STOPPED));
 	}
 
 	@Override
-	public void onDropFilesToQueue(int queuePosition, List<File> files) {
-		new Thread(() -> playbackQueueFileImportService.importFilesIntoPlayQueue(queuePosition, files,
-				importedTrack -> SwingUtil.runOnEDT(() -> updateStaus("Loaded into queue: " + importedTrack), false))).start();
+	public void onDropFilesToQueue(int queuePosition, List<File> files, Consumer<String> importProgressListener) {
+		new Thread(() -> playbackQueueFileImportService.importFilesIntoPlayQueue(queuePosition, files, importProgressListener)).start();
 	}
 
 	@Override
@@ -351,8 +325,6 @@ public class SoniumControllerImpl implements SonivmController {
 				insertPosition -= rowCount;
 			}
 
-			sonivmUI.getMainWindow().setSelectedPlayQueueRows(insertPosition, insertPosition + rowCount - 1);
-
 			return true;
 		} else {
 			return false;
@@ -361,61 +333,23 @@ public class SoniumControllerImpl implements SonivmController {
 
 	@Override
 	public void onQuit() {
-		LOGGER.info("Quit requested - shutting down");
-
-		try {
-			LOGGER.info("Storing window positions/sizes/visibility");
-			this.preferencesService.saveMainWindowState(SwingUtil.getWindowState(sonivmUI.getMainWindow()));
-			this.preferencesService.saveEQWindowState(SwingUtil.getWindowState(sonivmUI.getEqWindow()));
-		} catch (Throwable t) {
-			LOGGER.log(Level.WARNING, "Failed to store main and EQ window states", t);
-		}
-
-		SwingUtil.runOnEDT(() -> {
-			try {
-				SystemTray.getSystemTray().remove(sonivmTrayIcon);
-				LOGGER.info("Removed tray icon");
-			} catch (Throwable t) {
-				LOGGER.log(Level.SEVERE, "Failed to remove tray icon", t);
-			}
-			sonivmUI.getMainWindow().setVisible(false);
-			sonivmUI.getMainWindow().dispose();
-			LOGGER.info("Hid and disposed main window");
-			sonivmUI.getEqWindow().setVisible(false);
-			sonivmUI.getEqWindow().dispose();
-			LOGGER.info("Hid and disposed equalizer window");
-		}, true);
 
 		LOGGER.info("Shutting down audio service.");
 		audioService.stop();
 		audioService.shutdown();
 
-		LOGGER.info("Shutting down LastFM task executor.");
-		lastFmScrobbleTaskExecutor.shutdown();
-
-		if (shutdownListeners != null && !shutdownListeners.isEmpty()) {
-			for (SonivmShutdownListener shutdownListener : shutdownListeners) {
-				try {
-					shutdownListener.onSonivmShutdown();
-				} catch (Throwable t) {
-					LOGGER.log(Level.SEVERE, "Failed on calling shutdown listener " + shutdownListener.getClass().getSimpleName(), t);
-				}
-			}
-		}
+		playbackQueueFileImportService.shutdown();
 
 		try {
-			this.preferencesService.setShuffleMode(shuffleState);
-			this.preferencesService.setRepeatMode(repeatState);
-			this.preferencesService.setAutoStop(sonivmUI.getMainWindow().isAutoStop());
+			this.preferencesService.setShuffleMode(shuffleMode);
+			this.preferencesService.setRepeatMode(repeatMode);
+			this.preferencesService.setAutoStop(autoStop);
 		} catch (Throwable t) {
 			LOGGER.log(Level.WARNING, "Failed to store shuffle/repeat preferences", t);
 		}
 
-		savePlayQueueColumnsState();
 		savePlayQueueContents();
 		saveEqState();
-
-		// System.exit(0);
 	}
 
 	private void savePlayQueueContents() {
@@ -450,24 +384,12 @@ public class SoniumControllerImpl implements SonivmController {
 		return new File(new File(System.getProperty("sonivm_home_folder")), "queue.json");
 	}
 
-	private void savePlayQueueColumnsState() {
-		LOGGER.info("Saving UI state.");
-		try {
-			preferencesService.setPlayQueueColumnWidths(sonivmUI.getMainWindow().getPlayQueueTableColumnWidths());
-			preferencesService.setPlayQueueColumnPositions(sonivmUI.getMainWindow().getPlayQueueTableColumnPositions());
-		} catch (Exception e) {
-			LOGGER.log(Level.WARNING, "Failed to store column width for playback queue table", e);
-		}
-	}
-
 	@Override
-	public void handleEvent(PlaybackEvent event) {
+	public void handleEvent(AudioServiceEvent event) {
 		switch (event.getType()) {
 			case ERROR:
 				LOGGER.log(Level.WARNING, "Playback error occurred: " + event.getErrorType() + " " + event.getError());
-				SwingUtil.runOnEDT(
-						() -> sonivmUI.getMainWindow().updateStatus("Playback error " + event.getErrorType() + " " + event.getError()),
-						false);
+				listeners.forEach(listener -> listener.onPlaybackError("Playback error " + event.getErrorType() + " " + event.getError()));
 				if (event.getErrorType() == ErrorType.FILE_NOT_FOUND || event.getErrorType() == ErrorType.FILE_FORMAT_ERROR) {
 					onTrackFinished();
 				}
@@ -479,7 +401,7 @@ public class SoniumControllerImpl implements SonivmController {
 			break;
 			case PROGRESS:
 				if (currentAudioFileInfo != null) {
-					Long playbackPositionMillis;
+					long playbackPositionMillis;
 					int totalDurationSeconds;
 					PlaybackQueueEntry currentTrackInfo = this.currentTrackInfo;
 					long playbackPositionFromEvent = event.getPlaybackPositionMilliseconds();
@@ -503,12 +425,8 @@ public class SoniumControllerImpl implements SonivmController {
 						playbackPositionMillis = playbackPositionFromEvent;
 						totalDurationSeconds = currentAudioFileInfo.getDurationSeconds();
 					}
-					int seekSliderNewPosition = (int) (playbackPositionMillis / 100);
 
-					SwingUtil.runOnEDT(() -> {
-						sonivmUI.getMainWindow().updateSeekSliderPosition(seekSliderNewPosition);
-						sonivmUI.getMainWindow().setCurrentPlayTimeDisplay((int) (playbackPositionMillis / 1000), totalDurationSeconds);
-					}, false);
+					listeners.forEach(listener -> listener.onPlaybackProgress(playbackPositionMillis, totalDurationSeconds));
 					long totalListenTimeSeconds = this.currentTrackTotalListeningTimeMillisec
 							.addAndGet(event.getPlaybackDeltaMilliseconds()) / 1000;
 					if (scrobblingEnabled && !currentTrackScrobbled
@@ -534,6 +452,7 @@ public class SoniumControllerImpl implements SonivmController {
 			// System.out.println(dataLineControl.getType() + ": " + dataLineControl);
 			// }
 			break;
+			default:
 		}
 	}
 
@@ -542,165 +461,23 @@ public class SoniumControllerImpl implements SonivmController {
 		this.currentTrackScrobbled = false;
 		this.currentAudioFileInfo = audioInfo;
 		PlaybackQueueEntry currentEntry = playbackQueueService.getCurrentEntry();
-		if (currentEntry != null && !currentEntry.isCueSheetTrack()) {
+		this.currentTrackInfo = currentEntry;
+		if (!currentEntry.isCueSheetTrack()) {
 			currentEntry.setDuration(audioInfo.getDurationSeconds());
+			playbackQueueService.signalUpdateInRow(playbackQueueService.getCurrentQueuePosition());
 		}
-		int trackDurationSeconds = currentEntry.getDuration().intValue();
-		int queuePos = playbackQueueService.getCurrentQueuePosition();
-		PlaybackQueueEntry trackInfo = playbackQueueService.getEntryByIndex(queuePos);
-		this.currentTrackInfo = trackInfo;
-		playbackQueueService.signalUpdateInRow(queuePos);
-		SwingUtil.runOnEDT(() -> {
-			sonivmUI.getMainWindow().updateSeekSliderPosition(0);
-			if (audioInfo.isSeekable()) {
-				sonivmUI.getMainWindow().allowSeek(trackDurationSeconds * 10);
-			} else {
-				sonivmUI.getMainWindow().disallowSeek();
-			}
-			sonivmUI.getMainWindow().updateNowPlaying(trackInfo);
-			trayIconPopupMenu.updateNowPlaying(trackInfo);
-			sonivmUI.getMainWindow()
-					.updateStatus(audioInfo.getAudioFileFormat() != null
-							? audioInfo.getAudioFileFormat().getFormat().toString().replaceAll(",\\s*$", "").replaceAll(",\\s*,", ",")
-							: "");
-		}, false);
+		listeners.forEach(listener -> listener.onPlaybackStart(audioInfo, currentEntry));
 		if (scrobblingEnabled) {
 			lastFmSetNowPlaying(this.currentTrackInfo);
 		}
 	}
 
 	private void lastFmSetNowPlaying(PlaybackQueueEntry trackInfo) {
-		lastFmScrobbleTaskExecutor.execute(() -> {
-			ScrobbleData scrobbleData = toScrobbleData(trackInfo);
-			boolean success = false;
-			String status = "";
-			try {
-				Session session = getLastFMSession();
-				if (session != null) {
-					LOGGER.info("Setting LastFM now playing state to " + scrobbleData);
-					ScrobbleResult scrobbleResult = Track.updateNowPlaying(scrobbleData, session);
-					if (!scrobbleResult.isSuccessful()) {
-						status = "LastFM update now playing failed: " + scrobbleResult.getErrorCode() + " "
-								+ scrobbleResult.getErrorMessage();
-						LOGGER.info(status);
-					} else {
-						success = true;
-						status = "Set LastFM now playing to " + trackInfo.toDisplayStr();
-					}
-				} else {
-					LOGGER.info("Skipping update now playing in LastFM - no session.");
-				}
-			} catch (Exception e) {
-				LOGGER.log(Level.WARNING, "Failed to update now playing in LastFM", e);
-				status = "Failed to update now playing in LastFM: " + e.getClass().getSimpleName() + " "
-						+ StringUtil.blankForNull(e.getMessage());
-			}
-			boolean finalSuccess = success;
-			String finalStatus = status;
-			SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().updateLastFMStatus(finalSuccess, finalStatus), false);
-
-			if (success) {
-				reSubmitFailedLastFMSubmissions();
-			}
-		});
+		lastFMScrobblingService.setNowPlayingTrack(trackInfo);
 	}
 
 	private void lastFmScrobble(PlaybackQueueEntry trackInfo) {
-		lastFmScrobbleTaskExecutor.execute(() -> {
-			ScrobbleData scrobbleData = toScrobbleData(trackInfo);
-			Tuple2<Boolean, String> result = doScrobbleTrack(scrobbleData);
-			if (!result.getA()) {
-				lastFMQueueService.queueTrack(scrobbleData);
-			}
-			SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().updateLastFMStatus(result.getA(), result.getB()), false);
-		});
-	}
-
-	private void reSubmitFailedLastFMSubmissions() {
-		try {
-			lastFMQueueService.processQueuedTracks(tracks -> {
-				for (ScrobbleData track : tracks) {
-					Tuple2<Boolean, String> result = this.doScrobbleTrack(track);
-					if (!result.getA()) {
-						throw new RuntimeException("Failed to re-scrobble track " + track + ": " + result.getB());
-					}
-				}
-			}, 100);
-		} catch (Throwable t) {
-			LOGGER.log(Level.SEVERE, "Failed to re-submit LastFM tracks", t);
-		}
-	}
-
-	private Tuple2<Boolean, String> doScrobbleTrack(ScrobbleData scrobbleData) {
-		boolean success = false;
-		String status = "";
-		try {
-			Session session = getLastFMSession();
-			if (session != null) {
-				LOGGER.info("Scrobbling LastFM track played " + scrobbleData);
-				ScrobbleResult scrobbleResult = Track.scrobble(scrobbleData, session);
-				if (!scrobbleResult.isSuccessful()) {
-					status = "LastFM scrobbling failed: " + scrobbleResult.getErrorCode() + " " + scrobbleResult.getErrorMessage();
-					LOGGER.info(status);
-				} else {
-					success = true;
-					status = "Scrobbled to LastFM " + PlaybackQueueEntry.toDisplayStr(scrobbleData);
-				}
-			} else {
-				LOGGER.info("Skipping scrobbling track in LastFM - no session.");
-			}
-		} catch (Exception e) {
-			LOGGER.log(Level.WARNING, "Failed to scrobble track in LastFM", e);
-			status = "Failed to scrobble track in LastFM: " + e.getClass().getSimpleName() + " " + StringUtil.blankForNull(e.getMessage());
-		}
-		return Tuple2.<Boolean, String> builder().a(success).b(status).build();
-	}
-
-	private Session getLastFMSession() throws Exception {
-		Session result = lastFMSession.get();
-		if (result == null) {
-			String user = this.preferencesService.getUsername();
-			String password = this.preferencesService.getPassword();
-			String apiKey = this.preferencesService.getApiKey();
-			String secret = this.preferencesService.getApiSecret();
-
-			if (user != null && password != null) {
-				try {
-					LOGGER.info("Trying to establish LastFM session");
-					result = Authenticator.getMobileSession(user, password, apiKey, secret);
-					if (result == null) {
-						throw new Exception("Failed to connect");
-					}
-					lastFMSession.set(result);
-					LOGGER.info("Successfully established LastFM session");
-					SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().updateLastFMStatus(true, "Established LastFM session"), false);
-				} catch (Exception e) {
-					LOGGER.log(Level.WARNING, "Failed to establish LastFM session", e);
-					SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow()
-							.updateLastFMStatus(false, "Failed to establish LastFM session: " + e.getClass().getSimpleName() + " "
-									+ StringUtil.blankForNull(e.getMessage())),
-							false);
-				}
-			}
-		}
-		return result;
-	}
-
-	private ScrobbleData toScrobbleData(PlaybackQueueEntry trackInfo) {
-		ScrobbleData result = new ScrobbleData(trackInfo.getArtist(), trackInfo.getTitle(), (int) (System.currentTimeMillis() / 1000));
-		if (trackInfo.getDuration() != null) {
-			result.setDuration(trackInfo.getDuration().intValue());
-		}
-
-		if (trackInfo.getTrackMetadata() != null) {
-			result.setAlbum(trackInfo.getAlbum());
-			try {
-				result.setTrackNumber(Integer.parseInt(trackInfo.getTrackNumber()));
-			} catch (NumberFormatException nfe) {
-				LOGGER.finest("Can't parse track number as integer for LastFM: " + trackInfo.getTrackNumber());
-			}
-		}
-		return result;
+		lastFMScrobblingService.scrobbleTrack(trackInfo);
 	}
 
 	@Override
@@ -709,52 +486,32 @@ public class SoniumControllerImpl implements SonivmController {
 	}
 
 	private void updatePlayingState(boolean playing) {
-		SwingUtil.runOnEDT(() -> {
-			sonivmUI.getMainWindow().setPlayPauseButtonState(playing);
-			trayIconPopupMenu.setPlayPauseButtonState(playing);
-		}, false);
-	}
-
-	private void updateStaus(String value) {
-		SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().updateStatus(value), false);
+		listeners.forEach(listener -> listener.onPlaybackStateChange(playing ? PlaybackState.PLAYING : PlaybackState.PAUSED));
 	}
 
 	@Override
-	public void onBeforeUiPack() {
-		new Thread(() -> {
-			restorePlayQueueContents();
+	public void restorePlaybackState() {
+		restorePlayQueueContents();
 
-			try {
-				this.scrobblingEnabled = this.preferencesService.getPassword() != null;
-				int scrobblePercent = this.preferencesService.getPercentageToScrobbleAt(70);
-				this.scrobbleThresholdPercent = scrobblePercent;
-			} catch (Exception e) {
-				LOGGER.log(Level.WARNING, "Failed to read LastFM preferences", e);
-			}
+		try {
+			this.scrobblingEnabled = this.preferencesService.getPassword() != null;
+			int scrobblePercent = this.preferencesService.getPercentageToScrobbleAt(70);
+			this.scrobbleThresholdPercent = scrobblePercent;
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to read LastFM preferences", e);
+		}
 
-			try {
-				ShuffleMode shuffleMode = this.preferencesService.getShuffleMode();
-				this.shuffleState = shuffleMode;
-				this.sonivmUI.getMainWindow().setShuffleMode(shuffleMode);
+		try {
+			ShuffleMode shuffleMode = this.preferencesService.getShuffleMode();
+			this.shuffleMode = shuffleMode;
 
-				RepeatMode repeatMode = this.preferencesService.getRepeatMode();
-				this.repeatState = repeatMode;
-				this.sonivmUI.getMainWindow().setRepeatMode(repeatMode);
-
-				this.sonivmUI.getMainWindow().setAutoStop(this.preferencesService.isAutoStop());
-			} catch (Exception e) {
-				LOGGER.log(Level.WARNING, "Failed to read shuffle/repeat/autostop preferences", e);
-			}
-		}).start();
-	}
-
-	@Override
-	public void onBeforeUiSetVisible() {
+			RepeatMode repeatMode = this.preferencesService.getRepeatMode();
+			this.repeatMode = repeatMode;
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to read shuffle/repeat/autostop preferences", e);
+		}
 		restoreEqState();
-		lastFmScrobbleTaskExecutor.execute(() -> reSubmitFailedLastFMSubmissions());
 	}
-
-
 
 	@Override
 	public void onSetAudioDevice(AudioDeviceOption audioDeviceOption) {
@@ -776,12 +533,17 @@ public class SoniumControllerImpl implements SonivmController {
 
 	@Override
 	public void onRepeatModeSwitch(RepeatMode repeatMode) {
-		this.repeatState = repeatMode;
+		this.repeatMode = repeatMode;
 	}
 
 	@Override
 	public void onShuffleModeSwitch(ShuffleMode shuffleMode) {
-		this.shuffleState = shuffleMode;
+		this.shuffleMode = shuffleMode;
+	}
+
+	@Override
+	public void onAutoStopChange(boolean autoStop) {
+		this.autoStop = autoStop;
 	}
 
 	@Override
@@ -803,7 +565,7 @@ public class SoniumControllerImpl implements SonivmController {
 		} catch (GeneralSecurityException e) {
 			LOGGER.log(Level.WARNING, "Security exception on getting LastFM password from prefs", e);
 		}
-		this.lastFMSession.set(null);
+		this.lastFMScrobblingService.onLastFMPreferencesChange();
 	}
 
 	private void restoreEqState() {
@@ -835,7 +597,12 @@ public class SoniumControllerImpl implements SonivmController {
 	}
 
 	@Override
-	public void toggleShowEqualizer() {
-		sonivmUI.toggleEqWindow();
+	public int getTrackQueuePosition() {
+		return playbackQueueService.getCurrentQueuePosition();
+	}
+
+	@Override
+	public void addPlaybackListener(PlaybackListener listener) {
+		listeners.add(listener);
 	}
 }

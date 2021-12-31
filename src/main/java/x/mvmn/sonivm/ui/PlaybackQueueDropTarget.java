@@ -22,11 +22,11 @@ import x.mvmn.sonivm.util.IntRange;
 public final class PlaybackQueueDropTarget extends DropTarget {
 	private static final Logger LOGGER = Logger.getLogger(PlaybackQueueDropTarget.class.getCanonicalName());
 
-	private final SonivmController controller;
+	private final SonivmUIController controller;
 	private JTable tblPlayQueue;
 	private static final long serialVersionUID = -2570206242097136500L;
 
-	public PlaybackQueueDropTarget(SonivmController controller, JTable tblPlayQueue) throws HeadlessException {
+	public PlaybackQueueDropTarget(SonivmUIController controller, JTable tblPlayQueue) throws HeadlessException {
 		this.controller = controller;
 		this.tblPlayQueue = tblPlayQueue;
 	}

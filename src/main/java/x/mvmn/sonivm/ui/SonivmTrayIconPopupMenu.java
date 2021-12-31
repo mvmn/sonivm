@@ -3,13 +3,9 @@ package x.mvmn.sonivm.ui;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
 
-import javax.annotation.PostConstruct;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
-import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 
 @Component
 public class SonivmTrayIconPopupMenu {
@@ -22,23 +18,9 @@ public class SonivmTrayIconPopupMenu {
 	private final MenuItem miPlayPause = new MenuItem("-> Play");
 	private final MenuItem miStop = new MenuItem("[x] Stop");
 	private final MenuItem miNextTrack = new MenuItem(">> Next track");
+	private final MenuItem miQuit = new MenuItem("Quit");
 
-	@Autowired
-	private SonivmUI sonivmUI;
-
-	@Autowired
-	private SonivmController controller;
-
-	@PostConstruct
-	public void init() {
-		miNowPlaying.addActionListener(actEvent -> sonivmUI.showMainWindow());
-		miEqualizer.addActionListener(actEvent -> sonivmUI.showEqWindow());
-
-		miPreviousTrack.addActionListener(actEvent -> controller.onPreviousTrack());
-		miPlayPause.addActionListener(actEvent -> controller.onPlayPause());
-		miStop.addActionListener(actEvent -> controller.onStop());
-		miNextTrack.addActionListener(actEvent -> controller.onNextTrack());
-
+	public SonivmTrayIconPopupMenu() {
 		popupMenu.add(miNowPlaying);
 		popupMenu.add(miEqualizer);
 		popupMenu.addSeparator();
@@ -47,7 +29,17 @@ public class SonivmTrayIconPopupMenu {
 		popupMenu.add(miStop);
 		popupMenu.add(miNextTrack);
 		popupMenu.addSeparator();
-		popupMenu.add(SwingUtil.menuItem("Quit", event -> controller.onQuit()));
+		popupMenu.add(miQuit);
+	}
+
+	public void registerHandler(SonivmUIController sonivmUI) {
+		miNowPlaying.addActionListener(actEvent -> sonivmUI.onShowMainWindow());
+		miEqualizer.addActionListener(actEvent -> sonivmUI.onShowEQWindow());
+
+		miPreviousTrack.addActionListener(actEvent -> sonivmUI.onPreviousTrack());
+		miPlayPause.addActionListener(actEvent -> sonivmUI.onPlayPause());
+		miStop.addActionListener(actEvent -> sonivmUI.onStop());
+		miNextTrack.addActionListener(actEvent -> sonivmUI.onNextTrack());
 	}
 
 	public PopupMenu getUIComponent() {

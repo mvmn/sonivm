@@ -8,9 +8,9 @@ import lombok.Data;
 
 @Data
 @Builder
-public class PlaybackEvent {
+public class AudioServiceEvent {
 	public static enum Type {
-		START, FINISH, ERROR, PROGRESS, DATALINE_CHANGE;
+		START, FINISH, ERROR, PROGRESS, DATALINE_CHANGE, STOP, PAUSE, RESUME;
 	}
 
 	public static enum ErrorType {

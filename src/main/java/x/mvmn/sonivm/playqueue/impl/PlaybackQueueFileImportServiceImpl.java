@@ -20,7 +20,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import x.mvmn.sonivm.SonivmShutdownListener;
 import x.mvmn.sonivm.cue.CueData;
 import x.mvmn.sonivm.cue.CueData.CueDataFileData;
 import x.mvmn.sonivm.cue.CueData.CueDataTrackData;
@@ -31,13 +30,11 @@ import x.mvmn.sonivm.playqueue.PlaybackQueueFileImportService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.tag.TagRetrievalService;
-import x.mvmn.sonivm.ui.SonivmUI;
-import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.AudioFileUtil;
 import x.mvmn.sonivm.util.TimeDateUtil;
 
 @Service
-public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImportService, SonivmShutdownListener {
+public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImportService {
 
 	private static final Logger LOGGER = Logger.getLogger(PlaybackQueueFileImportServiceImpl.class.getCanonicalName());
 
@@ -46,9 +43,6 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 
 	@Autowired
 	private TagRetrievalService tagRetrievalService;
-
-	@Autowired
-	private SonivmUI sonivmUI;
 
 	@Autowired
 	private PreferencesService preferencesService;
@@ -175,12 +169,11 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 				TrackMetadata meta = tagRetrievalService.getAudioFileMetadata(new File(queueEntry.getTargetFileFullPath()));
 				queueEntry.setTrackMetadata(meta);
 				playbackQueueService.signalUpdateInTrackInfo(queueEntry);
-				SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().updateStatus("Loaded tags for " + queueEntry.getTargetFileFullPath()),
-						false);
+				onTagRead(true, "Loaded tags for " + queueEntry.getTargetFileFullPath());
 			} catch (Throwable t) {
 				String message = "Failed to read tags for file " + queueEntry.getTargetFileFullPath();
 				LOGGER.log(Level.WARNING, message, t);
-				SwingUtil.runOnEDT(() -> sonivmUI.getMainWindow().updateStatus(message), false);
+				onTagRead(false, message);
 			}
 		});
 	}
@@ -264,9 +257,13 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 	}
 
 	@Override
-	public void onSonivmShutdown() {
+	public void shutdown() {
 		LOGGER.info("Shutting down tag reading task executor.");
 		tagReadingTaskExecutor.shutdownNow();
 		shutdownRequested = true;
+	}
+
+	protected void onTagRead(boolean success, String message) {
+		// FIXME: implement
 	}
 }

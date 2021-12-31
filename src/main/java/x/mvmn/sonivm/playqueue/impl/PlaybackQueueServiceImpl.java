@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import x.mvmn.sonivm.playqueue.PlaybackQueueChangeListener;
@@ -24,8 +24,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	private static final Object QUEUE_POSITION_LOCK_OBJ = new Object();
 	private static final Object DATA_LOCK_OBJ = new Object();
 
-	@Autowired
-	private List<PlaybackQueueChangeListener> changeListeners;
+	private CopyOnWriteArrayList<PlaybackQueueChangeListener> changeListeners = new CopyOnWriteArrayList<>();
 
 	@Override
 	public int getCurrentQueuePosition() {

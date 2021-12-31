@@ -1,4 +1,4 @@
-package x.mvmn.sonivm.ui;
+package x.mvmn.sonivm.ui.util.swing.menu;
 
 import java.awt.event.ActionListener;
 import java.util.function.Consumer;

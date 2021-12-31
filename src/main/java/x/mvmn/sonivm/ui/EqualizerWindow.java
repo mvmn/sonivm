@@ -40,7 +40,6 @@ public class EqualizerWindow extends JFrame {
 	private static final long serialVersionUID = -659390575435440032L;
 
 	private static final Logger LOGGER = Logger.getLogger(EqualizerWindow.class.getCanonicalName());
-	// TODO: account for bandCount
 	private static final String[] BAND_LABELS = { "60", "170", "310", "600", "1K", "3K", "6K", "12K", "14K", "16K" };
 
 	private final SonivmEqualizerService eqService;

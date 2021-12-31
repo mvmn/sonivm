@@ -22,9 +22,9 @@ public interface AudioService {
 
 	void setVolumePercentage(int volumePercent);
 
-	void addPlaybackEventListener(PlaybackEventListener playbackEventListener);
+	void addPlaybackEventListener(AudioServiceEventListener playbackEventListener);
 
-	void removePlaybackEventListener(PlaybackEventListener playbackEventListener);
+	void removePlaybackEventListener(AudioServiceEventListener playbackEventListener);
 
 	void removeAllPlaybackEventListeners();
 

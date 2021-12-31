@@ -1,7 +1,5 @@
 package x.mvmn.sonivm.config;
 
-import java.awt.SystemTray;
-import java.awt.TrayIcon;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Arrays;
@@ -24,15 +22,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
+import x.mvmn.sonivm.PlaybackController;
 import x.mvmn.sonivm.Sonivm;
 import x.mvmn.sonivm.eq.EqualizerPresetService;
 import x.mvmn.sonivm.eq.SonivmEqualizerService;
 import x.mvmn.sonivm.impl.AudioDeviceOption;
+import x.mvmn.sonivm.lastfm.LastFMScrobblingService;
 import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.ui.EqualizerWindow;
-import x.mvmn.sonivm.ui.JMenuBarBuilder;
-import x.mvmn.sonivm.ui.JMenuBarBuilder.JMenuBuilder;
-import x.mvmn.sonivm.ui.SonivmController;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
 import x.mvmn.sonivm.ui.SonivmTrayIconPopupMenu;
 import x.mvmn.sonivm.ui.SonivmUI;
@@ -40,6 +37,8 @@ import x.mvmn.sonivm.ui.SupportedFileExtensionsDialog;
 import x.mvmn.sonivm.ui.UsernamePasswordDialog;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
+import x.mvmn.sonivm.ui.util.swing.menu.JMenuBarBuilder;
+import x.mvmn.sonivm.ui.util.swing.menu.JMenuBarBuilder.JMenuBuilder;
 import x.mvmn.sonivm.util.Pair;
 
 @Configuration
@@ -52,38 +51,22 @@ public class SonivmConfig {
 
 	@Bean
 	@Scope("singleton")
-	public SonivmUI sonivmUI(SonivmController sonivmController, PlaybackQueueTableModel playbackQueueTableModel,
+	public SonivmUI sonivmUI(PlaybackController sonivmController, PlaybackQueueTableModel playbackQueueTableModel,
 			PreferencesService preferencesService, SonivmEqualizerService eqService, EqualizerPresetService eqPresetService,
-			BufferedImage sonivmIcon) {
+			BufferedImage sonivmIcon, SonivmTrayIconPopupMenu trayIconPopupMenu, LastFMScrobblingService lastFMScrobblingService) {
 
 		initLookAndFeel(preferencesService);
 		SwingUtil.runOnEDT(() -> SwingUtil.setTaskbarIcon(sonivmIcon), true);
 
-		SonivmMainWindow mainWindow = new SonivmMainWindow(appVersion, sonivmController, playbackQueueTableModel);
+		SonivmMainWindow mainWindow = new SonivmMainWindow(appVersion, playbackQueueTableModel);
 		mainWindow.setIconImage(sonivmIcon);
 		EqualizerWindow eqWindow = new EqualizerWindow(appVersion + " equalizer", 10, eqService, eqPresetService);
 
 		mainWindow.setJMenuBar(sonivmWindowsMenuBar(mainWindow, eqWindow, sonivmController, preferencesService));
 		eqWindow.setJMenuBar(sonivmWindowsMenuBar(mainWindow, eqWindow, sonivmController, preferencesService));
 
-		return new SonivmUI(mainWindow, eqWindow, preferencesService, sonivmController);
-	}
-
-	@Bean
-	@Scope("singleton")
-	public TrayIcon sonivmTrayIcon(SonivmTrayIconPopupMenu sonivmTrayIconPopupMenu, BufferedImage sonivmIcon) {
-		TrayIcon trayIcon = new TrayIcon(sonivmIcon);
-		trayIcon.setImageAutoSize(true);
-		trayIcon.setPopupMenu(sonivmTrayIconPopupMenu.getUIComponent());
-
-		SwingUtil.runOnEDT(() -> {
-			try {
-				SystemTray.getSystemTray().add(trayIcon);
-			} catch (Throwable t) {
-				LOGGER.log(Level.SEVERE, "Failed to add system tray icon", t);
-			}
-		}, false);
-		return trayIcon;
+		return new SonivmUI(mainWindow, eqWindow, sonivmIcon, trayIconPopupMenu, preferencesService, sonivmController,
+				lastFMScrobblingService);
 	}
 
 	@Bean
@@ -111,7 +94,7 @@ public class SonivmConfig {
 		}
 	}
 
-	protected JMenuBar sonivmWindowsMenuBar(SonivmMainWindow mainWindow, EqualizerWindow eqWin, SonivmController sonivmController,
+	protected JMenuBar sonivmWindowsMenuBar(SonivmMainWindow mainWindow, EqualizerWindow eqWin, PlaybackController sonivmController,
 			PreferencesService preferencesService) {
 		List<AudioDeviceOption> audioDevices = getAudioDeviceOptions();
 		int scrobblePercentage = preferencesService.getPercentageToScrobbleAt(70);

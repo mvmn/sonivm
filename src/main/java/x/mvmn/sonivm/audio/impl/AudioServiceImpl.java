@@ -32,9 +32,9 @@ import com.tagtraum.ffsampledsp.FFAudioInputStream;
 import davaguine.jeq.spi.EqualizerInputStream;
 import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
-import x.mvmn.sonivm.audio.PlaybackEvent;
-import x.mvmn.sonivm.audio.PlaybackEvent.ErrorType;
-import x.mvmn.sonivm.audio.PlaybackEventListener;
+import x.mvmn.sonivm.audio.AudioServiceEvent;
+import x.mvmn.sonivm.audio.AudioServiceEvent.ErrorType;
+import x.mvmn.sonivm.audio.AudioServiceEventListener;
 import x.mvmn.sonivm.audio.impl.AudioServiceTask.Type;
 import x.mvmn.sonivm.util.AudioFileUtil;
 import x.mvmn.sonivm.audio.PlaybackState;
@@ -70,7 +70,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private volatile int volumePercent = 100;
 	private volatile Integer requestedSeekPositionMillisec = null;
 
-	private List<PlaybackEventListener> listeners = new CopyOnWriteArrayList<>();
+	private List<AudioServiceEventListener> listeners = new CopyOnWriteArrayList<>();
 
 	@PostConstruct
 	public void startPlaybackThread() {
@@ -83,7 +83,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	@Override
 	public void run() {
 		try {
-			while (!this.shutdownRequested) {
+			while (!this.shutdownRequested || taskQueue.size() > 0) {
 				AudioServiceTask task = taskQueue.poll();
 				if (task != null) {
 					try {
@@ -105,7 +105,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 							if (readBytes < 1) {
 								LOGGER.info("End of track");
 								doStop();
-								executeListenerActions(PlaybackEvent.builder().type(PlaybackEvent.Type.FINISH).build());
+								executeListenerActions(AudioServiceEvent.builder().type(AudioServiceEvent.Type.FINISH).build());
 							} else {
 								if (LOGGER.isLoggable(Level.FINEST)) {
 									LOGGER.finest("Writing bytes to source data line: " + readBytes);
@@ -117,8 +117,8 @@ public class AudioServiceImpl implements AudioService, Runnable {
 									if (delta > 100) { // Every 1/10th of a second (or at least not more frequent)
 										long currentPlayPositionMillis = playbackStartPositionMillisec
 												+ (dataLineMillisecondsPosition - startingDataLineMillisecondsPosition);
-										executeListenerActions(PlaybackEvent.builder()
-												.type(PlaybackEvent.Type.PROGRESS)
+										executeListenerActions(AudioServiceEvent.builder()
+												.type(AudioServiceEvent.Type.PROGRESS)
 												.playbackPositionMilliseconds(currentPlayPositionMillis)
 												.playbackDeltaMilliseconds(delta)
 												.build());
@@ -153,12 +153,12 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	}
 
 	@Override
-	public void addPlaybackEventListener(PlaybackEventListener playbackEventListener) {
+	public void addPlaybackEventListener(AudioServiceEventListener playbackEventListener) {
 		this.listeners.add(playbackEventListener);
 	}
 
 	@Override
-	public void removePlaybackEventListener(PlaybackEventListener playbackEventListener) {
+	public void removePlaybackEventListener(AudioServiceEventListener playbackEventListener) {
 		this.listeners.remove(playbackEventListener);
 	}
 
@@ -184,6 +184,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				if (PlaybackState.PAUSED == this.state) {
 					this.currentSourceDataLine.start();
 					this.state = PlaybackState.PLAYING;
+					executeListenerActions(AudioServiceEvent.builder().type(AudioServiceEvent.Type.RESUME).build());
 				} else if (PlaybackState.STOPPED == this.state) {
 					String filePath = task.getData();
 					FFAudioFileReader ffAudioFileReader = new FFAudioFileReader();
@@ -255,18 +256,18 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						}
 
 						this.state = PlaybackState.PLAYING;
-						executeListenerActions(PlaybackEvent.builder()
-								.type(PlaybackEvent.Type.DATALINE_CHANGE)
+						executeListenerActions(AudioServiceEvent.builder()
+								.type(AudioServiceEvent.Type.DATALINE_CHANGE)
 								.dataLineControls(currentSourceDataLine.getControls())
 								.build());
-						executeListenerActions(PlaybackEvent.builder()
-								.type(PlaybackEvent.Type.START)
+						executeListenerActions(AudioServiceEvent.builder()
+								.type(AudioServiceEvent.Type.START)
 								.eqControls(currentEqInputStream != null ? currentEqInputStream.getControls() : null)
 								.audioMetadata(fileMetadata)
 								.build());
 					} else {
-						executeListenerActions(PlaybackEvent.builder()
-								.type(PlaybackEvent.Type.ERROR)
+						executeListenerActions(AudioServiceEvent.builder()
+								.type(AudioServiceEvent.Type.ERROR)
 								.errorType(ErrorType.FILE_NOT_FOUND)
 								.error(file.getAbsolutePath())
 								.build());
@@ -293,8 +294,8 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				if (audioDeviceName != null) {
 					mixerInfo = getMixerInfoByName(audioDeviceName);
 					if (mixerInfo == null) {
-						executeListenerActions(PlaybackEvent.builder()
-								.type(PlaybackEvent.Type.ERROR)
+						executeListenerActions(AudioServiceEvent.builder()
+								.type(AudioServiceEvent.Type.ERROR)
 								.errorType(ErrorType.AUDIODEVICE_ERROR)
 								.error("Did not find audio device " + audioDeviceName)
 								.build());
@@ -317,8 +318,8 @@ public class AudioServiceImpl implements AudioService, Runnable {
 					this.currentSourceDataLine.close();
 					this.currentSourceDataLine = newSourceDataLine;
 					doUpdateVolume();
-					executeListenerActions(PlaybackEvent.builder()
-							.type(PlaybackEvent.Type.DATALINE_CHANGE)
+					executeListenerActions(AudioServiceEvent.builder()
+							.type(AudioServiceEvent.Type.DATALINE_CHANGE)
 							.dataLineControls(newSourceDataLine.getControls())
 							.build());
 				}
@@ -336,6 +337,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		if (PlaybackState.PLAYING == this.state) {
 			this.currentSourceDataLine.stop();
 			this.state = PlaybackState.PAUSED;
+			executeListenerActions(AudioServiceEvent.builder().type(AudioServiceEvent.Type.PAUSE).build());
 		}
 	}
 
@@ -352,6 +354,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		this.playbackBuffer = null;
 		this.previousDataLineMillisecondsPosition = 0L;
 		this.state = PlaybackState.STOPPED;
+		executeListenerActions(AudioServiceEvent.builder().type(AudioServiceEvent.Type.STOP).build());
 	}
 
 	private void doUpdateVolume() {
@@ -465,8 +468,8 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 	private void handlePlaybackException(Throwable t) {
 		LOGGER.log(Level.SEVERE, "Playback error", t);
-		executeListenerActions(PlaybackEvent.builder()
-				.type(PlaybackEvent.Type.ERROR)
+		executeListenerActions(AudioServiceEvent.builder()
+				.type(AudioServiceEvent.Type.ERROR)
 				.errorType(t instanceof UnsupportedAudioFileException ? ErrorType.FILE_FORMAT_ERROR : ErrorType.PLAYBACK_ERROR)
 				.error(t.getClass().getSimpleName() + " " + t.getMessage())
 				.build());
@@ -476,9 +479,9 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		handlePlaybackException(t);
 	}
 
-	private void executeListenerActions(PlaybackEvent event) {
-		if (listeners != null) {
-			for (PlaybackEventListener playbackEventListener : listeners) {
+	private void executeListenerActions(AudioServiceEvent event) {
+		for (AudioServiceEventListener playbackEventListener : listeners) {
+			if (!playbackEventListenerExecutor.isShutdown()) {
 				playbackEventListenerExecutor.execute(() -> {
 					try {
 						playbackEventListener.handleEvent(event);
