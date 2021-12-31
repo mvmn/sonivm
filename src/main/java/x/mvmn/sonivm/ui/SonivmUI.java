@@ -298,8 +298,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 	@Override
 	public void scrollToTrack(int trackQueuePosition) {
-		// TODO Auto-generated method stub
-
+		SwingUtil.runOnEDT(() -> mainWindow.scrollToTrack(trackQueuePosition), false);
 	}
 
 	@Override
