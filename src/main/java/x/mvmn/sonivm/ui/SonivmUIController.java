@@ -16,7 +16,7 @@ public interface SonivmUIController {
 
 	void onShowRetroUIMainWindow();
 
-	void onShowRetroUIEQWinwod();
+	void onShowRetroUIEQWindow();
 
 	void onShowRetroUIPlaylistWindow();
 
@@ -49,4 +49,6 @@ public interface SonivmUIController {
 	void onDeleteRowsFromQueue(int start, int end);
 
 	void scrollToTrack(int trackQueuePosition);
+
+	void onRetroUiSkinChange(String skinFileName);
 }

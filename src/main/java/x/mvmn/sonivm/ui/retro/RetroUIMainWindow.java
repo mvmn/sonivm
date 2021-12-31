@@ -46,6 +46,10 @@ public class RetroUIMainWindow {
 
 	protected final RasterUITextComponent nowPlayingText;
 
+	public void setPlayTime(int seconds, boolean remaining) {
+		setPlaybackNumbers(seconds / 60, seconds % 60, remaining);
+	}
+
 	public void setPlaybackNumbers(int min, int sec, boolean negative) {
 		int minH = (min / 10) % 10;
 		int minL = min % 10;
@@ -71,5 +75,13 @@ public class RetroUIMainWindow {
 				playStateIndicator.setState(2);
 			break;
 		}
+	}
+
+	public void setSeekSliderEnabled(boolean enabled) {
+		this.seekSlider.setIndefinite(!enabled);
+	}
+
+	public void setSeekSliderPosition(double ratio) {
+		this.seekSlider.setSliderPositionRatio(ratio, false);
 	}
 }

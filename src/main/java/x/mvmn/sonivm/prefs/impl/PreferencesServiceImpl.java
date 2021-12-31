@@ -63,6 +63,13 @@ public class PreferencesServiceImpl implements PreferencesService {
 	private static final String KEY_MAIN_WINDOW_STATE = "mainwindowstate";
 	private static final String KEY_EQ_WINDOW_STATE = "eqwindowstate";
 
+	private static final String KEY_RETROUI_MAIN_WINDOW_STATE = "retrouimainwindowstate";
+	private static final String KEY_RETROUI_EQ_WINDOW_STATE = "retrouieqwindowstate";
+	private static final String KEY_RETROUI_PLAYLIST_WINDOW_STATE = "retrouiplwindowstate";
+	private static final String KEY_RETROUI_PLAYLIST_WINDOW_SIZE_EXT_X = "retrouiplextx";
+	private static final String KEY_RETROUI_PLAYLIST_WINDOW_SIZE_EXT_Y = "retrouiplexty";
+	private static final String KEY_RETROUI_SKIN = "retrouiskin";
+
 	private final Preferences prefs;
 	private final KeyAndNonce keyAndNonce;
 
@@ -264,6 +271,36 @@ public class PreferencesServiceImpl implements PreferencesService {
 	}
 
 	@Override
+	public void saveRetroUIMainWindowState(Tuple4<Boolean, String, Point, Dimension> windowState) {
+		this.saveWindowState(KEY_RETROUI_MAIN_WINDOW_STATE, windowState);
+	}
+
+	@Override
+	public Tuple4<Boolean, String, Point, Dimension> getRetroUIMainWindowState() {
+		return this.restoreWindowState(KEY_RETROUI_MAIN_WINDOW_STATE);
+	}
+
+	@Override
+	public void saveRetroUIEqWindowState(Tuple4<Boolean, String, Point, Dimension> windowState) {
+		this.saveWindowState(KEY_RETROUI_EQ_WINDOW_STATE, windowState);
+	}
+
+	@Override
+	public Tuple4<Boolean, String, Point, Dimension> getRetroUIEQWindowState() {
+		return this.restoreWindowState(KEY_RETROUI_EQ_WINDOW_STATE);
+	}
+
+	@Override
+	public void saveRetroUIPlaylistWindowState(Tuple4<Boolean, String, Point, Dimension> windowState) {
+		this.saveWindowState(KEY_RETROUI_PLAYLIST_WINDOW_STATE, windowState);
+	}
+
+	@Override
+	public Tuple4<Boolean, String, Point, Dimension> getRetroUIPlaylistWindowState() {
+		return this.restoreWindowState(KEY_MAIN_WINDOW_STATE);
+	}
+
+	@Override
 	public boolean isAutoStop() {
 		return Boolean.valueOf(prefs.get(KEY_AUTOSTOP, "false"));
 	}
@@ -271,6 +308,36 @@ public class PreferencesServiceImpl implements PreferencesService {
 	@Override
 	public void setAutoStop(boolean autoStop) {
 		prefs.put(KEY_AUTOSTOP, Boolean.toString(autoStop));
+	}
+
+	@Override
+	public String getRetroUISkin() {
+		return prefs.get(KEY_RETROUI_SKIN, null);
+	}
+
+	@Override
+	public void setRetroUISkin(String value) {
+		prefs.put(KEY_RETROUI_SKIN, value);
+	}
+
+	@Override
+	public int getRetroUIPlaylistSizeExtX() {
+		return Integer.parseInt(prefs.get(KEY_RETROUI_PLAYLIST_WINDOW_SIZE_EXT_X, String.valueOf(0)));
+	}
+
+	@Override
+	public void setRetroUIPlaylistSizeExtX(int value) {
+		prefs.put(KEY_RETROUI_PLAYLIST_WINDOW_SIZE_EXT_X, String.valueOf(value));
+	}
+
+	@Override
+	public int getRetroUIPlaylistSizeExtY() {
+		return Integer.parseInt(prefs.get(KEY_RETROUI_PLAYLIST_WINDOW_SIZE_EXT_Y, String.valueOf(0)));
+	}
+
+	@Override
+	public void setRetroUIPlaylistSizeExtY(int value) {
+		prefs.put(KEY_RETROUI_PLAYLIST_WINDOW_SIZE_EXT_Y, String.valueOf(value));
 	}
 
 	protected Tuple4<Boolean, String, Point, Dimension> restoreWindowState(String key) {

@@ -1,11 +1,14 @@
 package x.mvmn.sonivm.ui;
 
+import java.awt.Menu;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
+import java.util.List;
 
 import org.springframework.stereotype.Component;
 
 import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
+import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 
 @Component
 public class SonivmTrayIconPopupMenu {
@@ -20,6 +23,13 @@ public class SonivmTrayIconPopupMenu {
 	private final MenuItem miNextTrack = new MenuItem(">> Next track");
 	private final MenuItem miQuit = new MenuItem("Quit");
 
+	private final MenuItem miRetroUIMainWindow = new MenuItem("Main Window");
+	private final MenuItem miRetroUIEQWindow = new MenuItem("Equalizer");
+	private final MenuItem miRetroUIPlaylistWindow = new MenuItem("Playlist");
+	private final Menu miRetroUISkins = new Menu("Skins...");
+
+	private volatile SonivmUIController sonivmUI;
+
 	public SonivmTrayIconPopupMenu() {
 		popupMenu.add(miNowPlaying);
 		popupMenu.add(miEqualizer);
@@ -29,10 +39,19 @@ public class SonivmTrayIconPopupMenu {
 		popupMenu.add(miStop);
 		popupMenu.add(miNextTrack);
 		popupMenu.addSeparator();
+		Menu retroUIMenu = new Menu("Retro UI...");
+		retroUIMenu.add(miRetroUIMainWindow);
+		retroUIMenu.add(miRetroUIEQWindow);
+		retroUIMenu.add(miRetroUIPlaylistWindow);
+		retroUIMenu.add(miRetroUISkins);
+		popupMenu.add(retroUIMenu);
+		popupMenu.addSeparator();
 		popupMenu.add(miQuit);
 	}
 
 	public void registerHandler(SonivmUIController sonivmUI) {
+		this.sonivmUI = sonivmUI;
+
 		miNowPlaying.addActionListener(actEvent -> sonivmUI.onShowMainWindow());
 		miEqualizer.addActionListener(actEvent -> sonivmUI.onShowEQWindow());
 
@@ -40,6 +59,19 @@ public class SonivmTrayIconPopupMenu {
 		miPlayPause.addActionListener(actEvent -> sonivmUI.onPlayPause());
 		miStop.addActionListener(actEvent -> sonivmUI.onStop());
 		miNextTrack.addActionListener(actEvent -> sonivmUI.onNextTrack());
+
+		miRetroUIMainWindow.addActionListener(actEvent -> sonivmUI.onShowRetroUIMainWindow());
+		miRetroUIEQWindow.addActionListener(actEvent -> sonivmUI.onShowRetroUIEQWindow());
+		miRetroUIPlaylistWindow.addActionListener(actEvent -> sonivmUI.onShowRetroUIPlaylistWindow());
+	}
+
+	public void setSkinsList(List<String> skins) {
+		miRetroUISkins.removeAll();
+		skins.stream().forEach(skinFileName -> miRetroUISkins.add(SwingUtil.menuItem(skinFileName, e -> onSkinSelect(skinFileName))));
+	}
+
+	public void onSkinSelect(String skinFileName) {
+		sonivmUI.onRetroUiSkinChange(skinFileName);
 	}
 
 	public PopupMenu getUIComponent() {

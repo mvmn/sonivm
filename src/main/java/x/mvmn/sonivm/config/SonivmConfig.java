@@ -24,10 +24,12 @@ import org.springframework.context.annotation.Scope;
 
 import x.mvmn.sonivm.PlaybackController;
 import x.mvmn.sonivm.Sonivm;
+import x.mvmn.sonivm.WinAmpSkinsService;
 import x.mvmn.sonivm.eq.EqualizerPresetService;
 import x.mvmn.sonivm.eq.SonivmEqualizerService;
 import x.mvmn.sonivm.impl.AudioDeviceOption;
 import x.mvmn.sonivm.lastfm.LastFMScrobblingService;
+import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.ui.EqualizerWindow;
 import x.mvmn.sonivm.ui.SonivmMainWindow;
@@ -53,7 +55,8 @@ public class SonivmConfig {
 	@Scope("singleton")
 	public SonivmUI sonivmUI(PlaybackController sonivmController, PlaybackQueueTableModel playbackQueueTableModel,
 			PreferencesService preferencesService, SonivmEqualizerService eqService, EqualizerPresetService eqPresetService,
-			BufferedImage sonivmIcon, SonivmTrayIconPopupMenu trayIconPopupMenu, LastFMScrobblingService lastFMScrobblingService) {
+			BufferedImage sonivmIcon, SonivmTrayIconPopupMenu trayIconPopupMenu, LastFMScrobblingService lastFMScrobblingService,
+			PlaybackQueueService playbackQueueService, WinAmpSkinsService winAmpSkinsService) {
 
 		initLookAndFeel(preferencesService);
 		SwingUtil.runOnEDT(() -> SwingUtil.setTaskbarIcon(sonivmIcon), true);
@@ -66,7 +69,7 @@ public class SonivmConfig {
 		eqWindow.setJMenuBar(sonivmWindowsMenuBar(mainWindow, eqWindow, sonivmController, preferencesService));
 
 		return new SonivmUI(mainWindow, eqWindow, sonivmIcon, trayIconPopupMenu, preferencesService, sonivmController,
-				lastFMScrobblingService);
+				lastFMScrobblingService, playbackQueueService, winAmpSkinsService);
 	}
 
 	@Bean

@@ -79,4 +79,28 @@ public interface PreferencesService {
 	boolean isAutoStop();
 
 	void setAutoStop(boolean autoStop);
+
+	void saveRetroUIMainWindowState(Tuple4<Boolean, String, Point, Dimension> windowState);
+
+	Tuple4<Boolean, String, Point, Dimension> getRetroUIMainWindowState();
+
+	void saveRetroUIEqWindowState(Tuple4<Boolean, String, Point, Dimension> windowState);
+
+	Tuple4<Boolean, String, Point, Dimension> getRetroUIEQWindowState();
+
+	void saveRetroUIPlaylistWindowState(Tuple4<Boolean, String, Point, Dimension> windowState);
+
+	Tuple4<Boolean, String, Point, Dimension> getRetroUIPlaylistWindowState();
+
+	String getRetroUISkin();
+
+	void setRetroUISkin(String value);
+
+	int getRetroUIPlaylistSizeExtX();
+
+	void setRetroUIPlaylistSizeExtX(int value);
+
+	int getRetroUIPlaylistSizeExtY();
+
+	void setRetroUIPlaylistSizeExtY(int value);
 }
