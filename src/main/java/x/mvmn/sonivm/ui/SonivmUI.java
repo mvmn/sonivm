@@ -662,14 +662,20 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	@Override
 	public void onShowRetroUIEQWindow() {
 		if (retroUIWindows != null) {
-			SwingUtil.runOnEDT(() -> retroUIWindows.getB().getWindow().setVisible(true), false);
+			SwingUtil.runOnEDT(() -> {
+				retroUIWindows.getB().getWindow().setVisible(true);
+				retroUIWindows.getA().setEQToggleState(true);
+			}, false);
 		}
 	}
 
 	@Override
 	public void onShowRetroUIPlaylistWindow() {
 		if (retroUIWindows != null) {
-			SwingUtil.runOnEDT(() -> retroUIWindows.getC().getWindow().setVisible(true), false);
+			SwingUtil.runOnEDT(() -> {
+				retroUIWindows.getC().getWindow().setVisible(true);
+				retroUIWindows.getA().setPlaylistToggleState(true);
+			}, false);
 		}
 	}
 
