@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AudioServiceTask {
 	public static enum Type {
-		PLAY, STOP, PAUSE, SET_AUDIODEVICE, SEEK, UPDATE_VOLUME
+		PLAY, STOP, PAUSE, SET_AUDIODEVICE, SEEK, UPDATE_VOLUME, UPDATE_BALANCE
 	}
 
 	private final Type type;

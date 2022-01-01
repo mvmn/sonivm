@@ -115,4 +115,8 @@ public interface PreferencesService {
 	int getVolume();
 
 	void setVolume(int volume);
+
+	void setBalance(int balanceLR);
+
+	int getBalance();
 }

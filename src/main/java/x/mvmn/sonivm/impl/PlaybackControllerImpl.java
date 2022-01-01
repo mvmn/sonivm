@@ -352,6 +352,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 			this.preferencesService.setRepeatMode(repeatMode);
 			this.preferencesService.setAutoStop(autoStop);
 			this.preferencesService.setVolume(audioService.getVolumePercentage());
+			this.preferencesService.setBalance(audioService.getBalanceLR());
 		} catch (Throwable t) {
 			LOGGER.log(Level.WARNING, "Failed to store shuffle/repeat preferences", t);
 		}
@@ -515,6 +516,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 			this.repeatMode = repeatMode;
 
 			this.audioService.setVolumePercentage(this.preferencesService.getVolume());
+			this.audioService.setBalanceLR(this.preferencesService.getBalance());
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to read shuffle/repeat/autostop preferences", e);
 		}
@@ -645,5 +647,15 @@ public class PlaybackControllerImpl implements PlaybackController {
 	@Override
 	public int getCurrentVolumePercentage() {
 		return audioService.getVolumePercentage();
+	}
+
+	@Override
+	public void setBalance(int zeroToHundred) {
+		audioService.setBalanceLR(zeroToHundred);
+	}
+
+	@Override
+	public int getBalance() {
+		return audioService.getBalanceLR();
 	}
 }

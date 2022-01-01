@@ -69,6 +69,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 	private volatile int volumePercent = 100;
 	private volatile Integer requestedSeekPositionMillisec = null;
+	private volatile int balanceLR = 50;
 
 	private List<AudioServiceEventListener> listeners = new CopyOnWriteArrayList<>();
 
@@ -177,6 +178,11 @@ public class AudioServiceImpl implements AudioService, Runnable {
 					doUpdateVolume();
 				}
 			break;
+			case UPDATE_BALANCE:
+				if (PlaybackState.STOPPED != this.state) {
+					doUpdateBalance();
+				}
+			break;
 			case PAUSE:
 				handlePauseRequest();
 			break;
@@ -234,6 +240,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						this.currentSourceDataLine = currentSourceDataLine;
 
 						doUpdateVolume();
+						doUpdateBalance();
 						// this.playbackBuffer = new byte[Math.max(128, normalizedStream.getFormat().getFrameSize()) * 64];
 						int bufferSize = currentSourceDataLine.available();
 						if (bufferSize < 4096) {
@@ -318,6 +325,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 					this.currentSourceDataLine.close();
 					this.currentSourceDataLine = newSourceDataLine;
 					doUpdateVolume();
+					doUpdateBalance();
 					executeListenerActions(AudioServiceEvent.builder()
 							.type(AudioServiceEvent.Type.DATALINE_CHANGE)
 							.dataLineControls(newSourceDataLine.getControls())
@@ -355,6 +363,15 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		this.previousDataLineMillisecondsPosition = 0L;
 		this.state = PlaybackState.STOPPED;
 		executeListenerActions(AudioServiceEvent.builder().type(AudioServiceEvent.Type.STOP).build());
+	}
+
+	private void doUpdateBalance() {
+		DataLine dataLine = this.currentSourceDataLine;
+		if (dataLine.isControlSupported(FloatControl.Type.BALANCE)) {
+			FloatControl balanceControl = (FloatControl) dataLine.getControl(FloatControl.Type.BALANCE);
+
+			balanceControl.setValue((balanceLR - 50) / 50.f);
+		}
 	}
 
 	private void doUpdateVolume() {
@@ -500,6 +517,21 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	@Override
 	public int getVolumePercentage() {
 		return volumePercent;
+	}
+
+	@Override
+	public void setBalanceLR(int zeroToHundred) {
+		if (zeroToHundred > 100) {
+			zeroToHundred = 100;
+		} else if (zeroToHundred < 0) {
+			zeroToHundred = 0;
+		}
+		this.balanceLR = zeroToHundred;
+		enqueueTask(Type.UPDATE_BALANCE);
+	}
+
+	public int getBalanceLR() {
+		return balanceLR;
 	}
 
 	@Override

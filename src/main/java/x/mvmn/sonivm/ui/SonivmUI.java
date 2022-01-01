@@ -721,6 +721,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		this.retroUIWindows.getA().setShuffleToggleState(playbackController.getShuffleMode() != ShuffleMode.OFF);
 		this.retroUIWindows.getA().setRepeatToggleState(playbackController.getRepeatMode() != RepeatMode.OFF);
 		this.retroUIWindows.getA().setVolumeSliderPos(playbackController.getCurrentVolumePercentage());
+		this.retroUIWindows.getA().setBalanceSliderPos(playbackController.getBalance());
 
 		updateNowPlaying(playbackQueueService.getCurrentEntry());
 
@@ -902,5 +903,10 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 				}
 			}
 		}, false);
+	}
+
+	@Override
+	public void onBalanceChange(double sliderPositionRatio) {
+		playbackController.setBalance((int) Math.round(100 * sliderPositionRatio));
 	}
 }

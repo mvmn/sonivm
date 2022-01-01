@@ -79,4 +79,6 @@ public interface SonivmUIController {
 	void onEQExportPreset(File selectedFile, String presetName, EqualizerPreset preset);
 
 	void onEQReset();
+
+	void onBalanceChange(double sliderPositionRatio);
 }

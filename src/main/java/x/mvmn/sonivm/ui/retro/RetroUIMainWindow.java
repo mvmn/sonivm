@@ -61,6 +61,7 @@ public class RetroUIMainWindow {
 		btnShuffleToggle
 				.addListener(() -> listener.onShuffleModeSwitch(btnShuffleToggle.isButtonOn() ? ShuffleMode.PLAYLIST : ShuffleMode.OFF));
 		btnRepeatToggle.addListener(() -> listener.onRepeatModeSwitch(btnRepeatToggle.isButtonOn() ? RepeatMode.PLAYLIST : RepeatMode.OFF));
+		balanceSlider.addListener(() -> listener.onBalanceChange(balanceSlider.getSliderPositionRatio()));
 	}
 
 	public void setEQToggleState(boolean on) {
@@ -146,5 +147,9 @@ public class RetroUIMainWindow {
 
 	public void setVolumeSliderPos(int value) {
 		this.volumelider.setSliderPosition((int) Math.round(value / 100.0d * this.volumelider.getRange()), false);
+	}
+
+	public void setBalanceSliderPos(int balance) {
+		this.balanceSlider.setSliderPositionRatio(balance / 100.f, false);
 	}
 }
