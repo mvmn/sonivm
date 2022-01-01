@@ -84,4 +84,20 @@ public class RetroUIMainWindow {
 	public void setSeekSliderPosition(double ratio) {
 		this.seekSlider.setSliderPositionRatio(ratio, false);
 	}
+
+	public void setNowPlayingText(String nowPlaying) {
+		nowPlayingText.setOffset(0);
+		nowPlayingText.setText(nowPlaying != null ? nowPlaying : "");
+	}
+
+	public void advanceNowPlayingText(int delta) {
+		int fullWidth = nowPlayingText.getTextFullWidth();
+		if (fullWidth > 0) {
+			int offset = nowPlayingText.getOffset() + delta;
+			if (offset >= fullWidth) {
+				offset = 0;
+			}
+			nowPlayingText.setOffset(offset);
+		}
+	}
 }

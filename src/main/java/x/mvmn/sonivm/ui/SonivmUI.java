@@ -15,8 +15,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
+import javax.swing.JTable;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableModel;
 
-import lombok.RequiredArgsConstructor;
 import x.mvmn.sonivm.PlaybackController;
 import x.mvmn.sonivm.PlaybackListener;
 import x.mvmn.sonivm.WinAmpSkinsService;
@@ -29,6 +31,7 @@ import x.mvmn.sonivm.playqueue.PlaybackQueueChangeListener;
 import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
+import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
 import x.mvmn.sonivm.ui.retro.RetroUIEqualizerWindow;
 import x.mvmn.sonivm.ui.retro.RetroUIFactory;
 import x.mvmn.sonivm.ui.retro.RetroUIMainWindow;
@@ -39,7 +42,7 @@ import x.mvmn.sonivm.util.Tuple2;
 import x.mvmn.sonivm.util.Tuple3;
 import x.mvmn.sonivm.util.Tuple4;
 
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, String>>, PlaybackListener {
 
 	private static final Logger LOGGER = Logger.getLogger(SonivmUI.class.getSimpleName());
@@ -56,12 +59,72 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	protected final LastFMScrobblingService lastFMScrobblingService;
 	protected final PlaybackQueueService playbackQueueService;
 	protected final WinAmpSkinsService winAmpSkinsService;
+	protected final TableModel playQueueTableModel;
 
 	protected final RetroUIFactory retroUIFactory = new RetroUIFactory(); // TODO: inject
 
 	protected volatile TrayIcon sonivmTrayIcon;
 
 	protected volatile Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> retroUIWindows;
+
+	public SonivmUI(SonivmMainWindow mainWindow,
+			EqualizerWindow eqWindow,
+			BufferedImage sonivmIcon,
+			SonivmTrayIconPopupMenu trayIconPopupMenu,
+			PreferencesService preferencesService,
+			PlaybackController sonivmController,
+			LastFMScrobblingService lastFMScrobblingService,
+			PlaybackQueueService playbackQueueService,
+			WinAmpSkinsService winAmpSkinsService,
+			PlaybackQueueTableModel playQueueTableModel) {
+		super();
+		this.mainWindow = mainWindow;
+		this.eqWindow = eqWindow;
+		this.sonivmIcon = sonivmIcon;
+		this.trayIconPopupMenu = trayIconPopupMenu;
+		this.preferencesService = preferencesService;
+		this.sonivmController = sonivmController;
+		this.lastFMScrobblingService = lastFMScrobblingService;
+		this.playbackQueueService = playbackQueueService;
+		this.winAmpSkinsService = winAmpSkinsService;
+		this.playQueueTableModel = new AbstractTableModel() {
+			private static final long serialVersionUID = 5628564877472125514L;
+
+			@Override
+			public Object getValueAt(int rowIndex, int columnIndex) {
+				if (columnIndex == 0) {
+					return playQueueTableModel.getValueAt(rowIndex, 0);
+				} else if (columnIndex == 1) {
+					String artist = playQueueTableModel.getValueAt(rowIndex, 3);
+					String title = playQueueTableModel.getValueAt(rowIndex, 2);
+					return artist + " - " + title;
+				} else if (columnIndex == 2) {
+					return playQueueTableModel.getValueAt(rowIndex, 5);
+				}
+				return null;
+			}
+
+			@Override
+			public int getRowCount() {
+				return playQueueTableModel.getRowCount();
+			}
+
+			@Override
+			public int getColumnCount() {
+				return 3;
+			}
+
+			@Override
+			public Class<?> getColumnClass(int col) {
+				return String.class;
+			}
+
+			@Override
+			public boolean isCellEditable(int row, int column) {
+				return false;
+			}
+		};
+	}
 
 	public void showMainWindow() {
 		SwingUtil.showAndBringToFront(mainWindow);
@@ -137,7 +200,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		String retroUISkin = preferencesService.getRetroUISkin();
 		File retroUISkinFile = retroUISkin != null ? winAmpSkinsService.getSkinFile(retroUISkin) : null;
 		try {
-			retroUIWindows = retroUIFactory.construct(retroUISkinFile);
+			retroUIWindows = retroUIFactory.construct(retroUISkinFile, new JTable(playQueueTableModel));
 		} catch (WSZLoadingException e) {
 			LOGGER.log(Level.SEVERE, "Failed to cosntruct UI from WinAmp skin: " + retroUISkin, e);
 		}
@@ -152,7 +215,6 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 					.getWindow()
 					.setSizeExtensions(preferencesService.getRetroUIPlaylistSizeExtX(), preferencesService.getRetroUIPlaylistSizeExtY());
 			SwingUtil.restoreWindowState(retroUIWindows.getC().getWindow(), preferencesService.getRetroUIPlaylistWindowState());
-			
 		}, false);
 	}
 
@@ -382,8 +444,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 				case STOPPED:
 					mainWindow.disallowSeek();
 					mainWindow.setCurrentPlayTimeDisplay(0, 0);
-					mainWindow.updateNowPlaying(null);
-					trayIconPopupMenu.updateNowPlaying(null);
+					updateNowPlaying(null);
 					mainWindow.setStatusDisplay("");
 					if (retroUIWindows != null) {
 						retroUIWindows.getA().setPlaybackNumbers(0, 0, false);
@@ -405,6 +466,14 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		}, false);
 	}
 
+	protected void updateNowPlaying(PlaybackQueueEntry nowPlaying) {
+		mainWindow.updateNowPlaying(nowPlaying);
+		trayIconPopupMenu.updateNowPlaying(nowPlaying);
+		if (retroUIWindows != null) {
+			retroUIWindows.getA().setNowPlayingText(nowPlaying != null ? nowPlaying.toDisplayStr() : "Stopped");
+		}
+	}
+
 	@Override
 	public void onPlaybackStart(AudioFileInfo audioInfo, PlaybackQueueEntry trackInfo) {
 		SwingUtil.runOnEDT(() -> {
@@ -415,8 +484,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			} else {
 				mainWindow.disallowSeek();
 			}
-			mainWindow.updateNowPlaying(trackInfo);
-			trayIconPopupMenu.updateNowPlaying(trackInfo);
+			updateNowPlaying(trackInfo);
 			String audioInfoStr = audioInfo.getAudioFileFormat() != null
 					? audioInfo.getAudioFileFormat().getFormat().toString().replaceAll(",\\s*$", "").replaceAll(",\\s*,", ",")
 					: "";
@@ -489,9 +557,9 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		try {
 			Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> newRetroUi;
 			if (EMBEDDED_SKIN_NAME.equals(skinFileName)) {
-				newRetroUi = retroUIFactory.construct(null);
+				newRetroUi = retroUIFactory.construct(null, new JTable(playQueueTableModel));
 			} else {
-				newRetroUi = retroUIFactory.construct(winAmpSkinsService.getSkinFile(skinFileName));
+				newRetroUi = retroUIFactory.construct(winAmpSkinsService.getSkinFile(skinFileName), new JTable(playQueueTableModel));
 			}
 			if (this.retroUIWindows != null) {
 				saveRetroUIState();

@@ -74,7 +74,7 @@ public class RetroUIFactory {
 
 	private static final int SNAP_DISTANCE_PIXELS = 15;
 
-	public Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> construct(File winAmpSkinZipFile)
+	public Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> construct(File winAmpSkinZipFile, JTable playlistTable)
 			throws WSZLoadingException {
 		Tuple3.Tuple3Builder<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> resultBuilder = Tuple3
 				.<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> builder();
@@ -435,19 +435,6 @@ public class RetroUIFactory {
 		Color currentTrackTextColor = WinAmpSkinUtil.getColor(plEditIni, "Text", "Current", textColor.brighter());
 		Color selectionBackgroundColor = WinAmpSkinUtil.getColor(plEditIni, "Text", "SelectedBG", backgroundColor.brighter());
 
-		String[][] dummyTableData = IntStream.range(0, 100)
-				.mapToObj(i -> new String[] { "Test" + i, "asdasd" })
-				.collect(Collectors.toList())
-				.toArray(new String[][] {});
-		DefaultTableModel playlistTableModel = new DefaultTableModel(dummyTableData, new String[] { "Track", "Length" }) {
-			private static final long serialVersionUID = -8801060966096981340L;
-
-			@Override
-			public boolean isCellEditable(int row, int column) {
-				return false;
-			}
-		};
-		JTable playlistTable = new JTable(playlistTableModel);
 		playlistTable.setOpaque(true);
 		playlistTable.setBackground(playlistBackgroundColor);
 		playlistTable.setForeground(playlistTextColor);
@@ -469,7 +456,6 @@ public class RetroUIFactory {
 		resultBuilder.c(RetroUIPlaylistWindow.builder()
 				.window(plEditWin)
 				.playlistTable(playlistTable)
-				.playlistTableModel(playlistTableModel)
 				.playlistColors(RetroUIPlaylistWindow.PlaylistColors.builder()
 						.backgroundColor(backgroundColor)
 						.selectionBackgroundColor(selectionBackgroundColor)
@@ -930,8 +916,21 @@ public class RetroUIFactory {
 		Consumer<File> onSkinSelect = skinZipFile -> {
 			try {
 				System.out.println("Loading skin: " + (skinZipFile != null ? skinZipFile.getName() : "Embedded skin"));
+				String[][] dummyTableData = IntStream.range(0, 100)
+						.mapToObj(i -> new String[] { "Test" + i, "asdasd" })
+						.collect(Collectors.toList())
+						.toArray(new String[][] {});
+				DefaultTableModel playlistTableModel = new DefaultTableModel(dummyTableData, new String[] { "Track", "Length" }) {
+					private static final long serialVersionUID = -8801060966096981340L;
+
+					@Override
+					public boolean isCellEditable(int row, int column) {
+						return false;
+					}
+				};
+				JTable playlistTable = new JTable(playlistTableModel);
 				Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> retroUIWindows = new RetroUIFactory()
-						.construct(skinZipFile);
+						.construct(skinZipFile, playlistTable);
 				if (RetroUIFactory.retroUIWindows != null) {
 					retroUIWindows.getA().getWindow().setLocation(RetroUIFactory.retroUIWindows.getA().getWindow().getLocation());
 					retroUIWindows.getA().getWindow().setSize(RetroUIFactory.retroUIWindows.getA().getWindow().getSize());

@@ -69,6 +69,10 @@ public class RasterUITextComponent extends RasterUIComponent {
 		render();
 	}
 
+	public int getOffset() {
+		return this.xOffset;
+	}
+
 	public int getTextFullWidth() {
 		return font != null && !text.isEmpty() ? textBounds.width : 0;
 	}

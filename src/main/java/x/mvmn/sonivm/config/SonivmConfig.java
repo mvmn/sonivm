@@ -56,7 +56,7 @@ public class SonivmConfig {
 	public SonivmUI sonivmUI(PlaybackController sonivmController, PlaybackQueueTableModel playbackQueueTableModel,
 			PreferencesService preferencesService, SonivmEqualizerService eqService, EqualizerPresetService eqPresetService,
 			BufferedImage sonivmIcon, SonivmTrayIconPopupMenu trayIconPopupMenu, LastFMScrobblingService lastFMScrobblingService,
-			PlaybackQueueService playbackQueueService, WinAmpSkinsService winAmpSkinsService) {
+			PlaybackQueueService playbackQueueService, WinAmpSkinsService winAmpSkinsService, PlaybackQueueTableModel playQueueTableModel) {
 
 		initLookAndFeel(preferencesService);
 		SwingUtil.runOnEDT(() -> SwingUtil.setTaskbarIcon(sonivmIcon), true);
@@ -69,7 +69,7 @@ public class SonivmConfig {
 		eqWindow.setJMenuBar(sonivmWindowsMenuBar(mainWindow, eqWindow, sonivmController, preferencesService));
 
 		return new SonivmUI(mainWindow, eqWindow, sonivmIcon, trayIconPopupMenu, preferencesService, sonivmController,
-				lastFMScrobblingService, playbackQueueService, winAmpSkinsService);
+				lastFMScrobblingService, playbackQueueService, winAmpSkinsService, playQueueTableModel);
 	}
 
 	@Bean

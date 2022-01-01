@@ -3,7 +3,6 @@ package x.mvmn.sonivm.ui.retro;
 import java.awt.Color;
 
 import javax.swing.JTable;
-import javax.swing.table.DefaultTableModel;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,7 +16,6 @@ public class RetroUIPlaylistWindow {
 	@Getter
 	protected final RasterFrameWindow window;
 	protected final JTable playlistTable;
-	protected final DefaultTableModel playlistTableModel;
 	protected final PlaylistColors playlistColors;
 
 	@AllArgsConstructor
