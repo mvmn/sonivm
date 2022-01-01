@@ -187,7 +187,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 	}
 
 	public void scrollToEntry(int rowNumber) {
-		this.scrollSlider.setSliderPositionRatio(rowNumber / (double) wrappedComponent.getRowCount(), active);
+		// this.scrollSlider.setSliderPositionRatio(rowNumber / (double) wrappedComponent.getRowCount(), active);
 		this.wrappedComponent.scrollRectToVisible(new Rectangle(wrappedComponent.getCellRect(rowNumber, 0, true)));
 	}
 

@@ -220,11 +220,11 @@ public class RetroUIFactory {
 		RasterUIToggleButton btnPlaylistToggle = mainWin.addComponent(window -> new RasterUIToggleButton(window, playlistToggleOn,
 				playlistToggleOnPressed, playlistToggleOff, playlistToggleOffPressed, 242, 58));
 
-		RasterUIToggleButton btnShuffleToggle = mainWin.addComponent(window -> new RasterUIToggleButton(window,
+		RasterUIToggleButton btnRepeatToggle = mainWin.addComponent(window -> new RasterUIToggleButton(window,
 				ImageUtil.subImageOrBlank(shufRepBmp, 0, 30, 28, 15), ImageUtil.subImageOrBlank(shufRepBmp, 0, 45, 28, 15),
 				ImageUtil.subImageOrBlank(shufRepBmp, 0, 0, 28, 15), ImageUtil.subImageOrBlank(shufRepBmp, 0, 15, 28, 15), 211, 89));
 
-		RasterUIToggleButton btnRepeatToggle = mainWin.addComponent(window -> new RasterUIToggleButton(window,
+		RasterUIToggleButton btnShuffleToggle = mainWin.addComponent(window -> new RasterUIToggleButton(window,
 				ImageUtil.subImageOrBlank(shufRepBmp, 28, 30, 47, 15), ImageUtil.subImageOrBlank(shufRepBmp, 28, 45, 47, 15),
 				ImageUtil.subImageOrBlank(shufRepBmp, 28, 0, 47, 15), ImageUtil.subImageOrBlank(shufRepBmp, 28, 15, 47, 15), 164, 89));
 
