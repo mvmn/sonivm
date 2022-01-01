@@ -15,7 +15,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
+import javax.swing.JFileChooser;
 import javax.swing.JTable;
+import javax.swing.filechooser.FileFilter;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableModel;
 
@@ -596,6 +598,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			this.retroUIWindows = newRetroUi;
 			restoreRetroUIWindowsState();
 			retroUIRegHandlerAndUpdateState();
+			preferencesService.setRetroUISkin(skinFileName);
 		} catch (Exception e) {
 			LOGGER.log(Level.SEVERE, "Failed to construct retroUI with skin " + (skinFileName != null ? skinFileName : "embedded"), e);
 		}
@@ -603,6 +606,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 	protected void retroUIRegHandlerAndUpdateState() {
 		this.retroUIWindows.getA().addListener(this);
+		System.out.println(sonivmController.getCurrentPlaybackState());
+		this.retroUIWindows.getA().setSeekSliderEnabled(sonivmController.getCurrentPlaybackState() != PlaybackState.STOPPED);
 		this.retroUIWindows.getA().setEQToggleState(this.retroUIWindows.getB().getWindow().isVisible());
 		this.retroUIWindows.getA().setPlaylistToggleState(this.retroUIWindows.getC().getWindow().isVisible());
 		this.retroUIWindows.getA().setShuffleToggleState(sonivmController.getShuffleMode() != ShuffleMode.OFF);
@@ -622,5 +627,40 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	@Override
 	public void onPause() {
 		sonivmController.onPause();
+	}
+
+	@Override
+	public void onImportSkins() {
+		JFileChooser jfc = new JFileChooser();
+		jfc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		jfc.setMultiSelectionEnabled(true);
+		jfc.setFileFilter(new FileFilter() {
+
+			@Override
+			public String getDescription() {
+				return "WinAmp Skin Zip files";
+			}
+
+			@Override
+			public boolean accept(File f) {
+				return f.isDirectory() || f.getName().toLowerCase().endsWith(".wsz");
+			}
+		});
+		if (JFileChooser.APPROVE_OPTION == jfc.showOpenDialog(null)) {
+			File[] files = jfc.getSelectedFiles();
+			new Thread(() -> {
+				for (File file : files) {
+					try {
+						winAmpSkinsService.importSkin(file);
+						List<String> skins = Stream.concat(Stream.of(EMBEDDED_SKIN_NAME), winAmpSkinsService.listSkins().stream())
+								.collect(Collectors.toList());
+						SwingUtil.runOnEDT(() -> trayIconPopupMenu.setSkinsList(skins), false);
+					} catch (Exception e) {
+						LOGGER.log(Level.WARNING, "Skin import error", e);
+						onPlaybackError("Skin import error: " + e.getClass().getSimpleName() + " " + e.getMessage());
+					}
+				}
+			}).start();
+		}
 	}
 }

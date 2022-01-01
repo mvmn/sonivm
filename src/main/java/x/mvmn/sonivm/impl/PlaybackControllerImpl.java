@@ -75,6 +75,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 	private volatile int scrobbleThresholdPercent = 70;
 	private volatile boolean scrobblingEnabled = false;
 	private volatile boolean currentTrackScrobbled = true;
+	private volatile PlaybackState currentPlaybackState = PlaybackState.STOPPED;
 
 	private final CopyOnWriteArrayList<PlaybackListener> listeners = new CopyOnWriteArrayList<>();
 
@@ -303,6 +304,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 	}
 
 	private void doStop() {
+		this.currentPlaybackState = PlaybackState.STOPPED;
 		audioService.stop();
 		this.currentAudioFileInfo = null;
 		this.currentTrackInfo = null;
@@ -486,6 +488,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 	}
 
 	private void updatePlayingState(boolean playing) {
+		currentPlaybackState = playing ? PlaybackState.PLAYING : PlaybackState.PAUSED;
 		listeners.forEach(listener -> listener.onPlaybackStateChange(playing ? PlaybackState.PLAYING : PlaybackState.PAUSED));
 	}
 
@@ -608,7 +611,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 	@Override
 	public int getCurrentTrackLengthSeconds() {
-		return currentTrackInfo.getDuration();
+		return currentTrackInfo != null ? currentTrackInfo.getDuration() : 0;
 	}
 
 	@Override
@@ -627,5 +630,10 @@ public class PlaybackControllerImpl implements PlaybackController {
 			audioService.pause();
 			updatePlayingState(false);
 		}
+	}
+
+	@Override
+	public PlaybackState getCurrentPlaybackState() {
+		return currentPlaybackState;
 	}
 }

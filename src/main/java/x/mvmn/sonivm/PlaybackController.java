@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import x.mvmn.sonivm.audio.AudioServiceEventListener;
+import x.mvmn.sonivm.audio.PlaybackState;
 import x.mvmn.sonivm.impl.AudioDeviceOption;
 import x.mvmn.sonivm.impl.RepeatMode;
 import x.mvmn.sonivm.impl.ShuffleMode;
@@ -64,4 +65,6 @@ public interface PlaybackController extends AudioServiceEventListener {
 	void onPlay();
 
 	void onPause();
+
+	PlaybackState getCurrentPlaybackState();
 }

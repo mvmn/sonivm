@@ -88,7 +88,7 @@ public class RetroUIMainWindow {
 		int minL = min % 10;
 		int secH = (sec / 10) % 10;
 		int secL = sec % 10;
-		playTimeNumbers[0].setState(negative ? 12 : 11);
+		playTimeNumbers[0].setState(negative ? 11 : 10);
 		playTimeNumbers[1].setState(minH);
 		playTimeNumbers[2].setState(minL);
 		playTimeNumbers[3].setState(secH);
@@ -111,11 +111,17 @@ public class RetroUIMainWindow {
 	}
 
 	public void setSeekSliderEnabled(boolean enabled) {
-		this.seekSlider.setIndefinite(!enabled);
+		SwingUtil.runOnEDT(() -> {
+			this.seekSlider.setIndefinite(!enabled);
+			this.seekSlider.repaint();
+		}, false);
 	}
 
 	public void setSeekSliderPosition(double ratio) {
-		this.seekSlider.setSliderPositionRatio(ratio, false);
+		SwingUtil.runOnEDT(() -> {
+			this.seekSlider.setSliderPositionRatio(ratio, false);
+			this.seekSlider.repaint();
+		}, false);
 	}
 
 	public void setNowPlayingText(String nowPlaying) {

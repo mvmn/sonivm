@@ -59,4 +59,6 @@ public interface SonivmUIController {
 	void onSeek(int tenthOfSecond);
 
 	void onSeek(double ratio);
+
+	void onImportSkins();
 }

@@ -31,7 +31,7 @@ public class WinAmpSkinsServiceImpl implements WinAmpSkinsService {
 
 	@Override
 	public Set<String> listSkins() {
-		return Stream.of(this.skinsFolder)
+		return Stream.of(this.skinsFolder.listFiles())
 				.map(File::getName)
 				.filter(fn -> fn.toLowerCase().endsWith(".wsz"))
 				.collect(Collectors.toCollection(TreeSet::new));

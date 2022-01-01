@@ -967,7 +967,7 @@ public class RetroUIFactory {
 					retroUIWindows.getC().getWindow().setLocation(100, 332);
 					retroUIWindows.getC().getWindow().setVisible(true);
 				}
-				retroUIWindows.getA().setPlaybackNumbers(12, 34, true);
+				retroUIWindows.getA().setPlaybackNumbers(12, 34, false);
 				retroUIWindows.getA().setPlybackIndicatorState(PlaybackState.STOPPED);
 				retroUIWindows.getA().btnPlay.addListener(() -> retroUIWindows.getA().setPlybackIndicatorState(PlaybackState.PLAYING));
 				retroUIWindows.getA().btnStop.addListener(() -> retroUIWindows.getA().setPlybackIndicatorState(PlaybackState.STOPPED));
