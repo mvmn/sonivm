@@ -72,6 +72,7 @@ public class PreferencesServiceImpl implements PreferencesService {
 	private static final String KEY_RETROUI_PLAYLIST_WINDOW_SIZE_EXT_X = "retrouiplextx";
 	private static final String KEY_RETROUI_PLAYLIST_WINDOW_SIZE_EXT_Y = "retrouiplexty";
 	private static final String KEY_RETROUI_SKIN = "retrouiskin";
+	private static final String KEY_VOLUME = "volume";
 
 	private final Preferences prefs;
 	private final KeyAndNonce keyAndNonce;
@@ -361,6 +362,16 @@ public class PreferencesServiceImpl implements PreferencesService {
 	@Override
 	public void setRetroUIPlaylistSizeExtY(int value) {
 		prefs.put(KEY_RETROUI_PLAYLIST_WINDOW_SIZE_EXT_Y, String.valueOf(value));
+	}
+
+	@Override
+	public int getVolume() {
+		return Integer.parseInt(prefs.get(KEY_VOLUME, "100"));
+	}
+
+	@Override
+	public void setVolume(int volume) {
+		prefs.put(KEY_VOLUME, String.valueOf(volume));
 	}
 
 	protected Tuple4<Boolean, String, Point, Dimension> restoreWindowState(String key) {

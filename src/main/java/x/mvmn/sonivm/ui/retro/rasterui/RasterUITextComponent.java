@@ -9,13 +9,15 @@ import java.awt.image.BufferedImage;
 
 import javax.swing.JLabel;
 
+import lombok.Setter;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 
 public class RasterUITextComponent extends RasterUIComponent {
 
 	protected final Color backgroundColor;
 	protected final Color textColor;
-	protected final int rollTextOffset;
+	@Setter
+	protected volatile int rollTextOffset;
 	protected volatile String text = "";
 	protected volatile int xOffset;
 	protected volatile Font font;
@@ -56,11 +58,11 @@ public class RasterUITextComponent extends RasterUIComponent {
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		textBounds = g.getFontMetrics(font).getStringBounds(text, g).getBounds();
 		int xOffset = this.xOffset;
-		g.drawString(text, -xOffset, textBounds.height - 2);
+		g.drawString(text, -xOffset, textBounds.height - textBounds.height / 4);
 		if (rollTextOffset >= 0) {
 			while (textBounds.width - xOffset < this.image.getWidth()) {
 				xOffset -= textBounds.width + rollTextOffset;
-				g.drawString(text, -xOffset, textBounds.height - 2);
+				g.drawString(text, -xOffset, textBounds.height - textBounds.height / 4);
 			}
 		}
 		g.dispose();
@@ -97,6 +99,7 @@ public class RasterUITextComponent extends RasterUIComponent {
 		if (newWidth != this.image.getWidth()) {
 			image = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
 			updateFont();
+			render();
 		}
 	}
 

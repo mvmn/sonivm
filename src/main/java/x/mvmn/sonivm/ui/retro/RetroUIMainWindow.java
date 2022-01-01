@@ -124,8 +124,9 @@ public class RetroUIMainWindow {
 		}, false);
 	}
 
-	public void setNowPlayingText(String nowPlaying) {
+	public void setNowPlayingText(String nowPlaying, boolean repeat) {
 		SwingUtil.runOnEDT(() -> {
+			nowPlayingText.setRollTextOffset(repeat ? 16 : -1);
 			nowPlayingText.setText(nowPlaying != null ? nowPlaying : "");
 			nowPlayingText.setOffset(0);
 		}, false);
@@ -144,6 +145,6 @@ public class RetroUIMainWindow {
 	}
 
 	public void setVolumeSliderPos(int value) {
-		this.volumelider.setSliderPosition((int) Math.round(this.volumelider.getRange() / 100.0d * value), false);
+		this.volumelider.setSliderPosition((int) Math.round(value / 100.0d * this.volumelider.getRange()), false);
 	}
 }

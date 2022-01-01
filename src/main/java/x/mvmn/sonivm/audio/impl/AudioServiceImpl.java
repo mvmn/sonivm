@@ -35,9 +35,9 @@ import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.audio.AudioServiceEvent;
 import x.mvmn.sonivm.audio.AudioServiceEvent.ErrorType;
 import x.mvmn.sonivm.audio.AudioServiceEventListener;
+import x.mvmn.sonivm.audio.PlaybackState;
 import x.mvmn.sonivm.audio.impl.AudioServiceTask.Type;
 import x.mvmn.sonivm.util.AudioFileUtil;
-import x.mvmn.sonivm.audio.PlaybackState;
 
 @Service
 public class AudioServiceImpl implements AudioService, Runnable {
@@ -495,6 +495,11 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 	private void handleEventListenerException(Throwable t) {
 		LOGGER.log(Level.SEVERE, "Playback event listener error", t);
+	}
+
+	@Override
+	public int getVolumePercentage() {
+		return volumePercent;
 	}
 
 	@Override

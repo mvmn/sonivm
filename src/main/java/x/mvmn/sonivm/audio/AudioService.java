@@ -37,4 +37,6 @@ public interface AudioService {
 	boolean isUseEqualizer();
 
 	void setUseEqualizer(boolean useEq);
+
+	int getVolumePercentage();
 }

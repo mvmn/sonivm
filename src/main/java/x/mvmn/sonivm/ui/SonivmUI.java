@@ -189,6 +189,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 				mainWindow.setShuffleMode(playbackController.getShuffleMode());
 				mainWindow.setRepeatMode(playbackController.getRepeatMode());
 				mainWindow.setAutoStop(playbackController.isAutoStop());
+				mainWindow.setVolumeSliderPosition(playbackController.getCurrentVolumePercentage());
 			}, false);
 		}).start();
 
@@ -370,6 +371,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		mainWindow.setShuffleMode(playbackController.getShuffleMode());
 		mainWindow.setRepeatMode(playbackController.getRepeatMode());
 		mainWindow.setAutoStop(playbackController.isAutoStop());
+		mainWindow.setVolumeSliderPosition(playbackController.getCurrentVolumePercentage());
 	}
 
 	public void onQuit() {
@@ -590,7 +592,11 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		mainWindow.updateNowPlaying(nowPlaying);
 		trayIconPopupMenu.updateNowPlaying(nowPlaying);
 		if (retroUIWindows != null) {
-			retroUIWindows.getA().setNowPlayingText(nowPlaying != null ? nowPlaying.toDisplayStr().trim() : "Stopped");
+			if (nowPlaying != null) {
+				retroUIWindows.getA().setNowPlayingText(nowPlaying.toDisplayStr().trim(), true);
+			} else {
+				retroUIWindows.getA().setNowPlayingText("Stopped", false);
+			}
 		}
 	}
 
@@ -714,6 +720,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		this.retroUIWindows.getA().setPlaylistToggleState(this.retroUIWindows.getC().getWindow().isVisible());
 		this.retroUIWindows.getA().setShuffleToggleState(playbackController.getShuffleMode() != ShuffleMode.OFF);
 		this.retroUIWindows.getA().setRepeatToggleState(playbackController.getRepeatMode() != RepeatMode.OFF);
+		this.retroUIWindows.getA().setVolumeSliderPos(playbackController.getCurrentVolumePercentage());
 
 		updateNowPlaying(playbackQueueService.getCurrentEntry());
 

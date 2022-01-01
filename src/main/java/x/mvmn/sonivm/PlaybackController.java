@@ -67,4 +67,6 @@ public interface PlaybackController extends AudioServiceEventListener {
 	void onPause();
 
 	PlaybackState getCurrentPlaybackState();
+
+	int getCurrentVolumePercentage();
 }

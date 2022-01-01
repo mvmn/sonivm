@@ -111,4 +111,8 @@ public interface PreferencesService {
 	int[] getRetroUIPlayQueueColumnPositions();
 
 	void setRetroUIPlayQueueColumnPositions(int[] colPos);
+
+	int getVolume();
+
+	void setVolume(int volume);
 }

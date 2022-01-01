@@ -335,23 +335,26 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 	@Override
 	public void onQuit() {
-
 		LOGGER.info("Shutting down audio service.");
 		audioService.stop();
 		audioService.shutdown();
 
+		savePlaybackState();
+		savePlayQueueContents();
+		saveEqState();
+	}
+
+	protected void savePlaybackState() {
 		playbackQueueFileImportService.shutdown();
 
 		try {
 			this.preferencesService.setShuffleMode(shuffleMode);
 			this.preferencesService.setRepeatMode(repeatMode);
 			this.preferencesService.setAutoStop(autoStop);
+			this.preferencesService.setVolume(audioService.getVolumePercentage());
 		} catch (Throwable t) {
 			LOGGER.log(Level.WARNING, "Failed to store shuffle/repeat preferences", t);
 		}
-
-		savePlayQueueContents();
-		saveEqState();
 	}
 
 	private void savePlayQueueContents() {
@@ -510,6 +513,8 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 			RepeatMode repeatMode = this.preferencesService.getRepeatMode();
 			this.repeatMode = repeatMode;
+
+			this.audioService.setVolumePercentage(this.preferencesService.getVolume());
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to read shuffle/repeat/autostop preferences", e);
 		}
@@ -635,5 +640,10 @@ public class PlaybackControllerImpl implements PlaybackController {
 	@Override
 	public PlaybackState getCurrentPlaybackState() {
 		return currentPlaybackState;
+	}
+
+	@Override
+	public int getCurrentVolumePercentage() {
+		return audioService.getVolumePercentage();
 	}
 }
