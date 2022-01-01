@@ -7,7 +7,7 @@ import x.mvmn.sonivm.eq.model.EqualizerState;
 public interface SonivmEqualizerService {
 	void setGain(int valuePerMille);
 
-	void onBandChange(int bandNumber, int valuePerMille);
+	void setBand(int bandNumber, int valuePerMille);
 
 	void setEqControls(IIRControls eqControls, int channels);
 

@@ -1,12 +1,17 @@
 package x.mvmn.sonivm.ui;
 
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.SystemTray;
 import java.awt.TrayIcon;
 import java.awt.Window;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -17,6 +22,8 @@ import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
 import javax.swing.DropMode;
 import javax.swing.JFileChooser;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.filechooser.FileFilter;
@@ -28,6 +35,9 @@ import x.mvmn.sonivm.PlaybackListener;
 import x.mvmn.sonivm.WinAmpSkinsService;
 import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.PlaybackState;
+import x.mvmn.sonivm.eq.EqualizerPresetService;
+import x.mvmn.sonivm.eq.SonivmEqualizerService;
+import x.mvmn.sonivm.eq.model.EqualizerPreset;
 import x.mvmn.sonivm.impl.RepeatMode;
 import x.mvmn.sonivm.impl.ShuffleMode;
 import x.mvmn.sonivm.lastfm.LastFMScrobblingService;
@@ -59,11 +69,13 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	protected final BufferedImage sonivmIcon;
 	protected final SonivmTrayIconPopupMenu trayIconPopupMenu;
 	protected final PreferencesService preferencesService;
-	protected final PlaybackController sonivmController;
+	protected final PlaybackController playbackController;
 	protected final LastFMScrobblingService lastFMScrobblingService;
 	protected final PlaybackQueueService playbackQueueService;
 	protected final WinAmpSkinsService winAmpSkinsService;
 	protected final TableModel playQueueTableModel;
+	protected final SonivmEqualizerService eqService;
+	protected final EqualizerPresetService eqPresetService;
 
 	protected final RetroUIFactory retroUIFactory = new RetroUIFactory(); // TODO: inject
 
@@ -80,6 +92,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			LastFMScrobblingService lastFMScrobblingService,
 			PlaybackQueueService playbackQueueService,
 			WinAmpSkinsService winAmpSkinsService,
+			SonivmEqualizerService eqService,
+			EqualizerPresetService eqPresetService,
 			PlaybackQueueTableModel playQueueTableModel) {
 		super();
 		this.mainWindow = mainWindow;
@@ -87,24 +101,28 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		this.sonivmIcon = sonivmIcon;
 		this.trayIconPopupMenu = trayIconPopupMenu;
 		this.preferencesService = preferencesService;
-		this.sonivmController = sonivmController;
+		this.playbackController = sonivmController;
 		this.lastFMScrobblingService = lastFMScrobblingService;
 		this.playbackQueueService = playbackQueueService;
 		this.winAmpSkinsService = winAmpSkinsService;
+		this.eqService = eqService;
+		this.eqPresetService = eqPresetService;
 		this.playQueueTableModel = new AbstractTableModel() {
 			private static final long serialVersionUID = 5628564877472125514L;
 
-			private final String[] COLUMN_NAMES = { "#", "Track", "Length" };
+			private final String[] COLUMN_NAMES = { "#", "N", "Track", "Length" };
 
 			@Override
 			public Object getValueAt(int rowIndex, int columnIndex) {
 				if (columnIndex == 0) {
 					return playQueueTableModel.getValueAt(rowIndex, 0);
 				} else if (columnIndex == 1) {
+					return playQueueTableModel.getValueAt(rowIndex, 1);
+				} else if (columnIndex == 2) {
 					String artist = playQueueTableModel.getValueAt(rowIndex, 3);
 					String title = playQueueTableModel.getValueAt(rowIndex, 2);
-					return artist + " - " + title;
-				} else if (columnIndex == 2) {
+					return artist != null ? (artist + " - " + title) : title;
+				} else if (columnIndex == 3) {
 					return playQueueTableModel.getValueAt(rowIndex, 5);
 				}
 				return null;
@@ -122,7 +140,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 			@Override
 			public int getColumnCount() {
-				return 3;
+				return COLUMN_NAMES.length;
 			}
 
 			@Override
@@ -166,11 +184,11 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		SwingUtil.registerQuitHandler(this::onQuit);
 
 		new Thread(() -> {
-			sonivmController.restorePlaybackState();
+			playbackController.restorePlaybackState();
 			SwingUtil.runOnEDT(() -> {
-				mainWindow.setShuffleMode(sonivmController.getShuffleMode());
-				mainWindow.setRepeatMode(sonivmController.getRepeatMode());
-				mainWindow.setAutoStop(sonivmController.isAutoStop());
+				mainWindow.setShuffleMode(playbackController.getShuffleMode());
+				mainWindow.setRepeatMode(playbackController.getRepeatMode());
+				mainWindow.setAutoStop(playbackController.isAutoStop());
 			}, false);
 		}).start();
 
@@ -232,8 +250,16 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			}
 		});
 
+		eqWindow.addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentShown(ComponentEvent e) {
+				eqWindow.setState(eqService.getCurrentState());
+			}
+		});
+
+		eqWindow.registerHandler(this);
 		mainWindow.registerHandler(this);
-		sonivmController.addPlaybackListener(this);
+		playbackController.addPlaybackListener(this);
 		lastFMScrobblingService.addStatusListener(this);
 
 		restoreMainWindowPlaybackState();
@@ -271,11 +297,9 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 					.setSizeExtensions(preferencesService.getRetroUIPlaylistSizeExtX(), preferencesService.getRetroUIPlaylistSizeExtY());
 			SwingUtil.restoreWindowState(retroUIWindows.getC().getWindow(), preferencesService.getRetroUIPlaylistWindowState());
 
-			this.preferencesService.setRetroUIPlayQueueColumnWidths(retroUIWindows.getC().getPlayQueueTableColumnWidths());
-			this.preferencesService.setRetroUIPlayQueueColumnPositions(retroUIWindows.getC().getPlayQueueTableColumnPositions());
-
 			retroUIWindows.getC().setPlayQueueTableColumnPositions(preferencesService.getRetroUIPlayQueueColumnPositions());
-			retroUIWindows.getC().setPlayQueueTableColumnWidths(preferencesService.getPlayQueueColumnWidths());
+			retroUIWindows.getC().setPlayQueueTableColumnWidths(preferencesService.getRetroUIPlayQueueColumnWidths());
+			retroUIWindows.getC().getPlaylistTable().repaint();
 		}, false);
 	}
 
@@ -343,19 +367,19 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	}
 
 	protected void restoreMainWindowPlaybackState() {
-		mainWindow.setShuffleMode(sonivmController.getShuffleMode());
-		mainWindow.setRepeatMode(sonivmController.getRepeatMode());
-		mainWindow.setAutoStop(sonivmController.isAutoStop());
+		mainWindow.setShuffleMode(playbackController.getShuffleMode());
+		mainWindow.setRepeatMode(playbackController.getRepeatMode());
+		mainWindow.setAutoStop(playbackController.isAutoStop());
 	}
 
 	public void onQuit() {
-		sonivmController.onStop();
+		playbackController.onStop();
 		saveUIState();
 		saveRetroUIState();
 		savePlayQueueColumnsState();
 		destroyUI();
 		destroyRetroUIWindows();
-		sonivmController.onQuit();
+		playbackController.onQuit();
 		lastFMScrobblingService.shutdown();
 	}
 
@@ -420,42 +444,50 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 	@Override
 	public void onPlayPause() {
-		sonivmController.onPlayPause();
+		playbackController.onPlayPause();
 	}
 
 	@Override
 	public void onStop() {
-		sonivmController.onStop();
+		playbackController.onStop();
 	}
 
 	@Override
 	public void onPreviousTrack() {
-		sonivmController.onPreviousTrack();
+		playbackController.onPreviousTrack();
 	}
 
 	@Override
 	public void onNextTrack() {
-		sonivmController.onNextTrack();
+		playbackController.onNextTrack();
 	}
 
 	@Override
 	public boolean onDropQueueRowsInsideQueue(int queuePosition, int firstRow, int lastRow) {
-		boolean result = sonivmController.onDropQueueRowsInsideQueue(queuePosition, firstRow, lastRow);
+		boolean result = playbackController.onDropQueueRowsInsideQueue(queuePosition, firstRow, lastRow);
 		if (result) {
-			SwingUtil.runOnEDT(() -> mainWindow.setSelectedPlayQueueRows(queuePosition, queuePosition + (lastRow - firstRow)), false);
+			SwingUtil.runOnEDT(() -> {
+				mainWindow.setSelectedPlayQueueRows(queuePosition, queuePosition + (lastRow - firstRow));
+				if (retroUIWindows != null) {
+					retroUIWindows.getC()
+							.getPlaylistTable()
+							.getSelectionModel()
+							.setSelectionInterval(queuePosition, queuePosition + (lastRow - firstRow));
+				}
+			}, false);
 		}
 		return result;
 	}
 
 	@Override
 	public void onDropFilesToQueue(int row, List<File> fileList) {
-		sonivmController.onDropFilesToQueue(row, fileList,
+		playbackController.onDropFilesToQueue(row, fileList,
 				importedTrack -> SwingUtil.runOnEDT(() -> mainWindow.setStatusDisplay("Loaded into queue: " + importedTrack), false));
 	}
 
 	@Override
 	public void onAutoStopChange(boolean selected) {
-		sonivmController.onAutoStopChange(selected);
+		playbackController.onAutoStopChange(selected);
 	}
 
 	@Override
@@ -464,7 +496,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		if (retroUIWindows != null) {
 			retroUIWindows.getA().setShuffleToggleState(selectedItem != ShuffleMode.OFF);
 		}
-		sonivmController.onShuffleModeSwitch(selectedItem);
+		playbackController.onShuffleModeSwitch(selectedItem);
 	}
 
 	@Override
@@ -473,12 +505,12 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		if (retroUIWindows != null) {
 			retroUIWindows.getA().setRepeatToggleState(selectedItem != RepeatMode.OFF);
 		}
-		sonivmController.onRepeatModeSwitch(selectedItem);
+		playbackController.onRepeatModeSwitch(selectedItem);
 	}
 
 	@Override
 	public void onVolumeChange(int value) {
-		sonivmController.onVolumeChange(value);
+		playbackController.onVolumeChange(value);
 		mainWindow.setVolumeSliderPosition(value);
 		if (retroUIWindows != null) {
 			retroUIWindows.getA().setVolumeSliderPos(value);
@@ -487,12 +519,12 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 	@Override
 	public void onSeek(double ratio) {
-		this.onSeek((int) Math.round(ratio * sonivmController.getCurrentTrackLengthSeconds() * 10));
+		this.onSeek((int) Math.round(ratio * playbackController.getCurrentTrackLengthSeconds() * 10));
 	}
 
 	@Override
 	public void onSeek(int tenthOfSeconds) {
-		sonivmController.onSeek(tenthOfSeconds);
+		playbackController.onSeek(tenthOfSeconds);
 	}
 
 	@Override
@@ -502,12 +534,12 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 	@Override
 	public void onTrackSelect(int row) {
-		sonivmController.onTrackSelect(row);
+		playbackController.onTrackSelect(row);
 	}
 
 	@Override
 	public void onDeleteRowsFromQueue(int start, int end) {
-		sonivmController.onDeleteRowsFromQueue(start, end);
+		playbackController.onDeleteRowsFromQueue(start, end);
 	}
 
 	@Override
@@ -577,7 +609,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 					? audioInfo.getAudioFileFormat().getFormat().toString().replaceAll(",\\s*$", "").replaceAll(",\\s*,", ",")
 					: "";
 			mainWindow.setStatusDisplay(audioInfoStr);
-			scrollToTrack(sonivmController.getTrackQueuePosition());
+			scrollToTrack(playbackController.getTrackQueuePosition());
 
 			if (retroUIWindows != null) {
 				retroUIWindows.getA().setPlayTime(0, false);
@@ -666,12 +698,18 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	protected void retroUIRegHandlerAndUpdateState() {
 		this.retroUIWindows.getA().addListener(this);
 		this.retroUIWindows.getB().addListener(this);
+		this.retroUIWindows.getB().setEQEnabled(eqService.getCurrentState().isEnabled());
+		this.retroUIWindows.getB().setPreset(eqService.getCurrentState());
+
 		this.retroUIWindows.getC().addListener(this);
-		this.retroUIWindows.getA().setSeekSliderEnabled(sonivmController.getCurrentPlaybackState() != PlaybackState.STOPPED);
+
+		this.retroUIWindows.getA().setSeekSliderEnabled(playbackController.getCurrentPlaybackState() != PlaybackState.STOPPED);
 		this.retroUIWindows.getA().setEQToggleState(this.retroUIWindows.getB().getWindow().isVisible());
 		this.retroUIWindows.getA().setPlaylistToggleState(this.retroUIWindows.getC().getWindow().isVisible());
-		this.retroUIWindows.getA().setShuffleToggleState(sonivmController.getShuffleMode() != ShuffleMode.OFF);
-		this.retroUIWindows.getA().setRepeatToggleState(sonivmController.getRepeatMode() != RepeatMode.OFF);
+		this.retroUIWindows.getA().setShuffleToggleState(playbackController.getShuffleMode() != ShuffleMode.OFF);
+		this.retroUIWindows.getA().setRepeatToggleState(playbackController.getRepeatMode() != RepeatMode.OFF);
+
+		updateNowPlaying(playbackQueueService.getCurrentEntry());
 
 		this.retroUIWindows.getC()
 				.getWindow()
@@ -686,12 +724,12 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 	@Override
 	public void onPlay() {
-		sonivmController.onPlay();
+		playbackController.onPlay();
 	}
 
 	@Override
 	public void onPause() {
-		sonivmController.onPause();
+		playbackController.onPause();
 	}
 
 	@Override
@@ -729,8 +767,127 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		}
 	}
 
+	protected JPopupMenu buildPresetsMenu() {
+		JPopupMenu presetsMenu = new JPopupMenu("Presets");
+		eqPresetService.listPresets()
+				.stream()
+				.map(presetName -> new JMenuItem(presetName))
+				.peek(jMenuItem -> jMenuItem.addActionListener(actEvent -> onLoadPreset(jMenuItem.getText())))
+				.forEach(presetsMenu::add);
+		return presetsMenu;
+	}
+
+	public void onLoadPreset(String eqPreset) {
+		new Thread(() -> {
+			try {
+				EqualizerPreset preset = eqPresetService.loadPreset(eqPreset);
+				setEQPreset(preset);
+			} catch (Throwable t) {
+				LOGGER.log(Level.WARNING, "Failed to load preset " + eqPreset, t);
+			}
+		}).start();
+	}
+
 	@Override
-	public void onEQOnOff(boolean buttonOn) {
-		// FIXME: implement
+	public void onEQSavePreset(String name, EqualizerPreset equalizerPreset) {
+		new Thread(() -> {
+			try {
+				eqPresetService.savePreset(name, equalizerPreset);
+			} catch (Throwable t) {
+				LOGGER.log(Level.WARNING, "Failed to save preset " + name, t);
+			}
+		}).start();
+	}
+
+	@Override
+	public void onEQExportPreset(File file, String name, EqualizerPreset equalizerPreset) {
+		new Thread(() -> {
+			try (FileOutputStream fos = new FileOutputStream(file)) {
+				eqPresetService.exportWinAmpEqfPreset(name, equalizerPreset, fos);
+			} catch (Throwable t) {
+				LOGGER.log(Level.WARNING, "Failed to export WinAmp EQF preset to file " + file.getAbsolutePath(), t);
+			}
+		}).start();
+	}
+
+	@Override
+	public void onEQImportPreset(File presetFile) {
+		if (presetFile.exists() && presetFile.length() == 299) {
+			new Thread(() -> {
+				try (FileInputStream fis = new FileInputStream(presetFile)) {
+					Tuple2<String, EqualizerPreset> presetWithName = eqPresetService.importWinAmpEqfPreset(fis);
+					eqPresetService.savePreset(presetWithName.getA(), presetWithName.getB());
+					setEQPreset(presetWithName.getB());
+				} catch (Throwable t) {
+					LOGGER.log(Level.WARNING, "Failed to import WinAmp EQF preset from file " + presetFile.getAbsolutePath(), t);
+				}
+			}).start();
+		}
+	}
+
+	@Override
+	public void setEQEnabled(boolean enabled) {
+		eqService.setEQEnabled(enabled);
+		SwingUtil.runOnEDT(() -> {
+			eqWindow.setEQEnabled(enabled);
+			if (retroUIWindows != null) {
+				retroUIWindows.getB().setEQEnabled(enabled);
+			}
+		}, false);
+	}
+
+	protected void setEQPreset(EqualizerPreset preset) {
+		eqService.setPreset(preset);
+		SwingUtil.runOnEDT(() -> {
+			eqWindow.setPreset(preset);
+			if (retroUIWindows != null) {
+				retroUIWindows.getB().setPreset(preset);
+			}
+		}, false);
+	}
+
+	@Override
+	public void showPresetsMenu(Component parentComponent, int x, int y) {
+		buildPresetsMenu().show(parentComponent, x, y);
+	}
+
+	@Override
+	public void onEQGainChange(double value) {
+		eqService.setGain((int) Math.round(value * 1000));
+		SwingUtil.runOnEDT(() -> {
+			eqWindow.setGainValue(value);
+			if (retroUIWindows != null) {
+				retroUIWindows.getB().setGain(value);
+			}
+		}, false);
+	}
+
+	@Override
+	public void onEQBandChange(int bandNumber, double value) {
+		eqService.setBand(bandNumber, (int) Math.round(value * 1000));
+		SwingUtil.runOnEDT(() -> {
+			eqWindow.setBandValue(bandNumber, value);
+			if (retroUIWindows != null) {
+				retroUIWindows.getB().setBand(bandNumber, value);
+			}
+		}, false);
+	}
+
+	@Override
+	public void onEQReset() {
+		int eqBandsNum = eqService.getCurrentState().getBands().length;
+		for (int i = 0; i < eqBandsNum; i++) {
+			eqService.setBand(i, 500);
+		}
+		SwingUtil.runOnEDT(() -> {
+			for (int i = 0; i < eqBandsNum; i++) {
+				eqWindow.setBandValue(i, 0.5d);
+			}
+			if (retroUIWindows != null) {
+				for (int i = 0; i < eqBandsNum; i++) {
+					retroUIWindows.getB().setBand(i, 0.5d);
+				}
+			}
+		}, false);
 	}
 }

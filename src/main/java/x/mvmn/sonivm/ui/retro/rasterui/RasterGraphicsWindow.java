@@ -207,7 +207,7 @@ public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize 
 		return getWidth() / (double) initialWidth;
 	}
 
-	protected int newScaleCoord(double scale, int coord) {
+	public int newScaleCoord(double scale, int coord) {
 		return (int) Math.round(coord * scale);
 	}
 

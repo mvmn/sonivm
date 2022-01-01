@@ -52,7 +52,7 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 	}
 
 	@Override
-	public void onBandChange(int bandNumber, int valuePerMille) {
+	public void setBand(int bandNumber, int valuePerMille) {
 		this.lastBandValues.set(bandNumber, valuePerMille);
 		Tuple2<IIRControls, Integer> eqControlsAndChannelsCount = this.eqControlsAndChannelsCount;
 		if (eqControlsAndChannelsCount != null) {
@@ -72,7 +72,7 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 		setGain(lastGainValue);
 		int[] lastBandValues = this.lastBandValues.stream().mapToInt(Integer::intValue).toArray();
 		for (int i = 0; i < lastBandValues.length; i++) {
-			onBandChange(i, lastBandValues[i]);
+			setBand(i, lastBandValues[i]);
 		}
 	}
 
@@ -102,7 +102,7 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 		setGain(eqPreset.getGain());
 		int[] bandStates = eqPreset.getBands();
 		for (int i = 0; i < bandStates.length; i++) {
-			onBandChange(i, bandStates[i]);
+			setBand(i, bandStates[i]);
 		}
 	}
 }

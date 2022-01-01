@@ -712,8 +712,10 @@ public class SwingUtil {
 		if (columnPositions != null) {
 			TableColumnModel columnModel = table.getColumnModel();
 
-			for (int i = 0; i < columnModel.getColumnCount() && i < columnPositions.length; i++) {
-				columnModel.moveColumn(table.convertColumnIndexToView(i), columnPositions[i]);
+			if (columnPositions.length == columnModel.getColumnCount()) {
+				for (int i = 0; i < columnModel.getColumnCount() && i < columnPositions.length; i++) {
+					columnModel.moveColumn(table.convertColumnIndexToView(i), columnPositions[i]);
+				}
 			}
 		}
 	}
@@ -737,14 +739,16 @@ public class SwingUtil {
 		if (columnWidths != null) {
 			TableColumnModel columnModel = table.getColumnModel();
 
-			int totalWidth = 0;
-			for (int i = 0; i < columnModel.getColumnCount(); i++) {
-				totalWidth += columnModel.getColumn(i).getWidth();
-			}
+			if (columnWidths.length == columnModel.getColumnCount()) {
+				int totalWidth = 0;
+				for (int i = 0; i < columnModel.getColumnCount(); i++) {
+					totalWidth += columnModel.getColumn(i).getWidth();
+				}
 
-			for (int i = 0; i < columnModel.getColumnCount() && i < columnWidths.length; i++) {
-				long width10k = columnWidths[i] * totalWidth;
-				columnModel.getColumn(i).setPreferredWidth((int) (width10k / 10000));
+				for (int i = 0; i < columnModel.getColumnCount() && i < columnWidths.length; i++) {
+					long width10k = columnWidths[i] * totalWidth;
+					columnModel.getColumn(i).setPreferredWidth((int) (width10k / 10000));
+				}
 			}
 		}
 	}

@@ -63,13 +63,13 @@ public class SonivmConfig {
 
 		SonivmMainWindow mainWindow = new SonivmMainWindow(appVersion, playbackQueueTableModel);
 		mainWindow.setIconImage(sonivmIcon);
-		EqualizerWindow eqWindow = new EqualizerWindow(appVersion + " equalizer", 10, eqService, eqPresetService);
+		EqualizerWindow eqWindow = new EqualizerWindow(appVersion + " equalizer", 10);
 
 		mainWindow.setJMenuBar(sonivmWindowsMenuBar(mainWindow, eqWindow, sonivmController, preferencesService));
 		eqWindow.setJMenuBar(sonivmWindowsMenuBar(mainWindow, eqWindow, sonivmController, preferencesService));
 
 		return new SonivmUI(mainWindow, eqWindow, sonivmIcon, trayIconPopupMenu, preferencesService, sonivmController,
-				lastFMScrobblingService, playbackQueueService, winAmpSkinsService, playQueueTableModel);
+				lastFMScrobblingService, playbackQueueService, winAmpSkinsService, eqService, eqPresetService, playQueueTableModel);
 	}
 
 	@Bean

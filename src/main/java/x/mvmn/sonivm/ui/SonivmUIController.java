@@ -1,8 +1,10 @@
 package x.mvmn.sonivm.ui;
 
+import java.awt.Component;
 import java.io.File;
 import java.util.List;
 
+import x.mvmn.sonivm.eq.model.EqualizerPreset;
 import x.mvmn.sonivm.impl.RepeatMode;
 import x.mvmn.sonivm.impl.ShuffleMode;
 
@@ -62,5 +64,19 @@ public interface SonivmUIController {
 
 	void onImportSkins();
 
-	void onEQOnOff(boolean buttonOn);
+	void setEQEnabled(boolean enabled);
+
+	void showPresetsMenu(Component parentComponent, int x, int y);
+
+	void onEQGainChange(double value);
+
+	void onEQBandChange(int bandNumber, double value);
+
+	void onEQSavePreset(String presetName, EqualizerPreset preset);
+
+	void onEQImportPreset(File selectedFile);
+
+	void onEQExportPreset(File selectedFile, String presetName, EqualizerPreset preset);
+
+	void onEQReset();
 }
