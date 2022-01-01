@@ -125,7 +125,11 @@ public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize 
 		if (!components.isEmpty()) {
 			Graphics2D g2 = (Graphics2D) g.create();
 
+			double scale = getScaleFactor();
 			for (RasterUIComponent uiComponent : components) {
+				if (uiComponent.isAutoScaled()) {
+					uiComponent.setScale(scale);
+				}
 				BufferedImage componentImage = uiComponent.getImage();
 				int x = uiComponent.getX();
 				int y = uiComponent.getY();
@@ -133,16 +137,19 @@ public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize 
 				if (RasterGraphicsWindow.this.getWidth() == initialWidth) {
 					g2.drawImage(componentImage, x, y, null);
 				} else {
-					double scale = getScaleFactor();
 					int newX = (int) Math.round(x * scale);
 					int newY = (int) Math.round(y * scale);
-					if (componentImage.getWidth() > componentImage.getHeight()) {
-						int newWidth = (int) Math.round(componentImage.getWidth() * scale);
-						g2.drawImage(componentImage.getScaledInstance(newWidth, -1, Image.SCALE_SMOOTH), newX, newY, null);
-					} else {
-						int newHeight = (int) Math.round(componentImage.getHeight() * scale);
-						g2.drawImage(componentImage.getScaledInstance(-1, newHeight, Image.SCALE_SMOOTH), newX, newY, null);
+					Image imageToDraw = componentImage;
+					if (!uiComponent.isAutoScaled()) {
+						if (componentImage.getWidth() > componentImage.getHeight()) {
+							int newWidth = (int) Math.round(componentImage.getWidth() * scale);
+							imageToDraw = componentImage.getScaledInstance(newWidth, -1, Image.SCALE_SMOOTH);
+						} else {
+							int newHeight = (int) Math.round(componentImage.getHeight() * scale);
+							imageToDraw = componentImage.getScaledInstance(-1, newHeight, Image.SCALE_SMOOTH);
+						}
 					}
+					g2.drawImage(imageToDraw, newX, newY, null);
 				}
 			}
 

@@ -20,6 +20,10 @@ public class RasterUITextComponent extends RasterUIComponent {
 	protected volatile int xOffset;
 	protected volatile Font font;
 	protected volatile Rectangle textBounds;
+	protected final int originalWidth;
+	protected final int originalHeight;
+
+	protected volatile BufferedImage image;
 
 	public RasterUITextComponent(RasterGraphicsWindow parent,
 			Color backgroundColor,
@@ -30,6 +34,9 @@ public class RasterUITextComponent extends RasterUIComponent {
 			int y,
 			int rollTextOffset) {
 		super(parent, new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB), x, y);
+		this.image = super.image;
+		this.originalWidth = width;
+		this.originalHeight = height;
 		this.backgroundColor = backgroundColor;
 		this.textColor = textColor;
 		this.rollTextOffset = rollTextOffset;
@@ -37,7 +44,7 @@ public class RasterUITextComponent extends RasterUIComponent {
 
 	protected void render() {
 		if (font == null) {
-			font = SwingUtil.resizeToPx(new JLabel().getFont().deriveFont(Font.BOLD), this.image.getHeight() + 2, this.image.getGraphics());
+			updateFont();
 		}
 
 		Graphics2D g = this.image.createGraphics();
@@ -76,5 +83,39 @@ public class RasterUITextComponent extends RasterUIComponent {
 
 	public int getTextFullWidth() {
 		return font != null && !text.isEmpty() ? textBounds.width : 0;
+	}
+
+	@Override
+	public boolean isAutoScaled() {
+		return true;
+	}
+
+	@Override
+	public void setScale(double scale) {
+		int newWidth = (int) Math.round(scale * originalWidth);
+		int newHeight = (int) Math.round(scale * originalHeight);
+		if (newWidth != this.image.getWidth()) {
+			image = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+			updateFont();
+		}
+	}
+
+	protected void updateFont() {
+		font = SwingUtil.resizeToPx(new JLabel().getFont().deriveFont(Font.BOLD), this.image.getHeight() + 2, this.image.getGraphics());
+	}
+
+	@Override
+	public BufferedImage getImage() {
+		return image;
+	}
+
+	@Override
+	public int getWidth() {
+		return image.getWidth();
+	}
+
+	@Override
+	public int getHeight() {
+		return image.getHeight();
 	}
 }

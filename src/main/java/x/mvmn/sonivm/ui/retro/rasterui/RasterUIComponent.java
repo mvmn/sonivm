@@ -131,4 +131,10 @@ public class RasterUIComponent implements MouseListener, MouseMotionListener {
 
 	@Override
 	public void mouseMoved(MouseEvent e) {}
+
+	public boolean isAutoScaled() {
+		return false;
+	}
+
+	public void setScale(double scale) {}
 }
