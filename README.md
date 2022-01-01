@@ -7,11 +7,12 @@ Desktop GUI audio player, based on these amazing FOSS LGPL libraries
 - Equalizer: JEQ https://github.com/whamtet/jeq / https://sourceforge.net/projects/jeq/
 
 Features:
-- 10-band graphic equalizer (with presets management and possibility to export/import WinAmp EqF file format)
-- LastFM support
-- CUE files support
 - Support of file formats handled by FFAudioService (bundled with native ffmpeg for macOS and Windows)
-- Tag reading support
+- Tag reading
+- 10-band graphic equalizer (with presets management and possibility to export/import WinAmp EqF file format)
+- LastFM
+- CUE files
+- WinAmp skins
 - Gapeless playback for single file tracks from CUE sheet (no gapless for separate files yet)
 - Drag&drop files into play-queue, drag&drop tracks within play-queue
 - Smart repeat
