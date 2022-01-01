@@ -16,6 +16,7 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 	protected final BufferedImage sliderBackground;
 	protected final BufferedImage sliderButtonReleased;
 	protected final BufferedImage sliderButtonPressed;
+	@Getter
 	protected final int range;
 	protected final boolean vertical;
 	protected int handleXOffset = 0;

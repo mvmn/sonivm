@@ -89,12 +89,12 @@ public class PlaybackControllerImpl implements PlaybackController {
 	}
 
 	@Override
-	public void onSeek(int value) {
+	public void onSeek(int tenthOfSeconds) {
 		if (currentTrackInfo != null) {
 			if (currentTrackInfo.isCueSheetTrack()) {
-				audioService.seek(currentTrackInfo.getCueSheetTrackStartTimeMillis().intValue() + value * 100);
+				audioService.seek(currentTrackInfo.getCueSheetTrackStartTimeMillis().intValue() + tenthOfSeconds * 100);
 			} else {
-				audioService.seek(value * 100);
+				audioService.seek(tenthOfSeconds * 100);
 			}
 		}
 	}
@@ -604,5 +604,28 @@ public class PlaybackControllerImpl implements PlaybackController {
 	@Override
 	public void addPlaybackListener(PlaybackListener listener) {
 		listeners.add(listener);
+	}
+
+	@Override
+	public int getCurrentTrackLengthSeconds() {
+		return currentTrackInfo.getDuration();
+	}
+
+	@Override
+	public void onPlay() {
+		if (audioService.isPaused()) {
+			audioService.resume();
+			updatePlayingState(true);
+		} else if (audioService.isStopped()) {
+			tryPlayFromStartOfQueue();
+		}
+	}
+
+	@Override
+	public void onPause() {
+		if (audioService.isPlaying() && !audioService.isPaused()) {
+			audioService.pause();
+			updatePlayingState(false);
+		}
 	}
 }

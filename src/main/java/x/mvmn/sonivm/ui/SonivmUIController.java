@@ -24,6 +24,10 @@ public interface SonivmUIController {
 
 	void onPlayPause();
 
+	void onPlay();
+
+	void onPause();
+
 	void onStop();
 
 	void onNextTrack();
@@ -40,8 +44,6 @@ public interface SonivmUIController {
 
 	void onVolumeChange(int value);
 
-	void onSeek(int val);
-
 	void toggleShowEqualizer();
 
 	void onTrackSelect(int row);
@@ -51,4 +53,10 @@ public interface SonivmUIController {
 	void scrollToTrack(int trackQueuePosition);
 
 	void onRetroUiSkinChange(String skinFileName);
+
+	void onRefreshSkinsList();
+
+	void onSeek(int tenthOfSecond);
+
+	void onSeek(double ratio);
 }

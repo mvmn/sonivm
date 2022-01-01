@@ -90,6 +90,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		this.playQueueTableModel = new AbstractTableModel() {
 			private static final long serialVersionUID = 5628564877472125514L;
 
+			private final String[] COLUMN_NAMES = { "#", "Track", "Length" };
+
 			@Override
 			public Object getValueAt(int rowIndex, int columnIndex) {
 				if (columnIndex == 0) {
@@ -102,6 +104,11 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 					return playQueueTableModel.getValueAt(rowIndex, 5);
 				}
 				return null;
+			}
+
+			@Override
+			public String getColumnName(int col) {
+				return COLUMN_NAMES[col];
 			}
 
 			@Override
@@ -142,11 +149,16 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		}
 	}
 
+	protected void updateSkinsList() {
+		List<String> skins = Stream.concat(Stream.of(EMBEDDED_SKIN_NAME), winAmpSkinsService.listSkins().stream())
+				.collect(Collectors.toList());
+		SwingUtil.runOnEDT(() -> trayIconPopupMenu.setSkinsList(skins), false);
+	}
+
 	@PostConstruct
 	public void init() {
 		trayIconPopupMenu.registerHandler(this);
-		trayIconPopupMenu.setSkinsList(
-				Stream.concat(Stream.of(EMBEDDED_SKIN_NAME), winAmpSkinsService.listSkins().stream()).collect(Collectors.toList()));
+		updateSkinsList();
 		SwingUtil.registerQuitHandler(this::onQuit);
 
 		new Thread(() -> {
@@ -312,6 +324,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 		initRetroUI();
 		restoreRetroUIWindowsState();
+		retroUIRegHandlerAndUpdateState();
 	}
 
 	public static void applyWindowState(Window window, Tuple4<Boolean, String, Point, Dimension> windowState, boolean visibleByDefault) {
@@ -396,11 +409,19 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 	@Override
 	public void onShuffleModeSwitch(ShuffleMode selectedItem) {
+		mainWindow.setShuffleMode(selectedItem);
+		if (retroUIWindows != null) {
+			retroUIWindows.getA().setShuffleToggleState(selectedItem != ShuffleMode.OFF);
+		}
 		sonivmController.onShuffleModeSwitch(selectedItem);
 	}
 
 	@Override
 	public void onRepeatModeSwitch(RepeatMode selectedItem) {
+		mainWindow.setRepeatMode(selectedItem);
+		if (retroUIWindows != null) {
+			retroUIWindows.getA().setRepeatToggleState(selectedItem != RepeatMode.OFF);
+		}
 		sonivmController.onRepeatModeSwitch(selectedItem);
 	}
 
@@ -410,8 +431,13 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	}
 
 	@Override
-	public void onSeek(int val) {
-		sonivmController.onSeek(val);
+	public void onSeek(double ratio) {
+		this.onSeek((int) Math.round(ratio * sonivmController.getCurrentTrackLengthSeconds() * 10));
+	}
+
+	@Override
+	public void onSeek(int tenthOfSeconds) {
+		sonivmController.onSeek(tenthOfSeconds);
 	}
 
 	@Override
@@ -448,6 +474,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 					mainWindow.setStatusDisplay("");
 					if (retroUIWindows != null) {
 						retroUIWindows.getA().setPlaybackNumbers(0, 0, false);
+						retroUIWindows.getA().setSeekSliderEnabled(false);
 					}
 					mainWindow.setPlayPauseButtonState(false);
 					trayIconPopupMenu.setPlayPauseButtonState(false);
@@ -470,7 +497,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		mainWindow.updateNowPlaying(nowPlaying);
 		trayIconPopupMenu.updateNowPlaying(nowPlaying);
 		if (retroUIWindows != null) {
-			retroUIWindows.getA().setNowPlayingText(nowPlaying != null ? nowPlaying.toDisplayStr() : "Stopped");
+			retroUIWindows.getA().setNowPlayingText(nowPlaying != null ? nowPlaying.toDisplayStr().trim() : "Stopped");
 		}
 	}
 
@@ -510,7 +537,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			mainWindow.updateSeekSliderPosition(playbackIndicatorPosition);
 			mainWindow.setCurrentPlayTimeDisplay(playbackIndicatorPosition / 10, totalDurationSeconds);
 			if (retroUIWindows != null) {
-				retroUIWindows.getA().setSeekSliderEnabled(true);
+				// retroUIWindows.getA().setSeekSliderEnabled(true);
+				retroUIWindows.getA().advanceNowPlayingText(2);
 				retroUIWindows.getA().setPlayTime(playbackIndicatorPosition / 10, false);
 				retroUIWindows.getA().setSeekSliderPosition((playTimeMillis / 1000.0d) / totalDurationSeconds);
 			}
@@ -567,8 +595,32 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			}
 			this.retroUIWindows = newRetroUi;
 			restoreRetroUIWindowsState();
+			retroUIRegHandlerAndUpdateState();
 		} catch (Exception e) {
 			LOGGER.log(Level.SEVERE, "Failed to construct retroUI with skin " + (skinFileName != null ? skinFileName : "embedded"), e);
 		}
+	}
+
+	protected void retroUIRegHandlerAndUpdateState() {
+		this.retroUIWindows.getA().addListener(this);
+		this.retroUIWindows.getA().setEQToggleState(this.retroUIWindows.getB().getWindow().isVisible());
+		this.retroUIWindows.getA().setPlaylistToggleState(this.retroUIWindows.getC().getWindow().isVisible());
+		this.retroUIWindows.getA().setShuffleToggleState(sonivmController.getShuffleMode() != ShuffleMode.OFF);
+		this.retroUIWindows.getA().setRepeatToggleState(sonivmController.getRepeatMode() != RepeatMode.OFF);
+	}
+
+	@Override
+	public void onRefreshSkinsList() {
+		new Thread(this::updateSkinsList).start();
+	}
+
+	@Override
+	public void onPlay() {
+		sonivmController.onPlay();
+	}
+
+	@Override
+	public void onPause() {
+		sonivmController.onPause();
 	}
 }

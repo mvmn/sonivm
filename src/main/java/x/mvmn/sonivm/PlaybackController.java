@@ -13,7 +13,7 @@ public interface PlaybackController extends AudioServiceEventListener {
 
 	void onVolumeChange(int value);
 
-	void onSeek(int value);
+	void onSeek(int tenthOfSeconds);
 
 	void onPlayPause();
 
@@ -58,4 +58,10 @@ public interface PlaybackController extends AudioServiceEventListener {
 	int getTrackQueuePosition();
 
 	void addPlaybackListener(PlaybackListener listener);
+
+	int getCurrentTrackLengthSeconds();
+
+	void onPlay();
+
+	void onPause();
 }

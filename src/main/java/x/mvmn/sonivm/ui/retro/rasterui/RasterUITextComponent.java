@@ -48,6 +48,7 @@ public class RasterUITextComponent extends RasterUIComponent {
 		g.setFont(font);
 		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		textBounds = g.getFontMetrics(font).getStringBounds(text, g).getBounds();
+		int xOffset = this.xOffset;
 		g.drawString(text, -xOffset, textBounds.height - 2);
 		if (rollTextOffset >= 0) {
 			while (textBounds.width - xOffset < this.image.getWidth()) {

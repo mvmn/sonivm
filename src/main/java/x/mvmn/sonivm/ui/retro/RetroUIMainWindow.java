@@ -4,6 +4,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import x.mvmn.sonivm.audio.PlaybackState;
+import x.mvmn.sonivm.impl.RepeatMode;
+import x.mvmn.sonivm.impl.ShuffleMode;
+import x.mvmn.sonivm.ui.SonivmUIController;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterGraphicsWindow;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIBooleanIndicator;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIButton;
@@ -11,6 +14,7 @@ import x.mvmn.sonivm.ui.retro.rasterui.RasterUIMultiIndicator;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUISlider;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUITextComponent;
 import x.mvmn.sonivm.ui.retro.rasterui.RasterUIToggleButton;
+import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 
 @RequiredArgsConstructor
 @Builder
@@ -45,6 +49,35 @@ public class RetroUIMainWindow {
 	protected final RasterUIMultiIndicator[] playTimeNumbers;
 
 	protected final RasterUITextComponent nowPlayingText;
+
+	public void addListener(SonivmUIController listener) {
+		seekSlider.addListener(() -> listener.onSeek(seekSlider.getSliderPositionRatio()));
+		btnStop.addListener(listener::onStop);
+		btnPlay.addListener(listener::onPlay);
+		btnPause.addListener(listener::onPause);
+		btnNext.addListener(listener::onNextTrack);
+		btnPrevious.addListener(listener::onPreviousTrack);
+		volumelider.addListener(() -> listener.onVolumeChange((int) Math.round(100 * volumelider.getSliderPositionRatio())));
+		btnShuffleToggle
+				.addListener(() -> listener.onShuffleModeSwitch(btnShuffleToggle.isButtonOn() ? ShuffleMode.PLAYLIST : ShuffleMode.OFF));
+		btnRepeatToggle.addListener(() -> listener.onRepeatModeSwitch(btnRepeatToggle.isButtonOn() ? RepeatMode.PLAYLIST : RepeatMode.OFF));
+	}
+
+	public void setEQToggleState(boolean on) {
+		this.btnEqToggle.setButtonOn(on);
+	}
+
+	public void setPlaylistToggleState(boolean on) {
+		this.btnPlaylistToggle.setButtonOn(on);
+	}
+
+	public void setShuffleToggleState(boolean on) {
+		this.btnShuffleToggle.setButtonOn(on);
+	}
+
+	public void setRepeatToggleState(boolean on) {
+		this.btnRepeatToggle.setButtonOn(on);
+	}
 
 	public void setPlayTime(int seconds, boolean remaining) {
 		setPlaybackNumbers(seconds / 60, seconds % 60, remaining);
@@ -86,8 +119,10 @@ public class RetroUIMainWindow {
 	}
 
 	public void setNowPlayingText(String nowPlaying) {
-		nowPlayingText.setOffset(0);
-		nowPlayingText.setText(nowPlaying != null ? nowPlaying : "");
+		SwingUtil.runOnEDT(() -> {
+			nowPlayingText.setText(nowPlaying != null ? nowPlaying : "");
+			nowPlayingText.setOffset(0);
+		}, false);
 	}
 
 	public void advanceNowPlayingText(int delta) {
@@ -97,7 +132,8 @@ public class RetroUIMainWindow {
 			if (offset >= fullWidth) {
 				offset = 0;
 			}
-			nowPlayingText.setOffset(offset);
+			final int finalOffset = offset;
+			SwingUtil.runOnEDT(() -> nowPlayingText.setOffset(finalOffset), false);
 		}
 	}
 }
