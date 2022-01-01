@@ -15,8 +15,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
+import javax.swing.DropMode;
 import javax.swing.JFileChooser;
 import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableModel;
@@ -202,6 +204,33 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 				mainWindow.applySearch();
 			}
 		});
+		playbackQueueService.addChangeListener(new PlaybackQueueChangeListener() {
+
+			protected AbstractTableModel getTableModel() {
+				return (AbstractTableModel) retroUIWindows.getC().getPlaylistTable().getModel();
+			}
+
+			@Override
+			public void onTableRowsUpdate(int firstRow, int lastRow, boolean waitForUiUpdate) {
+				if (retroUIWindows != null) {
+					SwingUtil.runOnEDT(() -> getTableModel().fireTableRowsUpdated(firstRow, lastRow), waitForUiUpdate);
+				}
+			}
+
+			@Override
+			public void onTableRowsInsert(int firstRow, int lastRow, boolean waitForUiUpdate) {
+				if (retroUIWindows != null) {
+					SwingUtil.runOnEDT(() -> getTableModel().fireTableRowsInserted(firstRow, lastRow), waitForUiUpdate);
+				}
+			}
+
+			@Override
+			public void onTableRowsDelete(int firstRow, int lastRow, boolean waitForUiUpdate) {
+				if (retroUIWindows != null) {
+					SwingUtil.runOnEDT(() -> getTableModel().fireTableRowsDeleted(firstRow, lastRow), waitForUiUpdate);
+				}
+			}
+		});
 
 		mainWindow.registerHandler(this);
 		sonivmController.addPlaybackListener(this);
@@ -214,10 +243,22 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		String retroUISkin = preferencesService.getRetroUISkin();
 		File retroUISkinFile = retroUISkin != null ? winAmpSkinsService.getSkinFile(retroUISkin) : null;
 		try {
-			retroUIWindows = retroUIFactory.construct(retroUISkinFile, new JTable(playQueueTableModel));
+			retroUIWindows = retroUIFactory.construct(retroUISkinFile, getRetroUIPlaylistTable());
 		} catch (WSZLoadingException e) {
 			LOGGER.log(Level.SEVERE, "Failed to cosntruct UI from WinAmp skin: " + retroUISkin, e);
 		}
+	}
+
+	protected JTable getRetroUIPlaylistTable() {
+		JTable tblPlayQueue = new JTable(playQueueTableModel);
+		tblPlayQueue.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+		tblPlayQueue.setCellSelectionEnabled(false);
+		tblPlayQueue.setRowSelectionAllowed(true);
+		tblPlayQueue.setDragEnabled(true);
+		tblPlayQueue.setDropMode(DropMode.USE_SELECTION);
+		tblPlayQueue.setTransferHandler(new PlayQueueTableDnDTransferHandler(tblPlayQueue, this));
+
+		return tblPlayQueue;
 	}
 
 	protected void restoreRetroUIWindowsState() {
@@ -229,6 +270,12 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 					.getWindow()
 					.setSizeExtensions(preferencesService.getRetroUIPlaylistSizeExtX(), preferencesService.getRetroUIPlaylistSizeExtY());
 			SwingUtil.restoreWindowState(retroUIWindows.getC().getWindow(), preferencesService.getRetroUIPlaylistWindowState());
+
+			this.preferencesService.setRetroUIPlayQueueColumnWidths(retroUIWindows.getC().getPlayQueueTableColumnWidths());
+			this.preferencesService.setRetroUIPlayQueueColumnPositions(retroUIWindows.getC().getPlayQueueTableColumnPositions());
+
+			retroUIWindows.getC().setPlayQueueTableColumnPositions(preferencesService.getRetroUIPlayQueueColumnPositions());
+			retroUIWindows.getC().setPlayQueueTableColumnWidths(preferencesService.getPlayQueueColumnWidths());
 		}, false);
 	}
 
@@ -261,6 +308,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			this.preferencesService.saveRetroUIPlaylistWindowState(SwingUtil.getWindowState(retroUIWindows.getC().getWindow()));
 			this.preferencesService.setRetroUIPlaylistSizeExtX(retroUIWindows.getC().getWindow().getWidthExtension());
 			this.preferencesService.setRetroUIPlaylistSizeExtY(retroUIWindows.getC().getWindow().getHeightExtension());
+			this.preferencesService.setRetroUIPlayQueueColumnWidths(retroUIWindows.getC().getPlayQueueTableColumnWidths());
+			this.preferencesService.setRetroUIPlayQueueColumnPositions(retroUIWindows.getC().getPlayQueueTableColumnPositions());
 		}
 	}
 
@@ -381,7 +430,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 	@Override
 	public void onPreviousTrack() {
-		sonivmController.onNextTrack();
+		sonivmController.onPreviousTrack();
 	}
 
 	@Override
@@ -430,6 +479,10 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	@Override
 	public void onVolumeChange(int value) {
 		sonivmController.onVolumeChange(value);
+		mainWindow.setVolumeSliderPosition(value);
+		if (retroUIWindows != null) {
+			retroUIWindows.getA().setVolumeSliderPos(value);
+		}
 	}
 
 	@Override
@@ -459,7 +512,12 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 	@Override
 	public void scrollToTrack(int trackQueuePosition) {
-		SwingUtil.runOnEDT(() -> mainWindow.scrollToTrack(trackQueuePosition), false);
+		SwingUtil.runOnEDT(() -> {
+			mainWindow.scrollToTrack(trackQueuePosition);
+			if (retroUIWindows != null) {
+				retroUIWindows.getC().scrollToTrack(trackQueuePosition);
+			}
+		}, false);
 	}
 
 	@Override
@@ -467,6 +525,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		SwingUtil.runOnEDT(() -> {
 			if (retroUIWindows != null) {
 				retroUIWindows.getA().setPlybackIndicatorState(playbackState);
+				retroUIWindows.getC().getPlaylistTable().repaint();
 			}
 			switch (playbackState) {
 				case STOPPED:
@@ -518,7 +577,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 					? audioInfo.getAudioFileFormat().getFormat().toString().replaceAll(",\\s*$", "").replaceAll(",\\s*,", ",")
 					: "";
 			mainWindow.setStatusDisplay(audioInfoStr);
-			mainWindow.scrollToTrack(sonivmController.getTrackQueuePosition());
+			scrollToTrack(sonivmController.getTrackQueuePosition());
 
 			if (retroUIWindows != null) {
 				retroUIWindows.getA().setPlayTime(0, false);
@@ -587,9 +646,9 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		try {
 			Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> newRetroUi;
 			if (EMBEDDED_SKIN_NAME.equals(skinFileName)) {
-				newRetroUi = retroUIFactory.construct(null, new JTable(playQueueTableModel));
+				newRetroUi = retroUIFactory.construct(null, getRetroUIPlaylistTable());
 			} else {
-				newRetroUi = retroUIFactory.construct(winAmpSkinsService.getSkinFile(skinFileName), new JTable(playQueueTableModel));
+				newRetroUi = retroUIFactory.construct(winAmpSkinsService.getSkinFile(skinFileName), getRetroUIPlaylistTable());
 			}
 			if (this.retroUIWindows != null) {
 				saveRetroUIState();
@@ -606,12 +665,18 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 	protected void retroUIRegHandlerAndUpdateState() {
 		this.retroUIWindows.getA().addListener(this);
-		System.out.println(sonivmController.getCurrentPlaybackState());
+		this.retroUIWindows.getB().addListener(this);
+		this.retroUIWindows.getC().addListener(this);
 		this.retroUIWindows.getA().setSeekSliderEnabled(sonivmController.getCurrentPlaybackState() != PlaybackState.STOPPED);
 		this.retroUIWindows.getA().setEQToggleState(this.retroUIWindows.getB().getWindow().isVisible());
 		this.retroUIWindows.getA().setPlaylistToggleState(this.retroUIWindows.getC().getWindow().isVisible());
 		this.retroUIWindows.getA().setShuffleToggleState(sonivmController.getShuffleMode() != ShuffleMode.OFF);
 		this.retroUIWindows.getA().setRepeatToggleState(sonivmController.getRepeatMode() != RepeatMode.OFF);
+
+		this.retroUIWindows.getC()
+				.getWindow()
+				.getWrappedComponentScrollPane()
+				.setDropTarget(new PlaybackQueueDropTarget(this, this.retroUIWindows.getC().getPlaylistTable()));
 	}
 
 	@Override
@@ -662,5 +727,10 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 				}
 			}).start();
 		}
+	}
+
+	@Override
+	public void onEQOnOff(boolean buttonOn) {
+		// FIXME: implement
 	}
 }

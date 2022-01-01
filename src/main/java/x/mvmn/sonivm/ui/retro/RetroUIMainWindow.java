@@ -142,4 +142,8 @@ public class RetroUIMainWindow {
 			SwingUtil.runOnEDT(() -> nowPlayingText.setOffset(finalOffset), false);
 		}
 	}
+
+	public void setVolumeSliderPos(int value) {
+		this.volumelider.setSliderPosition((int) Math.round(this.volumelider.getRange() / 100.0d * value), false);
+	}
 }

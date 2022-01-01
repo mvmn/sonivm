@@ -48,6 +48,9 @@ public class PreferencesServiceImpl implements PreferencesService {
 	private static final String KEY_PLAYQUEUE_COLUMN_WIDTHS = "playqueuecolumnwidths";
 	private static final String KEY_PLAYQUEUE_COLUMN_POSITIONS = "playqueuecolumnpositions";
 
+	private static final String KEY_RETROUI_PLAYQUEUE_COLUMN_WIDTHS = "retrouiplayqueuecolumnwidths";
+	private static final String KEY_RETROUI_PLAYQUEUE_COLUMN_POSITIONS = "retrouiplayqueuecolumnpositions";
+
 	private static final String KEY_SHUFFLE_MODE = "shufflemode";
 	private static final String KEY_REPEAT_MODE = "repeatmode";
 	private static final String KEY_AUTOSTOP = "autostop";
@@ -178,6 +181,26 @@ public class PreferencesServiceImpl implements PreferencesService {
 	@Override
 	public void setPlayQueueColumnPositions(int[] colPos) {
 		setIntArrayProperty(KEY_PLAYQUEUE_COLUMN_POSITIONS, colPos);
+	}
+
+	@Override
+	public int[] getRetroUIPlayQueueColumnWidths() {
+		return getIntArrayProperty(KEY_RETROUI_PLAYQUEUE_COLUMN_WIDTHS, null);
+	}
+
+	@Override
+	public void setRetroUIPlayQueueColumnWidths(int[] widths) {
+		setIntArrayProperty(KEY_RETROUI_PLAYQUEUE_COLUMN_WIDTHS, widths);
+	}
+
+	@Override
+	public int[] getRetroUIPlayQueueColumnPositions() {
+		return getIntArrayProperty(KEY_RETROUI_PLAYQUEUE_COLUMN_POSITIONS, null);
+	}
+
+	@Override
+	public void setRetroUIPlayQueueColumnPositions(int[] colPos) {
+		setIntArrayProperty(KEY_RETROUI_PLAYQUEUE_COLUMN_POSITIONS, colPos);
 	}
 
 	@Override

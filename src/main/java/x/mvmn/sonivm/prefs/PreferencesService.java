@@ -103,4 +103,12 @@ public interface PreferencesService {
 	int getRetroUIPlaylistSizeExtY();
 
 	void setRetroUIPlaylistSizeExtY(int value);
+
+	int[] getRetroUIPlayQueueColumnWidths();
+
+	void setRetroUIPlayQueueColumnWidths(int[] widths);
+
+	int[] getRetroUIPlayQueueColumnPositions();
+
+	void setRetroUIPlayQueueColumnPositions(int[] colPos);
 }

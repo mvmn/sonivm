@@ -9,8 +9,8 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 
 import javax.swing.BorderFactory;
-import javax.swing.JComponent;
 import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.plaf.ScrollBarUI;
@@ -64,7 +64,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 	protected final BufferedImage bottomSpecialExtender;
 	protected final BufferedImage bottomRight;
 	protected final Color backgroundColor;
-	protected final JComponent wrappedComponent;
+	protected final JTable wrappedComponent;
 	@Getter // Have a getter to allow setting drag-n-drop handling externally
 	protected final JScrollPane wrappedComponentScrollPane;
 	protected volatile RasterUISlider scrollSlider;
@@ -74,7 +74,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 
 	public RasterFrameWindow(int baseWidth,
 			int baseHeight,
-			JComponent wrappedComponent,
+			JTable wrappedComponent,
 			Color backgroundColor,
 			BufferedImage topLeftActive,
 			BufferedImage titleActive,
@@ -184,6 +184,11 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 			y = 0;
 		}
 		this.wrappedComponent.scrollRectToVisible(new Rectangle(visibleRect.x, y, visibleRect.width, visibleRect.height));
+	}
+
+	public void scrollToEntry(int rowNumber) {
+		this.scrollSlider.setSliderPositionRatio(rowNumber / (double) wrappedComponent.getRowCount(), active);
+		this.wrappedComponent.scrollRectToVisible(new Rectangle(wrappedComponent.getCellRect(rowNumber, 0, true)));
 	}
 
 	private void updateComponentLocations() {

@@ -61,4 +61,6 @@ public interface SonivmUIController {
 	void onSeek(double ratio);
 
 	void onImportSkins();
+
+	void onEQOnOff(boolean buttonOn);
 }

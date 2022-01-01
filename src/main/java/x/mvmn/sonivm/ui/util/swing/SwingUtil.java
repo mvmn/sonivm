@@ -50,6 +50,7 @@ import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JSeparator;
 import javax.swing.JSlider;
+import javax.swing.JTable;
 import javax.swing.LookAndFeel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -60,6 +61,7 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.plaf.basic.BasicSliderUI;
+import javax.swing.table.TableColumnModel;
 import javax.swing.text.JTextComponent;
 import javax.swing.text.NumberFormatter;
 
@@ -694,6 +696,56 @@ public class SwingUtil {
 			// });
 		} catch (Throwable t) {
 			LOGGER.log(Level.WARNING, "Failed to register Java9 quit handler", t);
+		}
+	}
+
+	public static int[] getJTableColumnPositions(JTable table) {
+		TableColumnModel columnModel = table.getColumnModel();
+		int[] columnPositions = new int[columnModel.getColumnCount()];
+		for (int i = 0; i < columnModel.getColumnCount(); i++) {
+			columnPositions[i] = table.convertColumnIndexToView(i);
+		}
+		return columnPositions;
+	}
+
+	public static void applyJTableColumnPositions(JTable table, int[] columnPositions) {
+		if (columnPositions != null) {
+			TableColumnModel columnModel = table.getColumnModel();
+
+			for (int i = 0; i < columnModel.getColumnCount() && i < columnPositions.length; i++) {
+				columnModel.moveColumn(table.convertColumnIndexToView(i), columnPositions[i]);
+			}
+		}
+	}
+
+	public static int[] getJTableColumnWidths(JTable table) {
+		TableColumnModel columnModel = table.getColumnModel();
+		int[] columnWidths = new int[columnModel.getColumnCount()];
+		int totalWidth = 0;
+		for (int i = 0; i < columnModel.getColumnCount(); i++) {
+			int width = columnModel.getColumn(i).getWidth();
+			totalWidth += width;
+			columnWidths[i] = width;
+		}
+		for (int i = 0; i < columnWidths.length; i++) {
+			columnWidths[i] = (columnWidths[i] * 10000) / totalWidth;
+		}
+		return columnWidths;
+	}
+
+	public static void applyJTableColumnWidths(JTable table, int[] columnWidths) {
+		if (columnWidths != null) {
+			TableColumnModel columnModel = table.getColumnModel();
+
+			int totalWidth = 0;
+			for (int i = 0; i < columnModel.getColumnCount(); i++) {
+				totalWidth += columnModel.getColumn(i).getWidth();
+			}
+
+			for (int i = 0; i < columnModel.getColumnCount() && i < columnWidths.length; i++) {
+				long width10k = columnWidths[i] * totalWidth;
+				columnModel.getColumn(i).setPreferredWidth((int) (width10k / 10000));
+			}
 		}
 	}
 }

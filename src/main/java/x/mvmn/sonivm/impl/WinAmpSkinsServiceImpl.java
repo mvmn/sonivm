@@ -2,6 +2,7 @@ package x.mvmn.sonivm.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -34,7 +35,7 @@ public class WinAmpSkinsServiceImpl implements WinAmpSkinsService {
 		return Stream.of(this.skinsFolder.listFiles())
 				.map(File::getName)
 				.filter(fn -> fn.toLowerCase().endsWith(".wsz"))
-				.collect(Collectors.toCollection(TreeSet::new));
+				.collect(Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(String::toLowerCase))));
 	}
 
 	@Override

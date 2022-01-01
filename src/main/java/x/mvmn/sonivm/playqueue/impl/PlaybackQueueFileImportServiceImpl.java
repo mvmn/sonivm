@@ -104,6 +104,7 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 				List<PlaybackQueueEntry> entriesToAdd = new ArrayList<>();
 				for (File remainingFile : filesInDirByName.values()
 						.stream()
+						.filter(f -> !cueFileNames.contains(f.getName()))
 						.sorted(Comparator.comparing(File::getName))
 						.collect(Collectors.toList())) {
 					String fileName = remainingFile.getName();

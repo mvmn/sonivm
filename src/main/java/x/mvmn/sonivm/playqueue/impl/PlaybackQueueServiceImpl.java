@@ -131,7 +131,6 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 				setCurrentQueuePosition(-1);
 			}
 		}
-
 	}
 
 	@Override

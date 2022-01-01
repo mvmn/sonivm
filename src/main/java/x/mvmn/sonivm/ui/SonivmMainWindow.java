@@ -45,7 +45,6 @@ import javax.swing.UIManager;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.TableColumnModel;
 
 import x.mvmn.sonivm.impl.RepeatMode;
 import x.mvmn.sonivm.impl.ShuffleMode;
@@ -357,7 +356,7 @@ public class SonivmMainWindow extends JFrame {
 		// }
 		// });
 
-		volumeSlider.addChangeListener(event -> controller.onVolumeChange(volumeSlider.getValue()));
+		SwingUtil.addValueChangeByUserListener(volumeSlider, event -> controller.onVolumeChange(volumeSlider.getValue()));
 		SwingUtil.makeJProgressBarMoveToClickPosition(playbackProgressBar, val -> controller.onSeek(val));
 
 		btnPlayPause.addActionListener(event -> controller.onPlayPause());
@@ -632,50 +631,20 @@ public class SonivmMainWindow extends JFrame {
 		tblPlayQueue.getSelectionModel().setSelectionInterval(start, end);
 	}
 
-	public int[] getPlayQueueTableColumnWidths() {
-		TableColumnModel columnModel = tblPlayQueue.getColumnModel();
-		int[] columnWidths = new int[columnModel.getColumnCount()];
-		int totalWidth = 0;
-		for (int i = 0; i < columnModel.getColumnCount(); i++) {
-			int width = columnModel.getColumn(i).getWidth();
-			totalWidth += width;
-			columnWidths[i] = width;
-		}
-		for (int i = 0; i < columnWidths.length; i++) {
-			columnWidths[i] = (columnWidths[i] * 10000) / totalWidth;
-		}
-		return columnWidths;
-	}
-
 	public int[] getPlayQueueTableColumnPositions() {
-		TableColumnModel columnModel = tblPlayQueue.getColumnModel();
-		int[] columnPositions = new int[columnModel.getColumnCount()];
-		for (int i = 0; i < columnModel.getColumnCount(); i++) {
-			columnPositions[i] = tblPlayQueue.convertColumnIndexToView(i);
-		}
-		return columnPositions;
+		return SwingUtil.getJTableColumnPositions(tblPlayQueue);
 	}
 
 	public void setPlayQueueTableColumnPositions(int[] playQueueColumnPositions) {
-		TableColumnModel columnModel = tblPlayQueue.getColumnModel();
+		SwingUtil.applyJTableColumnPositions(tblPlayQueue, playQueueColumnPositions);
+	}
 
-		for (int i = 0; i < columnModel.getColumnCount() && i < playQueueColumnPositions.length; i++) {
-			columnModel.moveColumn(tblPlayQueue.convertColumnIndexToView(i), playQueueColumnPositions[i]);
-		}
+	public int[] getPlayQueueTableColumnWidths() {
+		return SwingUtil.getJTableColumnWidths(tblPlayQueue);
 	}
 
 	public void setPlayQueueTableColumnWidths(int[] playQueueColumnWidths) {
-		TableColumnModel columnModel = tblPlayQueue.getColumnModel();
-
-		int totalWidth = 0;
-		for (int i = 0; i < columnModel.getColumnCount(); i++) {
-			totalWidth += columnModel.getColumn(i).getWidth();
-		}
-
-		for (int i = 0; i < columnModel.getColumnCount() && i < playQueueColumnWidths.length; i++) {
-			long width10k = playQueueColumnWidths[i] * totalWidth;
-			columnModel.getColumn(i).setPreferredWidth((int) (width10k / 10000));
-		}
+		SwingUtil.applyJTableColumnWidths(tblPlayQueue, playQueueColumnWidths);
 	}
 
 	public void applySearch() {
@@ -723,5 +692,9 @@ public class SonivmMainWindow extends JFrame {
 			scrollToTrack(row);
 			selectTrack(row);
 		}
+	}
+
+	public void setVolumeSliderPosition(int percent) {
+		this.volumeSlider.setValue(percent);
 	}
 }
