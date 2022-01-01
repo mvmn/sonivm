@@ -367,7 +367,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				if (volumePercent == 100) {
 					newValue = 0.0f;
 				} else {
-					newValue = minimum - minimum * volumePercent / 100;
+					newValue = minimum * (float) -Math.log10(0.01f + volumePercent / 101.01f) / 2.0f;
 				}
 			} else {
 				newValue = minimum;
