@@ -795,18 +795,31 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	public void onRetroUiSkinChange(String skinFileName) {
 		try {
 			Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> newRetroUi;
+			Point playlistScrollPosition = null;
 			if (EMBEDDED_SKIN_NAME.equals(skinFileName)) {
 				newRetroUi = retroUIFactory.construct(null, getRetroUIPlaylistTable());
 			} else {
 				newRetroUi = retroUIFactory.construct(winAmpSkinsService.getSkinFile(skinFileName), getRetroUIPlaylistTable());
 			}
 			if (this.retroUIWindows != null) {
+				playlistScrollPosition = this.retroUIWindows.getC()
+						.getWindow()
+						.getWrappedComponentScrollPane()
+						.getViewport()
+						.getViewPosition();
 				saveRetroUIState();
 				destroyRetroUIWindows();
 			}
 			this.retroUIWindows = newRetroUi;
 			restoreRetroUIWindowsState();
 			retroUIRegHandlerAndUpdateState();
+			if (playlistScrollPosition != null) {
+				this.retroUIWindows.getC()
+						.getWindow()
+						.getWrappedComponentScrollPane()
+						.getViewport()
+						.setViewPosition(playlistScrollPosition);
+			}
 			preferencesService.setRetroUISkin(skinFileName);
 		} catch (Exception e) {
 			LOGGER.log(Level.SEVERE, "Failed to construct retroUI with skin " + (skinFileName != null ? skinFileName : "embedded"), e);

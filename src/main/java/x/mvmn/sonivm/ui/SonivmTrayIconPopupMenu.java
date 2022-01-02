@@ -70,6 +70,8 @@ public class SonivmTrayIconPopupMenu {
 
 		miImportSkins.addActionListener(actEvent -> sonivmUI.onImportSkins());
 		miRefreshSkinsList.addActionListener(actEvent -> sonivmUI.onRefreshSkinsList());
+
+		miQuit.addActionListener(actEvent -> sonivmUI.onQuit());
 	}
 
 	public void setSkinsList(List<String> skins) {
