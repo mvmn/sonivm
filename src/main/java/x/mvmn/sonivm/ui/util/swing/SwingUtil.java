@@ -508,6 +508,9 @@ public class SwingUtil {
 	}
 
 	public static void restoreWindowState(Window window, Tuple4<Boolean, String, Point, Dimension> windowState) {
+		if (windowState == null) {
+			return;
+		}
 		Optional<GraphicsDevice> screenOpt = Stream.of(GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices())
 				.filter(dev -> windowState.getB().equals(dev.getIDstring()))
 				.findAny();
