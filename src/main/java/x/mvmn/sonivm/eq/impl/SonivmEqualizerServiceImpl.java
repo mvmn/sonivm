@@ -38,8 +38,6 @@ public class SonivmEqualizerServiceImpl implements SonivmEqualizerService {
 
 	@Override
 	public void setGain(int valuePerMille) {
-		System.out.println(valuePerMille);
-
 		this.lastGainValue = valuePerMille;
 		Tuple2<IIRControls, Integer> eqControlsAndChannelsCount = this.eqControlsAndChannelsCount;
 		if (eqControlsAndChannelsCount != null) {
