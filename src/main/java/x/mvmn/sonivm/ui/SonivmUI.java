@@ -183,15 +183,13 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		updateSkinsList();
 		SwingUtil.registerQuitHandler(this::onQuit);
 
-		new Thread(() -> {
-			playbackController.restorePlaybackState();
-			SwingUtil.runOnEDT(() -> {
-				mainWindow.setShuffleMode(playbackController.getShuffleMode());
-				mainWindow.setRepeatMode(playbackController.getRepeatMode());
-				mainWindow.setAutoStop(playbackController.isAutoStop());
-				mainWindow.setVolumeSliderPosition(playbackController.getCurrentVolumePercentage());
-			}, false);
-		}).start();
+		playbackController.restorePlaybackState();
+		SwingUtil.runOnEDT(() -> {
+			mainWindow.setShuffleMode(playbackController.getShuffleMode());
+			mainWindow.setRepeatMode(playbackController.getRepeatMode());
+			mainWindow.setAutoStop(playbackController.isAutoStop());
+			mainWindow.setVolumeSliderPosition(playbackController.getCurrentVolumePercentage());
+		}, false);
 
 		SwingUtil.runOnEDT(() -> {
 			try {
@@ -710,25 +708,26 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	protected void retroUIRegHandlerAndUpdateState() {
 		this.retroUIWindows.getA().addListener(this);
 		this.retroUIWindows.getB().addListener(this);
-		this.retroUIWindows.getB().setEQEnabled(eqService.getCurrentState().isEnabled());
-		this.retroUIWindows.getB().setPreset(eqService.getCurrentState());
-
 		this.retroUIWindows.getC().addListener(this);
-
-		this.retroUIWindows.getA().setSeekSliderEnabled(playbackController.getCurrentPlaybackState() != PlaybackState.STOPPED);
-		this.retroUIWindows.getA().setEQToggleState(this.retroUIWindows.getB().getWindow().isVisible());
-		this.retroUIWindows.getA().setPlaylistToggleState(this.retroUIWindows.getC().getWindow().isVisible());
-		this.retroUIWindows.getA().setShuffleToggleState(playbackController.getShuffleMode() != ShuffleMode.OFF);
-		this.retroUIWindows.getA().setRepeatToggleState(playbackController.getRepeatMode() != RepeatMode.OFF);
-		this.retroUIWindows.getA().setVolumeSliderPos(playbackController.getCurrentVolumePercentage());
-		this.retroUIWindows.getA().setBalanceSliderPos(playbackController.getBalance());
-
-		updateNowPlaying(playbackQueueService.getCurrentEntry());
-
 		this.retroUIWindows.getC()
 				.getWindow()
 				.getWrappedComponentScrollPane()
 				.setDropTarget(new PlaybackQueueDropTarget(this, this.retroUIWindows.getC().getPlaylistTable()));
+
+		SwingUtil.runOnEDT(() -> {
+			this.retroUIWindows.getB().setEQEnabled(eqService.getCurrentState().isEnabled());
+			this.retroUIWindows.getB().setPreset(eqService.getCurrentState());
+			this.retroUIWindows.getA().setSeekSliderEnabled(playbackController.getCurrentPlaybackState() != PlaybackState.STOPPED);
+			this.retroUIWindows.getA().setEQToggleState(this.retroUIWindows.getB().getWindow().isVisible());
+			this.retroUIWindows.getA().setPlaylistToggleState(this.retroUIWindows.getC().getWindow().isVisible());
+			this.retroUIWindows.getA().setShuffleToggleState(playbackController.getShuffleMode() != ShuffleMode.OFF);
+			this.retroUIWindows.getA().setRepeatToggleState(playbackController.getRepeatMode() != RepeatMode.OFF);
+			this.retroUIWindows.getA().setVolumeSliderPos(playbackController.getCurrentVolumePercentage());
+			int balance = playbackController.getBalance();
+			this.retroUIWindows.getA().setBalanceSliderPos(balance);
+			System.out.println("Set balance to :" + balance);
+			updateNowPlaying(playbackQueueService.getCurrentEntry());
+		}, false);
 	}
 
 	@Override
