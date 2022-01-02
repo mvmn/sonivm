@@ -149,7 +149,11 @@ public class SonivmMainWindow extends JFrame {
 				} else if (playbackQueueTableModel.isSearchMatched(row)) {
 					bgRegular = altColor(bgRegular, false, -10, 50, 10);
 				} else if (row % 2 == 0) {
-					bgRegular = SwingUtil.modifyColor(bgRegular, -10, -10, -10);
+					int delta = -10;
+					if (SwingUtil.getColorBrightness(bgRegular) < 30) {
+						delta = 20;
+					}
+					bgRegular = SwingUtil.modifyColor(bgRegular, delta, delta, delta);
 				}
 
 				fgRegular = altColor(fgRegular, isHighlighted, 20, 20, 20);

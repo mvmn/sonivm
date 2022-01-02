@@ -121,12 +121,6 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 		super.repaint();
 	}
 
-	@Override
-	public void mouseMoved(MouseEvent e) {}
-
-	@Override
-	public void mouseClicked(MouseEvent e) {}
-
 	private boolean inButtonRange(int parentX, int parentY) {
 		int x = parent.originalScaleCoord(parentX) - this.getX();
 		int y = parent.originalScaleCoord(parentY) - this.getY();

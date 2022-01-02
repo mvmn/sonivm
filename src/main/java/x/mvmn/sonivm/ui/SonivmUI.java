@@ -84,8 +84,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	protected final RetroUIFactory retroUIFactory = new RetroUIFactory(); // TODO: inject
 
 	protected volatile TrayIcon sonivmTrayIcon;
-
 	protected volatile Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> retroUIWindows;
+	protected volatile boolean retroUIShowRemainingTime = false;
 
 	public SonivmUI(SonivmMainWindow mainWindow,
 			EqualizerWindow eqWindow,
@@ -693,7 +693,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			scrollToTrack(playbackController.getTrackQueuePosition());
 
 			if (retroUIWindows != null) {
-				retroUIWindows.getA().setPlayTime(0, false);
+				retroUIWindows.getA().setPlayTime(0, trackDurationSeconds, retroUIShowRemainingTime);
 				if (audioInfo.isSeekable()) {
 					retroUIWindows.getA().setSeekSliderEnabled(true);
 					retroUIWindows.getA().setSeekSliderPosition(0.0d);
@@ -713,7 +713,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			if (retroUIWindows != null) {
 				// retroUIWindows.getA().setSeekSliderEnabled(true);
 				retroUIWindows.getA().advanceNowPlayingText(2);
-				retroUIWindows.getA().setPlayTime(playbackIndicatorPosition / 10, false);
+				retroUIWindows.getA().setPlayTime(playbackIndicatorPosition / 10, totalDurationSeconds, retroUIShowRemainingTime);
 				retroUIWindows.getA().setSeekSliderPosition((playTimeMillis / 1000.0d) / totalDurationSeconds);
 			}
 		}, false);
@@ -983,5 +983,18 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	@Override
 	public void onBalanceChange(double sliderPositionRatio) {
 		playbackController.setBalance((int) Math.round(100 * sliderPositionRatio));
+	}
+
+	@Override
+	public void scrollToNowPlaying() {
+		int currentTrackIdx = playbackController.getTrackQueuePosition();
+		if (currentTrackIdx >= 0) {
+			this.scrollToTrack(currentTrackIdx);
+		}
+	}
+
+	@Override
+	public void retroUISwitchTimeDisplay() {
+		retroUIShowRemainingTime = !retroUIShowRemainingTime;
 	}
 }

@@ -54,6 +54,8 @@ public interface SonivmUIController {
 
 	void scrollToTrack(int trackQueuePosition);
 
+	void scrollToNowPlaying();
+
 	void onRetroUiSkinChange(String skinFileName);
 
 	void onRefreshSkinsList();
@@ -81,4 +83,6 @@ public interface SonivmUIController {
 	void onEQReset();
 
 	void onBalanceChange(double sliderPositionRatio);
+
+	void retroUISwitchTimeDisplay();
 }

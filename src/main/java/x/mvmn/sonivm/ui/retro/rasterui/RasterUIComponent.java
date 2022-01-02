@@ -16,6 +16,7 @@ public class RasterUIComponent implements MouseListener, MouseMotionListener {
 	protected volatile boolean mouseInRange;
 
 	protected final CopyOnWriteArrayList<Runnable> listerens = new CopyOnWriteArrayList<>();
+	protected final CopyOnWriteArrayList<Runnable> doubleClickListeners = new CopyOnWriteArrayList<>();
 
 	public RasterUIComponent(RasterGraphicsWindow parent, BufferedImage image) {
 		this.parent = parent;
@@ -67,7 +68,11 @@ public class RasterUIComponent implements MouseListener, MouseMotionListener {
 	}
 
 	@Override
-	public void mouseClicked(MouseEvent e) {}
+	public void mouseClicked(MouseEvent e) {
+		if (e.getClickCount() == 2 && inComponentRange(e.getX(), e.getY())) {
+			doubleClickListeners.forEach(Runnable::run);
+		}
+	}
 
 	@Override
 	public void mousePressed(MouseEvent e) {
@@ -116,6 +121,10 @@ public class RasterUIComponent implements MouseListener, MouseMotionListener {
 
 	public void addListener(Runnable onClick) {
 		listerens.add(onClick);
+	}
+
+	public void addDoubleClickListener(Runnable onDoubleClick) {
+		doubleClickListeners.add(onDoubleClick);
 	}
 
 	@Override

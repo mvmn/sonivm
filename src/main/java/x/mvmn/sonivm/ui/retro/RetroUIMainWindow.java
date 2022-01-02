@@ -62,6 +62,11 @@ public class RetroUIMainWindow {
 				.addListener(() -> listener.onShuffleModeSwitch(btnShuffleToggle.isButtonOn() ? ShuffleMode.PLAYLIST : ShuffleMode.OFF));
 		btnRepeatToggle.addListener(() -> listener.onRepeatModeSwitch(btnRepeatToggle.isButtonOn() ? RepeatMode.PLAYLIST : RepeatMode.OFF));
 		balanceSlider.addListener(() -> listener.onBalanceChange(balanceSlider.getSliderPositionRatio()));
+
+		nowPlayingText.addDoubleClickListener(() -> listener.scrollToNowPlaying());
+		for (RasterUIMultiIndicator playTimeNum : playTimeNumbers) {
+			playTimeNum.addDoubleClickListener(() -> listener.retroUISwitchTimeDisplay());
+		}
 	}
 
 	public void setEQToggleState(boolean on) {
@@ -80,7 +85,10 @@ public class RetroUIMainWindow {
 		this.btnRepeatToggle.setButtonOn(on);
 	}
 
-	public void setPlayTime(int seconds, boolean remaining) {
+	public void setPlayTime(int seconds, int total, boolean remaining) {
+		if (remaining) {
+			seconds = total - seconds;
+		}
 		setPlaybackNumbers(seconds / 60, seconds % 60, remaining);
 	}
 
