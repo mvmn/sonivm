@@ -65,6 +65,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 	protected final BufferedImage bottomRight;
 	protected final Color backgroundColor;
 	protected final JComponent wrappedComponent;
+	protected final JComponent scrollingComponent;
 	@Getter // Have a getter to allow setting drag-n-drop handling externally
 	protected final JScrollPane wrappedComponentScrollPane;
 	protected volatile RasterUISlider scrollSlider;
@@ -75,6 +76,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 	public RasterFrameWindow(int baseWidth,
 			int baseHeight,
 			JComponent wrappedComponent,
+			JComponent scrollingComponent,
 			JScrollPane scrollablePartScrollPane,
 			Color backgroundColor,
 			BufferedImage topLeftActive,
@@ -104,6 +106,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 
 		this.backgroundColor = backgroundColor;
 		this.wrappedComponent = wrappedComponent;
+		this.scrollingComponent = scrollingComponent;
 		this.wrappedComponentScrollPane = scrollablePartScrollPane;
 
 		this.widthExtenderWidth = bottomExtender.getWidth(); // 25
@@ -167,8 +170,8 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 	}
 
 	protected void onScrollInScrollPane() {
-		Rectangle visibleRect = this.wrappedComponent.getVisibleRect();
-		int totalHeight = this.wrappedComponent.getHeight();
+		Rectangle visibleRect = this.scrollingComponent.getVisibleRect();
+		int totalHeight = this.scrollingComponent.getHeight();
 		if (totalHeight > 0 && totalHeight > visibleRect.height) {
 			this.scrollSlider.setSliderPositionRatio(visibleRect.y / (double) (totalHeight - visibleRect.height), false);
 		} else {
@@ -177,14 +180,14 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 	}
 
 	protected void onScrollViaSlider(double sliderPositionRatio) {
-		Rectangle visibleRect = this.wrappedComponent.getVisibleRect();
+		Rectangle visibleRect = this.scrollingComponent.getVisibleRect();
 		int y;
-		if (this.wrappedComponent.getHeight() > visibleRect.height) {
-			y = (int) Math.round((this.wrappedComponent.getHeight() - visibleRect.height) * sliderPositionRatio);
+		if (this.scrollingComponent.getHeight() > visibleRect.height) {
+			y = (int) Math.round((this.scrollingComponent.getHeight() - visibleRect.height) * sliderPositionRatio);
 		} else {
 			y = 0;
 		}
-		this.wrappedComponent.scrollRectToVisible(new Rectangle(visibleRect.x, y, visibleRect.width, visibleRect.height));
+		this.scrollingComponent.scrollRectToVisible(new Rectangle(visibleRect.x, y, visibleRect.width, visibleRect.height));
 	}
 
 	private void updateComponentLocations() {

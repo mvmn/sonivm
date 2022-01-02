@@ -455,9 +455,8 @@ public class RetroUIFactory {
 
 		JLabel lblSearch = new JLabel("Search");
 		JTextField tfSearch = new JTextField("");
-		tfSearch.setMinimumSize(
-				new Dimension(tfSearch.getFontMetrics(tfSearch.getFont()).stringWidth("Hello to all the world out there 12345"),
-						tfSearch.getMinimumSize().height));
+		// tfSearch.setMinimumSize(new Dimension(tfSearch.getFontMetrics(tfSearch.getFont()).stringWidth("Hello to all the world"),
+		// tfSearch.getMinimumSize().height));
 		tfSearch.setPreferredSize(tfSearch.getMinimumSize());
 		JButton btnSearchNextMatch = new JButton("V");
 		JButton btnSearchPreviousMatch = new JButton("^");
@@ -487,10 +486,10 @@ public class RetroUIFactory {
 		JScrollPane playListScrollPane = new JScrollPane(playlistTable);
 		plPanel.add(playListScrollPane, BorderLayout.CENTER);
 
-		RasterFrameWindow plEditWin = new RasterFrameWindow(275, 116, plPanel, playListScrollPane, backgroundColor, plFrameTopLeftActive,
-				plFrameTitleActive, plFrameTopExtenderActive, plFrameTopRightActive, plFrameTopLeftInactive, plFrameTitleInactive,
-				plFrameTopExtenderInactive, plFrameTopRightInactive, plFrameLeft, plFrameRight, plFrameBottomLeft, plFrameBottomExtender,
-				plFrameBottomExtenderBig, plFrameBottomRight, new RectanglePointRange(0, 0, 275, 16),
+		RasterFrameWindow plEditWin = new RasterFrameWindow(275, 116, plPanel, playlistTable, playListScrollPane, backgroundColor,
+				plFrameTopLeftActive, plFrameTitleActive, plFrameTopExtenderActive, plFrameTopRightActive, plFrameTopLeftInactive,
+				plFrameTitleInactive, plFrameTopExtenderInactive, plFrameTopRightInactive, plFrameLeft, plFrameRight, plFrameBottomLeft,
+				plFrameBottomExtender, plFrameBottomExtenderBig, plFrameBottomRight, new RectanglePointRange(0, 0, 275, 16),
 				new RectanglePointRange(255, 96, 275, 116), new RectanglePointRange(264, 3, 264 + 9, 3 + 9), plSliderButtonActive,
 				plSliderButtonInactive);
 
