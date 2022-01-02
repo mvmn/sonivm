@@ -163,8 +163,9 @@ public class RetroUIFactory {
 			volumePressed = new BufferedImage(14, 11, BufferedImage.TYPE_INT_ARGB);
 		}
 
-		ExtRasterUISlider volumeSlider = mainWin.addComponent(window -> new ExtRasterUISlider(window, volumeSliderBackgrounds,
-				volumeReleased, volumePressed, 107, 57, 68 - 14, 68 - 14, false, val -> (int) Math.round(val * 28.0d / 54.0d), 0, 1));
+		ExtRasterUISlider volumeSlider = mainWin
+				.addComponent(window -> new ExtRasterUISlider(window, volumeSliderBackgrounds, volumeReleased, volumePressed, 107, 57,
+						68 - 14, 68 - 14, false, val -> (int) Math.round(val * 28.0d / 54.0d), 0, 1, -1, -1));
 		// volumeSlider.addListener(() -> System.out.println("Volume: " + volumeSlider.getSliderPosition()));
 
 		BufferedImage balanceSliderBmp = loadImage(skinZip, "BALANCE.BMP");
@@ -189,9 +190,9 @@ public class RetroUIFactory {
 		final BufferedImage balanceReleasedFinal = balanceReleased;
 		final BufferedImage balancePressedFinal = balancePressed;
 
-		ExtRasterUISlider balanceSlider = mainWin
-				.addComponent(window -> new ExtRasterUISlider(window, balanceSliderBackgrounds, balanceReleasedFinal, balancePressedFinal,
-						177, 57, 38 - 14, (38 - 14) / 2, false, val -> (int) Math.round(Math.abs((38 - 14) / 2 - val) * 28 / 12.0d), 0, 1));
+		ExtRasterUISlider balanceSlider = mainWin.addComponent(window -> new ExtRasterUISlider(window, balanceSliderBackgrounds,
+				balanceReleasedFinal, balancePressedFinal, 177, 57, 38 - 14, (38 - 14) / 2, false,
+				val -> (int) Math.round(Math.abs((38 - 14) / 2 - val) * 28 / 12.0d), 0, 1, (38 - 14) / 2, 3));
 		// balanceSlider.addListener(() -> System.out.println("Balance: " + balanceSlider.getSliderPosition()));
 
 		BufferedImage shufRepBmp = loadImage(skinZip, "SHUFREP.BMP");
@@ -343,13 +344,13 @@ public class RetroUIFactory {
 			final int index = i;
 			eqSliders[i] = eqWin.addComponent(window -> new ExtRasterUISlider(window, eqSliderBackgrounds,
 					ImageUtil.subImageOrBlank(eqmainBmp, 0, 164, 11, 11), ImageUtil.subImageOrBlank(eqmainBmp, 0, 164 + 12, 11, 11),
-					78 + index * 18, 38, 51, 25, true, val -> (int) Math.round(val * 28.0d / 51.0d), 1, 0));
+					78 + index * 18, 38, 51, 25, true, val -> (int) Math.round(val * 28.0d / 51.0d), 1, 0, 25, 3));
 			// eqSliders[i].addListener(() -> System.out
 			// .println("EQ " + index + ": " + eqSliders[index].getSliderPosition() + " " + eqSliders[index].getHeight()));
 		}
 		ExtRasterUISlider eqGainSlider = eqWin.addComponent(window -> new ExtRasterUISlider(window, eqSliderBackgrounds,
 				ImageUtil.subImageOrBlank(eqmainBmp, 0, 164, 11, 11), ImageUtil.subImageOrBlank(eqmainBmp, 0, 164 + 12, 11, 11), 21, 38, 51,
-				25, true, val -> (int) Math.round(val * 28.0d / 51.0d), 1, 0));
+				25, true, val -> (int) Math.round(val * 28.0d / 51.0d), 1, 0, 25, 3));
 		// eqGainSlider.addListener(() -> System.out.println("Gain: " + eqGainSlider.getSliderPosition()));
 
 		RasterUIButton btnPresets = eqWin.addComponent(window -> new RasterUIButton(window,

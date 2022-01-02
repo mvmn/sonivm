@@ -22,6 +22,9 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 	protected int handleXOffset = 0;
 	protected int handleYOffset = 0;
 
+	protected final int snappingPosition;
+	protected final int snappingRange;
+
 	@Getter
 	protected volatile int sliderPosition;
 	protected volatile boolean pressed;
@@ -43,7 +46,7 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 			int range,
 			int initialPosition,
 			boolean vertical) {
-		this(parent, sliderBackground, sliderButtonReleased, sliderButtonPressed, x, y, range, initialPosition, vertical, 0, 0);
+		this(parent, sliderBackground, sliderButtonReleased, sliderButtonPressed, x, y, range, initialPosition, vertical, 0, 0, -1, -1);
 	}
 
 	public RasterUISlider(RasterGraphicsWindow parent,
@@ -56,7 +59,9 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 			int initialPosition,
 			boolean vertical,
 			int handleXOffset,
-			int handleYOffset) {
+			int handleYOffset,
+			int snappingPosition,
+			int snappingRange) {
 		super(parent, new BufferedImage(
 				vertical ? sliderBackground.getWidth() : Math.max(sliderBackground.getWidth(), range + sliderButtonPressed.getWidth()),
 				vertical ? Math.max(sliderBackground.getHeight(), range + sliderButtonPressed.getHeight()) : sliderBackground.getHeight(),
@@ -69,6 +74,8 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 		this.sliderPosition = initialPosition;
 		this.handleXOffset = handleXOffset;
 		this.handleYOffset = handleYOffset;
+		this.snappingPosition = snappingPosition;
+		this.snappingRange = snappingRange;
 		repaint();
 	}
 
@@ -177,6 +184,9 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 				offset = e.getX() - this.dragStartX;
 			}
 			int newSliderPos = this.dragStartSliderPos + this.parent.originalScaleCoord(offset);
+			if (snappingPosition != -1 && snappingRange != -1 && Math.abs(newSliderPos - snappingPosition) < snappingRange) {
+				newSliderPos = snappingPosition;
+			}
 			updateSliderPosition(newSliderPos, true);
 		}
 	}

@@ -160,7 +160,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 		}
 		int range = heightExtenderHeight * 2 + extensionHeightPixels - sliderButtonPressed.getHeight();
 		this.scrollSlider = new RasterUISlider(this, sliderBackground, sliderButtonPressed, sliderButtonReleased,
-				initialWidth - right.getWidth() + 4 + extensionWidthPixels, topRight.getHeight(), range, 0, true, 1, 0);
+				initialWidth - right.getWidth() + 4 + extensionWidthPixels, topRight.getHeight(), range, 0, true, 1, 0, -1, -1);
 		this.scrollSlider.addListener(() -> onScrollViaSlider(this.scrollSlider.getSliderPositionRatio()));
 		this.addComponent(window -> this.scrollSlider);
 	}

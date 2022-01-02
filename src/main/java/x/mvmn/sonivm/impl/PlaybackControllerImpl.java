@@ -517,7 +517,6 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 			this.audioService.setVolumePercentage(this.preferencesService.getVolume());
 			this.audioService.setBalanceLR(this.preferencesService.getBalance());
-			System.out.println("Restored balance val " + this.audioService.getBalanceLR());
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to read shuffle/repeat/autostop preferences", e);
 		}

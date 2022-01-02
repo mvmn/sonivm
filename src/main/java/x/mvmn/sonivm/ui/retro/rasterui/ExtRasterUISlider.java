@@ -9,11 +9,18 @@ public class ExtRasterUISlider extends RasterUISlider {
 
 	protected final Function<Integer, Integer> sliderPositionToBackgroundIndex;
 	protected final BufferedImage[] sliderBackgrounds;
-	protected int handleXOffset = 0;
-	protected int handleYOffset = 0;
+	// protected int handleXOffset = 0;
+	// protected int handleYOffset = 0;
 
-	public ExtRasterUISlider(RasterGraphicsWindow parent, BufferedImage[] sliderBackgrounds, BufferedImage sliderButtonReleased,
-			BufferedImage sliderButtonPressed, int x, int y, int range, int initialPosition, boolean vertical,
+	public ExtRasterUISlider(RasterGraphicsWindow parent,
+			BufferedImage[] sliderBackgrounds,
+			BufferedImage sliderButtonReleased,
+			BufferedImage sliderButtonPressed,
+			int x,
+			int y,
+			int range,
+			int initialPosition,
+			boolean vertical,
 			Function<Integer, Integer> sliderPositionToBackgroundIndex) {
 		super(parent, sliderBackgrounds[0], sliderButtonReleased, sliderButtonPressed, x, y, range, initialPosition, vertical);
 		this.sliderPositionToBackgroundIndex = sliderPositionToBackgroundIndex;
@@ -21,14 +28,26 @@ public class ExtRasterUISlider extends RasterUISlider {
 		repaint();
 	}
 
-	public ExtRasterUISlider(RasterGraphicsWindow parent, BufferedImage[] sliderBackgrounds, BufferedImage sliderButtonReleased,
-			BufferedImage sliderButtonPressed, int x, int y, int range, int initialPosition, boolean vertical,
-			Function<Integer, Integer> sliderPositionToBackgroundIndex, int handleXOffset, int handleYOffset) {
-		super(parent, sliderBackgrounds[0], sliderButtonReleased, sliderButtonPressed, x, y, range, initialPosition, vertical);
+	public ExtRasterUISlider(RasterGraphicsWindow parent,
+			BufferedImage[] sliderBackgrounds,
+			BufferedImage sliderButtonReleased,
+			BufferedImage sliderButtonPressed,
+			int x,
+			int y,
+			int range,
+			int initialPosition,
+			boolean vertical,
+			Function<Integer, Integer> sliderPositionToBackgroundIndex,
+			int handleXOffset,
+			int handleYOffset,
+			int snappingPosition,
+			int snappingRange) {
+		super(parent, sliderBackgrounds[0], sliderButtonReleased, sliderButtonPressed, x, y, range, initialPosition, vertical,
+				handleXOffset, handleYOffset, snappingPosition, snappingRange);
 		this.sliderPositionToBackgroundIndex = sliderPositionToBackgroundIndex;
 		this.sliderBackgrounds = sliderBackgrounds;
-		this.handleXOffset = handleXOffset;
-		this.handleYOffset = handleYOffset;
+		// this.handleXOffset = handleXOffset;
+		// this.handleYOffset = handleYOffset;
 		repaint();
 	}
 

@@ -725,7 +725,6 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			this.retroUIWindows.getA().setVolumeSliderPos(playbackController.getCurrentVolumePercentage());
 			int balance = playbackController.getBalance();
 			this.retroUIWindows.getA().setBalanceSliderPos(balance);
-			System.out.println("Set balance to :" + balance);
 			updateNowPlaying(playbackQueueService.getCurrentEntry());
 		}, false);
 	}
