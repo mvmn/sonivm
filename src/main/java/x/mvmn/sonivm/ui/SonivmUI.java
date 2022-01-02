@@ -130,7 +130,24 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 				} else if (columnIndex == 2) {
 					String artist = playQueueTableModel.getValueAt(rowIndex, 3);
 					String title = playQueueTableModel.getValueAt(rowIndex, 2);
-					return artist != null ? (artist + " - " + title) : title;
+					String album = playQueueTableModel.getValueAt(rowIndex, 4);
+					String date = playQueueTableModel.getValueAt(rowIndex, 6);
+					if (artist == null) {
+						return title;
+					} else if (retroUIWindows != null && retroUIWindows.getC()
+							.getPlaylistTable()
+							.getColumnModel()
+							.getColumn(2)
+							.getWidth() > (int) retroUIWindows.getC()
+									.getPlaylistTable()
+									.getFontMetrics(retroUIWindows.getC().getPlaylistTable().getFont())
+									.getStringBounds("average artist name average album name 1234 - average track name",
+											retroUIWindows.getC().getPlaylistTable().getGraphics())
+									.getWidth()) {
+						return artist + " \"" + album + "\" (" + date + ") - " + title;
+					} else {
+						return artist + " - " + title;
+					}
 				} else if (columnIndex == 3) {
 					return playQueueTableModel.getValueAt(rowIndex, 5);
 				}
@@ -321,7 +338,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 				renderJLabel.setFont(isHighlighted ? tblPlayQueue.getFont().deriveFont(Font.BOLD) : tblPlayQueue.getFont());
 
 				int originalColumnIndex = table.convertColumnIndexToModel(column);
-				renderJLabel.setHorizontalAlignment(originalColumnIndex == 3 ? JLabel.RIGHT : JLabel.LEFT);
+				renderJLabel.setHorizontalAlignment(originalColumnIndex == 2 ? JLabel.LEFT : JLabel.RIGHT);
 
 				Color fgRegular = table.getForeground();
 				Color bgRegular = table.getBackground();

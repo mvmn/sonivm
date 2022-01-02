@@ -126,6 +126,10 @@ public class RetroUIPlaylistWindow {
 		playQueueInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK), "Stop");
 		playQueueActionMap.put("Stop", AbstractActionAdaptor.of(listener::onStop));
 
+		playQueueInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.META_DOWN_MASK), "Search");
+		playQueueInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "Search");
+		playQueueActionMap.put("Search", AbstractActionAdaptor.of(() -> retroUISearchInput.requestFocus()));
+
 		retroUISerchCheckboxFullPhrase.addItemListener(e -> listener.onRetroUISearchTextChange());
 		retroUISearchInput.getDocument().addDocumentListener(new DocumentListener() {
 
@@ -154,6 +158,11 @@ public class RetroUIPlaylistWindow {
 		retroUISearchNextMatchButton.addActionListener(actEvent -> listener.onSearchNextMatch());
 		retroUISearchPrevMatchButton.addActionListener(actEvent -> listener.onSearchPreviousMatch());
 
+		InputMap searchInputMap = retroUISearchInput.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+		ActionMap searchActionMap = retroUISearchInput.getActionMap();
+
+		searchInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "Select");
+		searchActionMap.put("Select", onSelect);
 		retroUISearchInput.addKeyListener(new KeyListener() {
 
 			@Override
