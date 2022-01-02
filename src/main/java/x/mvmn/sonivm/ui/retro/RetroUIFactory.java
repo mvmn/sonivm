@@ -31,10 +31,16 @@ import java.util.stream.Stream;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -447,7 +453,41 @@ public class RetroUIFactory {
 		playlistTable.getTableHeader().setForeground(playlistBackgroundColor);
 		playlistTable.setIntercellSpacing(new Dimension(0, 0));
 
-		RasterFrameWindow plEditWin = new RasterFrameWindow(275, 116, playlistTable, backgroundColor, plFrameTopLeftActive,
+		JLabel lblSearch = new JLabel("Search");
+		JTextField tfSearch = new JTextField("");
+		tfSearch.setMinimumSize(
+				new Dimension(tfSearch.getFontMetrics(tfSearch.getFont()).stringWidth("Hello to all the world out there 12345"),
+						tfSearch.getMinimumSize().height));
+		tfSearch.setPreferredSize(tfSearch.getMinimumSize());
+		JButton btnSearchNextMatch = new JButton("V");
+		JButton btnSearchPreviousMatch = new JButton("^");
+		JLabel lblSearchMatchesCount = new JLabel("0");
+		JButton btnSearchClear = new JButton("x");
+		JCheckBox cbSearchFullPhrase = new JCheckBox("full phrase");
+		JLabel lblMatches = new JLabel("Matches:");
+
+		JPanel plPanel = new JPanel(new BorderLayout());
+		JPanel searchPanel = SwingUtil.panel(pnl -> new BoxLayout(pnl, BoxLayout.X_AXIS))
+				.add(lblSearch)
+				.add(tfSearch)
+				.add(btnSearchClear)
+				.add(cbSearchFullPhrase)
+				.add(SwingUtil.withEmptyBorder(lblMatches, 0, 4, 0, 0))
+				.add(SwingUtil.withEmptyBorder(lblSearchMatchesCount, 0, 2, 0, 4))
+				.add(btnSearchNextMatch)
+				.add(btnSearchPreviousMatch)
+				.build();
+		plPanel.add(searchPanel, BorderLayout.NORTH);
+		Stream.of(plPanel, searchPanel, playlistTable, lblSearch, lblMatches, tfSearch, btnSearchNextMatch, btnSearchPreviousMatch,
+				cbSearchFullPhrase, lblSearchMatchesCount, btnSearchClear).forEach(c -> {
+					c.setBackground(playlistBackgroundColor);
+					c.setForeground(playlistTextColor);
+				});
+
+		JScrollPane playListScrollPane = new JScrollPane(playlistTable);
+		plPanel.add(playListScrollPane, BorderLayout.CENTER);
+
+		RasterFrameWindow plEditWin = new RasterFrameWindow(275, 116, plPanel, playListScrollPane, backgroundColor, plFrameTopLeftActive,
 				plFrameTitleActive, plFrameTopExtenderActive, plFrameTopRightActive, plFrameTopLeftInactive, plFrameTitleInactive,
 				plFrameTopExtenderInactive, plFrameTopRightInactive, plFrameLeft, plFrameRight, plFrameBottomLeft, plFrameBottomExtender,
 				plFrameBottomExtenderBig, plFrameBottomRight, new RectanglePointRange(0, 0, 275, 16),
@@ -463,6 +503,12 @@ public class RetroUIFactory {
 						.textColor(textColor)
 						.currentTrackTextColor(currentTrackTextColor)
 						.build())
+				.retroUISearchInput(tfSearch)
+				.retroUISearchMatchCountLabel(lblSearchMatchesCount)
+				.retroUISearchClearButton(btnSearchClear)
+				.retroUISearchNextMatchButton(btnSearchNextMatch)
+				.retroUISearchPrevMatchButton(btnSearchPreviousMatch)
+				.retroUISerchCheckboxFullPhrase(cbSearchFullPhrase)
 				.build());
 		//////////////////// //////////////////// //////////////////// //////////////////// ////////////////////
 

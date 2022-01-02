@@ -214,6 +214,7 @@ public class SonivmMainWindow extends JFrame {
 		btnSearchPreviousMatch = new JButton("^");
 		lblSearchMatchesCount = new JLabel("0");
 		btnSearchClear = new JButton("x");
+		cbSearchFullPhrase = new JCheckBox("full phrase");
 
 		cmbShuffleMode = new JComboBox<>(ShuffleMode.values());
 		cmbRepeatMode = new JComboBox<>(RepeatMode.values());
@@ -283,8 +284,6 @@ public class SonivmMainWindow extends JFrame {
 		lastFMStatusIcon.setHorizontalAlignment(JLabel.RIGHT);
 		lastFMStatusIcon.setIcon(lastFMDefault);
 		lastFMStatusIcon.setBorder(BorderFactory.createEmptyBorder(0, 2, 0, 0));
-
-		cbSearchFullPhrase = new JCheckBox("full phrase");
 
 		JPanel bottomPanel = SwingUtil.panel(BorderLayout::new)
 				.addCenter(lblStatus)

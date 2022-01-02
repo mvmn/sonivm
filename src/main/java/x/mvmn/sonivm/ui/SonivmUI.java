@@ -14,6 +14,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -77,7 +78,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	protected final LastFMScrobblingService lastFMScrobblingService;
 	protected final PlaybackQueueService playbackQueueService;
 	protected final WinAmpSkinsService winAmpSkinsService;
-	protected final AbstractTableModel playQueueTableModel;
+	protected final PlaybackQueueTableModel playQueueTableModel;
+	protected final AbstractTableModel retroUIPlayQueueTableModel;
 	protected final SonivmEqualizerService eqService;
 	protected final EqualizerPresetService eqPresetService;
 
@@ -86,6 +88,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	protected volatile TrayIcon sonivmTrayIcon;
 	protected volatile Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> retroUIWindows;
 	protected volatile boolean retroUIShowRemainingTime = false;
+	private volatile List<Integer> retroUISearchMatchedRows = Collections.emptyList();
+	private volatile int currentRetroUISearchMatch = -1;
 
 	public SonivmUI(SonivmMainWindow mainWindow,
 			EqualizerWindow eqWindow,
@@ -111,7 +115,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		this.winAmpSkinsService = winAmpSkinsService;
 		this.eqService = eqService;
 		this.eqPresetService = eqPresetService;
-		this.playQueueTableModel = new AbstractTableModel() {
+		this.playQueueTableModel = playQueueTableModel;
+		this.retroUIPlayQueueTableModel = new AbstractTableModel() {
 			private static final long serialVersionUID = 5628564877472125514L;
 
 			private final String[] COLUMN_NAMES = { "#", "N", "Track", "Length" };
@@ -217,12 +222,18 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			public void onTableRowsInsert(int firstRow, int lastRow, boolean waitForUiUpdate) {
 				SwingUtil.runOnEDT(() -> mainWindow.updatePlayQueueSizeLabel(), false);
 				mainWindow.applySearch();
+				if (SonivmUI.this.retroUIWindows != null) {
+					SonivmUI.this.onRetroUISearchTextChange();
+				}
 			}
 
 			@Override
 			public void onTableRowsDelete(int firstRow, int lastRow, boolean waitForUiUpdate) {
 				SwingUtil.runOnEDT(() -> mainWindow.updatePlayQueueSizeLabel(), false);
 				mainWindow.applySearch();
+				if (SonivmUI.this.retroUIWindows != null) {
+					SonivmUI.this.onRetroUISearchTextChange();
+				}
 			}
 		});
 		playbackQueueService.addChangeListener(new PlaybackQueueChangeListener() {
@@ -279,7 +290,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	}
 
 	protected JTable getRetroUIPlaylistTable() {
-		JTable tblPlayQueue = new JTable(playQueueTableModel);
+		JTable tblPlayQueue = new JTable(retroUIPlayQueueTableModel);
 		tblPlayQueue.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
 		tblPlayQueue.setCellSelectionEnabled(false);
 		tblPlayQueue.setRowSelectionAllowed(true);
@@ -342,7 +353,10 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 					fgRegular = retroUIWindows.getC().getPlaylistColors().getCurrentTrackTextColor();
 					fgSelected = fgRegular;
 				}
-				if (row % 2 == 0) {
+				if (retroUISearchMatchedRows.contains(row)) {
+					bgRegular = SwingUtil.getColorBrightness(bgRegular) < 300 ? SwingUtil.modifyColor(bgRegular, -10, 50, 10)
+							: SwingUtil.modifyColor(bgRegular, 10, -50, -10);
+				} else if (row % 2 == 0) {
 					int delta = -10;
 					if (SwingUtil.getColorBrightness(bgRegular) < 30) {
 						delta = 20;
@@ -996,5 +1010,63 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	@Override
 	public void retroUISwitchTimeDisplay() {
 		retroUIShowRemainingTime = !retroUIShowRemainingTime;
+	}
+
+	@Override
+	public void onRetroUISearchTextChange() {
+		new Thread(() -> {
+			String text = this.retroUIWindows.getC().getRetroUISearchInput().getText();
+			boolean fullPhrase = this.retroUIWindows.getC().getRetroUISerchCheckboxFullPhrase().isSelected();
+			List<Integer> matchedRows;
+			if (text == null || text.trim().isEmpty()) {
+				matchedRows = Collections.emptyList();
+			} else {
+				matchedRows = playQueueTableModel.search(text, fullPhrase);
+			}
+			this.currentRetroUISearchMatch = -1;
+			SwingUtil.runOnEDT(() -> {
+				retroUIWindows.getC().getRetroUISearchMatchCountLabel().setText(String.valueOf(matchedRows.size()));
+				for (int i : this.retroUISearchMatchedRows) {
+					retroUIPlayQueueTableModel.fireTableRowsUpdated(i, i);
+				}
+				this.retroUISearchMatchedRows = matchedRows;
+				for (int i : matchedRows) {
+					retroUIPlayQueueTableModel.fireTableRowsUpdated(i, i);
+				}
+				onSearchNextMatch();
+			}, false);
+		}).start();
+	}
+
+	@Override
+	public void onSearchNextMatch() {
+		int matchesCount = this.retroUISearchMatchedRows.size();
+		if (matchesCount > 0) {
+			this.currentRetroUISearchMatch++;
+			if (this.currentRetroUISearchMatch >= matchesCount) {
+				this.currentRetroUISearchMatch = 0;
+			}
+		}
+		gotoSearchMatch();
+	}
+
+	@Override
+	public void onSearchPreviousMatch() {
+		int matchesCount = this.retroUISearchMatchedRows.size();
+		if (matchesCount > 0) {
+			this.currentRetroUISearchMatch--;
+			if (this.currentRetroUISearchMatch < 0) {
+				this.currentRetroUISearchMatch = matchesCount - 1;
+			}
+		}
+		gotoSearchMatch();
+	}
+
+	private void gotoSearchMatch() {
+		if (this.currentRetroUISearchMatch > -1 && this.currentRetroUISearchMatch < this.retroUISearchMatchedRows.size()) {
+			int row = this.retroUISearchMatchedRows.get(this.currentRetroUISearchMatch);
+			scrollToTrack(row);
+			retroUIWindows.getC().getPlaylistTable().getSelectionModel().setSelectionInterval(row, row);
+		}
 	}
 }

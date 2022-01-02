@@ -85,4 +85,10 @@ public interface SonivmUIController {
 	void onBalanceChange(double sliderPositionRatio);
 
 	void retroUISwitchTimeDisplay();
+
+	void onRetroUISearchTextChange();
+
+	void onSearchNextMatch();
+
+	void onSearchPreviousMatch();
 }

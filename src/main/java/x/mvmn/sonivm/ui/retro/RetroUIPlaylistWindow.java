@@ -2,18 +2,26 @@ package x.mvmn.sonivm.ui.retro;
 
 import java.awt.Color;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
 import javax.swing.InputMap;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.KeyStroke;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,6 +42,16 @@ public class RetroUIPlaylistWindow {
 	@Getter
 	protected final PlaylistColors playlistColors;
 
+	@Getter
+	protected final JTextField retroUISearchInput;
+	protected final JButton retroUISearchNextMatchButton;
+	protected final JButton retroUISearchPrevMatchButton;
+	@Getter
+	protected final JLabel retroUISearchMatchCountLabel;
+	protected final JButton retroUISearchClearButton;
+	@Getter
+	protected final JCheckBox retroUISerchCheckboxFullPhrase;
+
 	@AllArgsConstructor
 	@Builder
 	public static class PlaylistColors {
@@ -49,7 +67,7 @@ public class RetroUIPlaylistWindow {
 
 	public void scrollToTrack(int rowNumber) {
 		if (rowNumber > -1) {
-			window.scrollToEntry(rowNumber);
+			this.playlistTable.scrollRectToVisible(new Rectangle(playlistTable.getCellRect(rowNumber, 0, true)));
 		}
 	}
 
@@ -107,6 +125,59 @@ public class RetroUIPlaylistWindow {
 		playQueueInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.META_DOWN_MASK), "Stop");
 		playQueueInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK), "Stop");
 		playQueueActionMap.put("Stop", AbstractActionAdaptor.of(listener::onStop));
+
+		retroUISerchCheckboxFullPhrase.addItemListener(e -> listener.onRetroUISearchTextChange());
+		retroUISearchInput.getDocument().addDocumentListener(new DocumentListener() {
+
+			@Override
+			public void insertUpdate(DocumentEvent e) {
+				listener.onRetroUISearchTextChange();
+			}
+
+			@Override
+			public void removeUpdate(DocumentEvent e) {
+				listener.onRetroUISearchTextChange();
+			}
+
+			@Override
+			public void changedUpdate(DocumentEvent e) {
+				// TODO Auto-generated method stub
+
+			}
+		});
+
+		retroUISearchClearButton.addActionListener(actEvent -> {
+			retroUISearchInput.setText("");
+			listener.onRetroUISearchTextChange();
+		});
+
+		retroUISearchNextMatchButton.addActionListener(actEvent -> listener.onSearchNextMatch());
+		retroUISearchPrevMatchButton.addActionListener(actEvent -> listener.onSearchPreviousMatch());
+
+		retroUISearchInput.addKeyListener(new KeyListener() {
+
+			@Override
+			public void keyTyped(KeyEvent e) {}
+
+			@Override
+			public void keyReleased(KeyEvent e) {
+				int code = e.getKeyCode();
+				switch (code) {
+					case KeyEvent.VK_UP: {
+						listener.onSearchPreviousMatch();
+						break;
+					}
+
+					case KeyEvent.VK_DOWN: {
+						listener.onSearchNextMatch();
+						break;
+					}
+				}
+			}
+
+			@Override
+			public void keyPressed(KeyEvent e) {}
+		});
 	}
 
 	public int[] getPlayQueueTableColumnPositions() {
@@ -124,5 +195,4 @@ public class RetroUIPlaylistWindow {
 	public void setPlayQueueTableColumnWidths(int[] playQueueColumnWidths) {
 		SwingUtil.applyJTableColumnWidths(playlistTable, playQueueColumnWidths);
 	}
-
 }

@@ -9,8 +9,8 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 
 import javax.swing.BorderFactory;
+import javax.swing.JComponent;
 import javax.swing.JScrollPane;
-import javax.swing.JTable;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.plaf.ScrollBarUI;
@@ -64,7 +64,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 	protected final BufferedImage bottomSpecialExtender;
 	protected final BufferedImage bottomRight;
 	protected final Color backgroundColor;
-	protected final JTable wrappedComponent;
+	protected final JComponent wrappedComponent;
 	@Getter // Have a getter to allow setting drag-n-drop handling externally
 	protected final JScrollPane wrappedComponentScrollPane;
 	protected volatile RasterUISlider scrollSlider;
@@ -74,7 +74,8 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 
 	public RasterFrameWindow(int baseWidth,
 			int baseHeight,
-			JTable wrappedComponent,
+			JComponent wrappedComponent,
+			JScrollPane scrollablePartScrollPane,
 			Color backgroundColor,
 			BufferedImage topLeftActive,
 			BufferedImage titleActive,
@@ -103,7 +104,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 
 		this.backgroundColor = backgroundColor;
 		this.wrappedComponent = wrappedComponent;
-		this.wrappedComponentScrollPane = new JScrollPane(wrappedComponent);
+		this.wrappedComponentScrollPane = scrollablePartScrollPane;
 
 		this.widthExtenderWidth = bottomExtender.getWidth(); // 25
 		this.heightExtenderHeight = left.getHeight(); // 29
@@ -144,8 +145,8 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 		reconstructScrollSlider();
 
 		this.getContentPane().setLayout(null);
-		this.getContentPane().add(wrappedComponentScrollPane);
-		wrappedComponentScrollPane.setOpaque(true);
+		this.getContentPane().add(wrappedComponent);
+		wrappedComponent.setOpaque(true);
 
 		updateComponentLocations();
 
@@ -186,11 +187,6 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 		this.wrappedComponent.scrollRectToVisible(new Rectangle(visibleRect.x, y, visibleRect.width, visibleRect.height));
 	}
 
-	public void scrollToEntry(int rowNumber) {
-		// this.scrollSlider.setSliderPositionRatio(rowNumber / (double) wrappedComponent.getRowCount(), active);
-		this.wrappedComponent.scrollRectToVisible(new Rectangle(wrappedComponent.getCellRect(rowNumber, 0, true)));
-	}
-
 	private void updateComponentLocations() {
 		int width = initialWidth + widthExtenderWidth * widthExtension;
 		int height = initialHeight + heightExtenderHeight * heightExtension;
@@ -202,7 +198,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 		int topPx = newScaleCoord(getScaleFactor(), topLeft.getHeight());
 		int rightPx = newScaleCoord(getScaleFactor(), initialWidth + extensionWidthPixels - right.getWidth());
 		int bottomPx = newScaleCoord(getScaleFactor(), initialHeight + extensionHeightPixels - bottomLeft.getHeight());
-		this.wrappedComponentScrollPane.setBounds(leftPx, topPx, rightPx - leftPx, bottomPx - topPx);
+		this.wrappedComponent.setBounds(leftPx, topPx, rightPx - leftPx, bottomPx - topPx);
 	}
 
 	protected void renderBackground() {
@@ -277,7 +273,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 		}
 		applyTransparencyMask(g2);
 		g2.dispose();
-		this.wrappedComponentScrollPane.repaint();
+		this.wrappedComponent.repaint();
 	}
 
 	private void drawBottomWidthExtension(int actualWindowWidth, int bottomLineYOffset) {
