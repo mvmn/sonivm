@@ -343,7 +343,11 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 					fgSelected = fgRegular;
 				}
 				if (row % 2 == 0) {
-					bgRegular = SwingUtil.modifyColor(bgRegular, -10, -10, -10);
+					int delta = -10;
+					if (SwingUtil.getColorBrightness(bgRegular) < 30) {
+						delta = 20;
+					}
+					bgRegular = SwingUtil.modifyColor(bgRegular, delta, delta, delta);
 				}
 
 				renderJLabel.setForeground(isSelected ? fgSelected : fgRegular);

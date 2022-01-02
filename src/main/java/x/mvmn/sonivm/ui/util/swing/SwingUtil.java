@@ -752,4 +752,17 @@ public class SwingUtil {
 			}
 		}
 	}
+
+	public static int getColorBrightness(Color color) {
+		return getColorBrightness(color.getRGB());
+	}
+
+	public static int getColorBrightness(int colorRGB) {
+		int red = (colorRGB >> 16) & 0xFF;
+		int green = (colorRGB >> 8) & 0xFF;
+		int blue = colorRGB & 0xFF;
+
+		int colorBrightness = red + green + blue;
+		return colorBrightness;
+	}
 }

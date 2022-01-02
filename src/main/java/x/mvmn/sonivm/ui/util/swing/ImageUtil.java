@@ -109,11 +109,7 @@ public abstract class ImageUtil {
 			for (int yc = y; yc < y + height; yc++) {
 				int color = bi.getRGB(xc, yc);
 
-				int red = (color >> 16) & 0xFF;
-				int green = (color >> 8) & 0xFF;
-				int blue = color & 0xFF;
-
-				int colorBrightness = red + green + blue;
+				int colorBrightness = SwingUtil.getColorBrightness(color);
 				boolean brighter = colorBrightness > resultBrightness;
 				if (!(brightest ^ brighter)) {
 					result = color;
