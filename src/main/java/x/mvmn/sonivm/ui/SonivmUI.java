@@ -1,7 +1,9 @@
 package x.mvmn.sonivm.ui;
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Point;
 import java.awt.SystemTray;
 import java.awt.TrayIcon;
@@ -20,15 +22,17 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
+import javax.swing.BorderFactory;
 import javax.swing.DropMode;
 import javax.swing.JFileChooser;
+import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.table.AbstractTableModel;
-import javax.swing.table.TableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 
 import x.mvmn.sonivm.PlaybackController;
 import x.mvmn.sonivm.PlaybackListener;
@@ -73,7 +77,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	protected final LastFMScrobblingService lastFMScrobblingService;
 	protected final PlaybackQueueService playbackQueueService;
 	protected final WinAmpSkinsService winAmpSkinsService;
-	protected final TableModel playQueueTableModel;
+	protected final AbstractTableModel playQueueTableModel;
 	protected final SonivmEqualizerService eqService;
 	protected final EqualizerPresetService eqPresetService;
 
@@ -282,6 +286,75 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		tblPlayQueue.setDragEnabled(true);
 		tblPlayQueue.setDropMode(DropMode.USE_SELECTION);
 		tblPlayQueue.setTransferHandler(new PlayQueueTableDnDTransferHandler(tblPlayQueue, this));
+
+		tblPlayQueue.setDefaultRenderer(String.class, new DefaultTableCellRenderer() {
+			private static final long serialVersionUID = 8456077630254148604L;
+			private final JLabel renderJLabel = new JLabel();
+			{
+				renderJLabel.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 4));
+				renderJLabel.setOpaque(true);
+			}
+
+			@Override
+			public boolean isOpaque() {
+				return true;
+			}
+
+			@Override
+			public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row,
+					int column) {
+				// Component result = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+				renderJLabel.setText(value != null ? value.toString() : "");
+
+				boolean isHighlighted = row == playbackController.getTrackQueuePosition();
+				renderJLabel.setFont(isHighlighted ? tblPlayQueue.getFont().deriveFont(Font.BOLD) : tblPlayQueue.getFont());
+
+				int originalColumnIndex = table.convertColumnIndexToModel(column);
+				renderJLabel.setHorizontalAlignment(originalColumnIndex == 3 ? JLabel.RIGHT : JLabel.LEFT);
+
+				Color fgRegular = table.getForeground();
+				Color bgRegular = table.getBackground();
+
+				Color fgSelected = table.getSelectionForeground();
+				Color bgSelected = table.getSelectionBackground();
+
+				// From DefaultTableCellRenderer
+				JTable.DropLocation dropLocation = table.getDropLocation();
+				if (dropLocation != null && !dropLocation.isInsertRow() && !dropLocation.isInsertColumn() && dropLocation.getRow() == row
+				// && dropLocation.getColumn() == column
+				) {
+					isSelected = true;
+					fgSelected = table.getSelectionForeground();
+					bgSelected = table.getSelectionBackground();
+				}
+
+				// if (hasFocus) {
+				// isSelected = true;
+				//
+				// fgSelected = lookupInUIDefaults("Table.focusCellForeground", fgSelected);
+				// bgSelected = lookupInUIDefaults("Table.focusCellBackground", bgSelected);
+				// }
+
+				fgRegular = table.getForeground();
+				fgSelected = table.getSelectionForeground();
+
+				if (isHighlighted) {
+					fgRegular = retroUIWindows.getC().getPlaylistColors().getCurrentTrackTextColor();
+					fgSelected = fgRegular;
+				}
+				if (row % 2 == 0) {
+					bgRegular = SwingUtil.modifyColor(bgRegular, -10, -10, -10);
+				}
+
+				renderJLabel.setForeground(isSelected ? fgSelected : fgRegular);
+				renderJLabel.setBackground(isSelected ? bgSelected : bgRegular);
+
+				// super.setForeground(isSelected ? fgSelected : fgRegular);
+				// super.setBackground(isSelected ? bgSelected : bgRegular);
+
+				return renderJLabel;
+			}
+		});
 
 		return tblPlayQueue;
 	}
