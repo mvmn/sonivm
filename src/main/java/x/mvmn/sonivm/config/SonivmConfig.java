@@ -64,6 +64,7 @@ public class SonivmConfig {
 		SonivmMainWindow mainWindow = new SonivmMainWindow(appVersion, playbackQueueTableModel);
 		mainWindow.setIconImage(sonivmIcon);
 		EqualizerWindow eqWindow = new EqualizerWindow(appVersion + " equalizer", 10);
+		eqWindow.setIconImage(sonivmIcon);
 
 		mainWindow.setJMenuBar(sonivmWindowsMenuBar(mainWindow, eqWindow, sonivmController, preferencesService));
 		eqWindow.setJMenuBar(sonivmWindowsMenuBar(mainWindow, eqWindow, sonivmController, preferencesService));
