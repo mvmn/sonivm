@@ -94,7 +94,16 @@ public class SonivmMainWindow extends JFrame {
 		super(title);
 		this.playbackQueueTableModel = playbackQueueTableModel;
 
-		tblPlayQueue = new JTable(playbackQueueTableModel);
+		tblPlayQueue = new JTable(playbackQueueTableModel) {
+			private static final long serialVersionUID = -6310314844571818281L;
+
+			@Override
+			public String getToolTipText(MouseEvent e) {
+				Point point = e.getPoint();
+				Object val = getValueAt(rowAtPoint(point), columnAtPoint(point));
+				return val != null ? val.toString() : "";
+			}
+		};
 		tblPlayQueue.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
 		tblPlayQueue.setCellSelectionEnabled(false);
 		tblPlayQueue.setRowSelectionAllowed(true);

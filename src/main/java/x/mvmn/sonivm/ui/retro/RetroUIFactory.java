@@ -250,15 +250,16 @@ public class RetroUIFactory {
 			if (numbersBmp == null) {
 				numbersBmp = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
 			}
+			int numHeight = Math.min(13, numbersBmp.getHeight());
 			for (int i = 0; i < 11; i++) {
-				numbers[i] = ImageUtil.subImageOrBlank(numbersBmp, 9 * i, 0, 9, numbersBmp.getHeight());
+				numbers[i] = ImageUtil.subImageOrBlank(numbersBmp, 9 * i, 0, 9, numHeight);
 			}
-			numbers[11] = ImageUtil.subImageOrBlank(numbersBmp, 9 * 10, 0, 9, numbersBmp.getHeight(), true);
+			numbers[11] = ImageUtil.subImageOrBlank(numbersBmp, 9 * 10, 0, 9, numHeight, true);
 			ImageUtil.drawOnto(numbers[11], ImageUtil.subImageOrBlank(numbersBmp, 9 * 2 + 1, 6, 7, 1), 1, 6);
 		} else {
 			numExtBmp = ImageUtil.convert(numExtBmp, BufferedImage.TYPE_INT_ARGB);
 			for (int i = 0; i < 12; i++) {
-				numbers[i] = ImageUtil.subImageOrBlank(numExtBmp, 9 * i, 0, 9, numExtBmp.getHeight());
+				numbers[i] = ImageUtil.subImageOrBlank(numExtBmp, 9 * i, 0, 9, Math.min(13, numExtBmp.getHeight()));
 			}
 		}
 		RasterUIMultiIndicator playTimeNumber0 = mainWin.addComponent(window -> new RasterUIMultiIndicator(mainWin, numbers, 36, 26));

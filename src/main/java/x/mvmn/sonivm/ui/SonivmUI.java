@@ -10,6 +10,7 @@ import java.awt.TrayIcon;
 import java.awt.Window;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
@@ -328,7 +329,16 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	}
 
 	protected JTable getRetroUIPlaylistTable() {
-		JTable tblPlayQueue = new JTable(retroUIPlayQueueTableModel);
+		JTable tblPlayQueue = new JTable(retroUIPlayQueueTableModel) {
+			private static final long serialVersionUID = 4233667431815675829L;
+
+			@Override
+			public String getToolTipText(MouseEvent e) {
+				Point point = e.getPoint();
+				Object val = getValueAt(rowAtPoint(point), columnAtPoint(point));
+				return val != null ? val.toString() : "";
+			}
+		};
 		tblPlayQueue.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
 		tblPlayQueue.setCellSelectionEnabled(false);
 		tblPlayQueue.setRowSelectionAllowed(true);
