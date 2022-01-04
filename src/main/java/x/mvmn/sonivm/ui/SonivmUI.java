@@ -1147,10 +1147,11 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	public void showSkinBrowser() {
 		if (SonivmUI.this.skinBrowser == null) {
 			JFrame skinBrowser = new JFrame("Sonivm RetroUI skin browser");
-			skinBrowser.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+			skinBrowser.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 			skinBrowser.addComponentListener(new ComponentAdapter() {
 				@Override
 				public void componentHidden(ComponentEvent e) {
+					SonivmUI.this.skinBrowser.dispose();
 					SonivmUI.this.skinBrowser = null;
 				}
 			});
