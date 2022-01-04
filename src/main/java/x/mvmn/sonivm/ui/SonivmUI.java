@@ -1,5 +1,6 @@
 package x.mvmn.sonivm.ui;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -27,9 +28,12 @@ import javax.annotation.PostConstruct;
 import javax.swing.BorderFactory;
 import javax.swing.DropMode;
 import javax.swing.JFileChooser;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.filechooser.FileFilter;
@@ -91,6 +95,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	protected volatile boolean retroUIShowRemainingTime = false;
 	private volatile List<Integer> retroUISearchMatchedRows = Collections.emptyList();
 	private volatile int currentRetroUISearchMatch = -1;
+
+	private volatile JFrame skinBrowser;
 
 	public SonivmUI(SonivmMainWindow mainWindow,
 			EqualizerWindow eqWindow,
@@ -1134,6 +1140,33 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			int row = this.retroUISearchMatchedRows.get(this.currentRetroUISearchMatch);
 			scrollToTrack(row);
 			retroUIWindows.getC().getPlaylistTable().getSelectionModel().setSelectionInterval(row, row);
+		}
+	}
+
+	@Override
+	public void showSkinBrowser() {
+		if (SonivmUI.this.skinBrowser == null) {
+			JFrame skinBrowser = new JFrame("Sonivm RetroUI skin browser");
+			skinBrowser.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+			skinBrowser.addComponentListener(new ComponentAdapter() {
+				@Override
+				public void componentHidden(ComponentEvent e) {
+					SonivmUI.this.skinBrowser = null;
+				}
+			});
+			skinBrowser.getContentPane().setLayout(new BorderLayout());
+			JList<String> skinsList = new JList<String>(winAmpSkinsService.listSkins().toArray(new String[0]));
+			skinBrowser.setIconImage(sonivmIcon);
+			skinBrowser.getContentPane().add(new JScrollPane(skinsList));
+			skinsList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+			skinsList.getSelectionModel().addListSelectionListener(e -> SonivmUI.this.onRetroUiSkinChange(skinsList.getSelectedValue()));
+			skinsList.setSelectedValue(preferencesService.getRetroUISkin(), true);
+			skinBrowser.pack();
+			if (SonivmUI.this.skinBrowser == null) {
+				SonivmUI.this.skinBrowser = skinBrowser;
+				SwingUtil.moveToScreenCenter(skinBrowser);
+				skinBrowser.setVisible(true);
+			}
 		}
 	}
 }

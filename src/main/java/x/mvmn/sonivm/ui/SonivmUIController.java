@@ -91,4 +91,6 @@ public interface SonivmUIController {
 	void onSearchNextMatch();
 
 	void onSearchPreviousMatch();
+
+	void showSkinBrowser();
 }
