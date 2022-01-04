@@ -64,7 +64,7 @@ public class EqualizerPresetServiceImpl implements EqualizerPresetService {
 	@PostConstruct
 	protected void init() {
 		File sonivmHomeFolder = new File(System.getProperty("sonivm_home_folder"));
-		File equalizerPresetsFolder = new File(sonivmHomeFolder, "eqp_resets");
+		File equalizerPresetsFolder = new File(sonivmHomeFolder, "eq_presets");
 		if (!equalizerPresetsFolder.exists()) {
 			equalizerPresetsFolder.mkdirs();
 		}
