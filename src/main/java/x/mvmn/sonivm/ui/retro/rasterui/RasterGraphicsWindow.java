@@ -26,6 +26,7 @@ import javax.swing.JLayer;
 import javax.swing.JPanel;
 import javax.swing.plaf.LayerUI;
 
+import lombok.Getter;
 import lombok.Setter;
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
 import x.mvmn.sonivm.ui.util.swing.RectLocationAndSize;
@@ -44,6 +45,7 @@ public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize 
 
 	protected final JPanel backgroundPanel;
 	protected final LayerUI<JPanel> layerUI;
+	@Getter
 	protected final JLayer<JPanel> componentsLayer;
 
 	protected volatile boolean isBeingClosed = true;

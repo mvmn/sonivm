@@ -5,10 +5,12 @@ import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
@@ -161,15 +163,24 @@ public class RetroUIPlaylistWindow {
 		InputMap searchInputMap = retroUISearchInput.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
 		ActionMap searchActionMap = retroUISearchInput.getActionMap();
 
+		Map<KeyStroke, Runnable> playbackControlKeyActionsMap = new HashMap<>();
+		playbackControlKeyActionsMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_CLOSE_BRACKET, InputEvent.META_DOWN_MASK),
+				listener::onNextTrack);
+		playbackControlKeyActionsMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_CLOSE_BRACKET, InputEvent.CTRL_DOWN_MASK),
+				listener::onNextTrack);
+		playbackControlKeyActionsMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET, InputEvent.META_DOWN_MASK),
+				listener::onPreviousTrack);
+		playbackControlKeyActionsMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET, InputEvent.CTRL_DOWN_MASK),
+				listener::onPreviousTrack);
+		playbackControlKeyActionsMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.META_DOWN_MASK), listener::onStop);
+		playbackControlKeyActionsMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK), listener::onStop);
+
 		searchInputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "Select");
 		searchActionMap.put("Select", onSelect);
-		retroUISearchInput.addKeyListener(new KeyListener() {
+		retroUISearchInput.addKeyListener(new KeyAdapter() {
 
 			@Override
-			public void keyTyped(KeyEvent e) {}
-
-			@Override
-			public void keyReleased(KeyEvent e) {
+			public void keyPressed(KeyEvent e) {
 				int code = e.getKeyCode();
 				switch (code) {
 					case KeyEvent.VK_UP: {
@@ -181,11 +192,14 @@ public class RetroUIPlaylistWindow {
 						listener.onSearchNextMatch();
 						break;
 					}
+					default:
+						Runnable action = playbackControlKeyActionsMap.get(KeyStroke.getKeyStroke(e.getKeyCode(), e.getModifiers()));
+						if (action != null) {
+							action.run();
+						}
+					break;
 				}
 			}
-
-			@Override
-			public void keyPressed(KeyEvent e) {}
 		});
 	}
 

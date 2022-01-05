@@ -11,13 +11,18 @@ import java.awt.TrayIcon;
 import java.awt.Window;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -35,6 +40,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.table.AbstractTableModel;
@@ -878,6 +884,38 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 				.getWrappedComponentScrollPane()
 				.setDropTarget(new PlaybackQueueDropTarget(this, this.retroUIWindows.getC().getPlaylistTable()));
 
+		Map<KeyStroke, Runnable> playbackControlKeyActionsMap = new HashMap<>();
+		playbackControlKeyActionsMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), this::onPlayPause);
+		playbackControlKeyActionsMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_P, InputEvent.META_DOWN_MASK), this::onPlayPause);
+		playbackControlKeyActionsMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_P, InputEvent.CTRL_DOWN_MASK), this::onPlayPause);
+		playbackControlKeyActionsMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_CLOSE_BRACKET, InputEvent.META_DOWN_MASK), this::onNextTrack);
+		playbackControlKeyActionsMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_CLOSE_BRACKET, InputEvent.CTRL_DOWN_MASK), this::onNextTrack);
+		playbackControlKeyActionsMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET, InputEvent.META_DOWN_MASK),
+				this::onPreviousTrack);
+		playbackControlKeyActionsMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET, InputEvent.CTRL_DOWN_MASK),
+				this::onPreviousTrack);
+		playbackControlKeyActionsMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.META_DOWN_MASK), this::onStop);
+		playbackControlKeyActionsMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK), this::onStop);
+
+		this.retroUIWindows.getA().getWindow().addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyPressed(KeyEvent e) {
+				Runnable action = playbackControlKeyActionsMap.get(KeyStroke.getKeyStroke(e.getKeyCode(), e.getModifiers()));
+				if (action != null) {
+					action.run();
+				}
+			}
+		});
+		this.retroUIWindows.getB().getWindow().addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyPressed(KeyEvent e) {
+				Runnable action = playbackControlKeyActionsMap.get(KeyStroke.getKeyStroke(e.getKeyCode(), e.getModifiers()));
+				if (action != null) {
+					action.run();
+				}
+			}
+		});
+
 		SwingUtil.runOnEDT(() -> {
 			this.retroUIWindows.getB().setEQEnabled(eqService.getCurrentState().isEnabled());
 			this.retroUIWindows.getB().setPreset(eqService.getCurrentState());
@@ -1138,7 +1176,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	private void gotoSearchMatch() {
 		if (this.currentRetroUISearchMatch > -1 && this.currentRetroUISearchMatch < this.retroUISearchMatchedRows.size()) {
 			int row = this.retroUISearchMatchedRows.get(this.currentRetroUISearchMatch);
-			scrollToTrack(row);
+			retroUIWindows.getC().scrollToTrack(row);
 			retroUIWindows.getC().getPlaylistTable().getSelectionModel().setSelectionInterval(row, row);
 		}
 	}
