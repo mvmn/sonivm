@@ -612,6 +612,7 @@ public class SonivmMainWindow extends JFrame {
 
 	public void setSearchMatchedRows(List<Integer> rows) {
 		this.playbackQueueTableModel.setSearchMatchedRows(rows);
+		this.tblPlayQueue.repaint();
 		this.lblSearchMatchesCount.setText(String.valueOf(rows.size()));
 	}
 

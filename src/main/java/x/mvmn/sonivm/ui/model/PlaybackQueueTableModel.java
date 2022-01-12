@@ -90,16 +90,16 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	}
 
 	public void setSearchMatchedRows(List<Integer> rows) {
-		fireRowsChanged(this.searchMatchedRows);
+		// fireRowsChanged(this.searchMatchedRows);
 		this.searchMatchedRows = rows;
-		fireRowsChanged(rows);
+		// fireRowsChanged(rows);
 	}
 
-	private void fireRowsChanged(List<Integer> rows) {
-		if (!rows.isEmpty()) {
-			rows.forEach(row -> fireTableRowsUpdated(row, row));
-		}
-	}
+	// private void fireRowsChanged(List<Integer> rows) {
+	// if (!rows.isEmpty()) {
+	// rows.forEach(row -> fireTableRowsUpdated(row, row));
+	// }
+	// }
 
 	private Predicate<PlaybackQueueEntry> searchPredicate(String searchText, boolean searchFullPhrase) {
 		searchText = StringUtil.stripAccents(searchText.toLowerCase()).replaceAll("\\s+", " ").trim();

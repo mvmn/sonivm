@@ -1137,13 +1137,14 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			this.currentRetroUISearchMatch = -1;
 			SwingUtil.runOnEDT(() -> {
 				retroUIWindows.getC().getRetroUISearchMatchCountLabel().setText(String.valueOf(matchedRows.size()));
-				for (int i : this.retroUISearchMatchedRows) {
-					retroUIPlayQueueTableModel.fireTableRowsUpdated(i, i);
-				}
+				// for (int i : this.retroUISearchMatchedRows) {
+				// retroUIPlayQueueTableModel.fireTableRowsUpdated(i, i);
+				// }
 				this.retroUISearchMatchedRows = matchedRows;
-				for (int i : matchedRows) {
-					retroUIPlayQueueTableModel.fireTableRowsUpdated(i, i);
-				}
+				// for (int i : matchedRows) {
+				// retroUIPlayQueueTableModel.fireTableRowsUpdated(i, i);
+				// }
+				retroUIWindows.getC().getPlaylistTable().repaint();
 				onSearchNextMatch();
 			}, false);
 		}).start();
