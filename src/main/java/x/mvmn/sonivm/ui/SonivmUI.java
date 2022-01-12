@@ -42,6 +42,10 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.TableColumnModelEvent;
+import javax.swing.event.TableColumnModelListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -103,6 +107,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	private volatile int currentRetroUISearchMatch = -1;
 
 	private volatile JFrame skinBrowser;
+	private volatile boolean retroUIPlayQueueColumnsMoved = false;
+	private volatile boolean retroUIPlayQueueColumnsResized = false;
 
 	public SonivmUI(SonivmMainWindow mainWindow,
 			EqualizerWindow eqWindow,
@@ -326,6 +332,18 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		File retroUISkinFile = retroUISkin != null ? winAmpSkinsService.getSkinFile(retroUISkin) : null;
 		try {
 			retroUIWindows = retroUIFactory.construct(retroUISkinFile, getRetroUIPlaylistTable());
+
+			retroUIWindows.getC().getWindow().addComponentListener(new ComponentAdapter() {
+				@Override
+				public void componentShown(ComponentEvent e) {
+					restoreRetroUIPlayQueueColumnsState();
+				}
+
+				@Override
+				public void componentHidden(ComponentEvent e) {
+					saveRetroUIPlayQueueColumnsState();
+				}
+			});
 			setIconImageOnRetroUIWindows();
 		} catch (WSZLoadingException e) {
 			LOGGER.log(Level.SEVERE, "Failed to cosntruct UI from WinAmp skin: " + retroUISkin, e);
@@ -434,6 +452,27 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			}
 		});
 
+		tblPlayQueue.getColumnModel().addColumnModelListener(new TableColumnModelListener() {
+			@Override
+			public void columnAdded(TableColumnModelEvent e) {}
+
+			@Override
+			public void columnRemoved(TableColumnModelEvent e) {}
+
+			@Override
+			public void columnMoved(TableColumnModelEvent e) {
+				retroUIPlayQueueColumnsMoved = true;
+			}
+
+			@Override
+			public void columnMarginChanged(ChangeEvent e) {
+				retroUIPlayQueueColumnsResized = true;
+			}
+
+			@Override
+			public void columnSelectionChanged(ListSelectionEvent e) {}
+		});
+
 		return tblPlayQueue;
 	}
 
@@ -449,8 +488,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 								preferencesService.getRetroUIPlaylistSizeExtY());
 				SwingUtil.restoreWindowState(retroUIWindows.getC().getWindow(), preferencesService.getRetroUIPlaylistWindowState());
 
-				retroUIWindows.getC().setPlayQueueTableColumnPositions(preferencesService.getRetroUIPlayQueueColumnPositions());
-				retroUIWindows.getC().setPlayQueueTableColumnWidths(preferencesService.getRetroUIPlayQueueColumnWidths());
+				restoreRetroUIPlayQueueColumnsState();
 				retroUIWindows.getC().getPlaylistTable().repaint();
 			} catch (Exception e) {
 				LOGGER.log(Level.SEVERE, "Failed to restore Retro UI window states", e);
@@ -459,12 +497,17 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	}
 
 	protected void savePlayQueueColumnsState() {
-		LOGGER.info("Saving UI state.");
 		try {
-			preferencesService.setPlayQueueColumnWidths(mainWindow.getPlayQueueTableColumnWidths());
-			preferencesService.setPlayQueueColumnPositions(mainWindow.getPlayQueueTableColumnPositions());
+			if (mainWindow.isColumnsResized()) {
+				LOGGER.info("Saving main window column widths.");
+				preferencesService.setPlayQueueColumnWidths(mainWindow.getPlayQueueTableColumnWidths());
+			}
+			if (mainWindow.isColumnsMoved()) {
+				LOGGER.info("Saving main window column positions.");
+				preferencesService.setPlayQueueColumnPositions(mainWindow.getPlayQueueTableColumnPositions());
+			}
 		} catch (Exception e) {
-			LOGGER.log(Level.WARNING, "Failed to store column width for playback queue table", e);
+			LOGGER.log(Level.WARNING, "Failed to store column widths/position for playback queue table", e);
 		}
 	}
 
@@ -487,9 +530,26 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			this.preferencesService.saveRetroUIPlaylistWindowState(SwingUtil.getWindowState(retroUIWindows.getC().getWindow()));
 			this.preferencesService.setRetroUIPlaylistSizeExtX(retroUIWindows.getC().getWindow().getWidthExtension());
 			this.preferencesService.setRetroUIPlaylistSizeExtY(retroUIWindows.getC().getWindow().getHeightExtension());
+			saveRetroUIPlayQueueColumnsState();
+		}
+	}
+
+	protected void saveRetroUIPlayQueueColumnsState() {
+		if (retroUIPlayQueueColumnsResized) {
+			LOGGER.info("Saving RetroUI Play Queue column widths.");
 			this.preferencesService.setRetroUIPlayQueueColumnWidths(retroUIWindows.getC().getPlayQueueTableColumnWidths());
+		}
+		if (retroUIPlayQueueColumnsMoved) {
+			LOGGER.info("Saving RetroUI Play Queue column positions.");
 			this.preferencesService.setRetroUIPlayQueueColumnPositions(retroUIWindows.getC().getPlayQueueTableColumnPositions());
 		}
+	}
+
+	protected void restoreRetroUIPlayQueueColumnsState() {
+		retroUIWindows.getC().setPlayQueueTableColumnPositions(preferencesService.getRetroUIPlayQueueColumnPositions());
+		retroUIWindows.getC().setPlayQueueTableColumnWidths(preferencesService.getRetroUIPlayQueueColumnWidths());
+		retroUIPlayQueueColumnsMoved = false;
+		retroUIPlayQueueColumnsResized = false;
 	}
 
 	protected void destroyUI() {
@@ -545,7 +605,18 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			Tuple4<Boolean, String, Point, Dimension> mainWindowState = preferencesService.getMainWindowState();
 			SwingUtil.runOnEDT(() -> {
 				applyWindowState(mainWindow, mainWindowState, true);
-				restorePlayQueueColumnsState();
+				mainWindow.addComponentListener(new ComponentAdapter() {
+
+					@Override
+					public void componentShown(ComponentEvent e) {
+						restorePlayQueueColumnsState();
+					}
+
+					@Override
+					public void componentHidden(ComponentEvent e) {
+						savePlayQueueColumnsState();
+					}
+				});
 			}, true);
 			Tuple4<Boolean, String, Point, Dimension> eqWindowState = preferencesService.getEQWindowState();
 			SwingUtil.runOnEDT(() -> applyWindowState(eqWindow, eqWindowState, false), true);
@@ -573,6 +644,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			int[] playQueueColumnPositions = preferencesService.getPlayQueueColumnPositions();
 			if (playQueueColumnPositions != null && playQueueColumnPositions.length > 0) {
 				SwingUtil.runOnEDT(() -> mainWindow.setPlayQueueTableColumnPositions(playQueueColumnPositions), true);
+				mainWindow.setColumnsMoved(false);
 			}
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to read+apply column positions for playback queue table", e);
@@ -582,6 +654,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			int[] playQueueColumnWidths = preferencesService.getPlayQueueColumnWidths();
 			if (playQueueColumnWidths != null && playQueueColumnWidths.length > 0) {
 				SwingUtil.runOnEDT(() -> mainWindow.setPlayQueueTableColumnWidths(playQueueColumnWidths), true);
+				mainWindow.setColumnsResized(false);
 			}
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to read+apply column width for playback queue table", e);
@@ -849,6 +922,17 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			} else {
 				newRetroUi = retroUIFactory.construct(winAmpSkinsService.getSkinFile(skinFileName), getRetroUIPlaylistTable());
 			}
+			newRetroUi.getC().getWindow().addComponentListener(new ComponentAdapter() {
+				@Override
+				public void componentShown(ComponentEvent e) {
+					restoreRetroUIPlayQueueColumnsState();
+				}
+
+				@Override
+				public void componentHidden(ComponentEvent e) {
+					saveRetroUIPlayQueueColumnsState();
+				}
+			});
 			setIconImageOnRetroUIWindows();
 			if (this.retroUIWindows != null) {
 				playlistScrollPosition = this.retroUIWindows.getC()

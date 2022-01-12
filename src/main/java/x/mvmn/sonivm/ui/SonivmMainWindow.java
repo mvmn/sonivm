@@ -16,6 +16,8 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
@@ -42,10 +44,16 @@ import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.UIManager;
+import javax.swing.event.ChangeEvent;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.TableColumnModelEvent;
+import javax.swing.event.TableColumnModelListener;
 import javax.swing.table.DefaultTableCellRenderer;
 
+import lombok.Getter;
+import lombok.Setter;
 import x.mvmn.sonivm.impl.RepeatMode;
 import x.mvmn.sonivm.impl.ShuffleMode;
 import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
@@ -89,6 +97,12 @@ public class SonivmMainWindow extends JFrame {
 
 	private volatile List<Integer> searchMatches = Collections.emptyList();
 	private volatile int currentSearchMatch = -1;
+	@Getter
+	@Setter
+	private volatile boolean columnsMoved = false;
+	@Getter
+	@Setter
+	private volatile boolean columnsResized = false;
 
 	public SonivmMainWindow(String title, PlaybackQueueTableModel playbackQueueTableModel) {
 		super(title);
@@ -194,6 +208,26 @@ public class SonivmMainWindow extends JFrame {
 				Color result = UIManager.getColor(key);
 				return result != null ? result : defaultColor;
 			}
+		});
+		tblPlayQueue.getColumnModel().addColumnModelListener(new TableColumnModelListener() {
+			@Override
+			public void columnAdded(TableColumnModelEvent e) {}
+
+			@Override
+			public void columnRemoved(TableColumnModelEvent e) {}
+
+			@Override
+			public void columnMoved(TableColumnModelEvent e) {
+				columnsMoved = true;
+			}
+
+			@Override
+			public void columnMarginChanged(ChangeEvent e) {
+				columnsResized = true;
+			}
+
+			@Override
+			public void columnSelectionChanged(ListSelectionEvent e) {}
 		});
 
 		// DefaultTableCellRenderer rightRendererForDuration = new DefaultTableCellRenderer();
