@@ -88,6 +88,7 @@ public class PlayQueueTableDnDTransferHandler extends TransferHandler {
 				@SuppressWarnings("unchecked")
 				List<File> fileList = (List<File>) info.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
 				controller.onDropFilesToQueue(insertPosition, fileList);
+				return true;
 			} catch (UnsupportedFlavorException e) {
 				LOGGER.log(Level.WARNING, "UnsupportedFlavorException on playback queue table files drag-n-drop. Flavors: "
 						+ Arrays.toString(info.getTransferable().getTransferDataFlavors()), e);

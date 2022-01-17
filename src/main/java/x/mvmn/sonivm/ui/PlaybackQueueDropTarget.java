@@ -45,11 +45,14 @@ public final class PlaybackQueueDropTarget extends DropTarget {
 						.getTransferData(PlayQueueTableDnDTransferHandler.DATA_FLAVOR_STRING_ROW_INDEXES_RANGE);
 
 				controller.onDropQueueRowsInsideQueue(tblPlayQueue.getRowCount(), intRange.getFrom(), intRange.getTo());
+				dtde.dropComplete(true);
 			} catch (UnsupportedFlavorException e) {
 				LOGGER.log(Level.WARNING, "UnsupportedFlavorException on playback queue table drag-n-drop. Flavors: "
 						+ Arrays.toString(transferable.getTransferDataFlavors()), e);
+				dtde.rejectDrop();
 			} catch (IOException e) {
 				LOGGER.log(Level.WARNING, "IO error on playback queue table drag-n-drop.", e);
+				dtde.rejectDrop();
 			}
 		} else if (dtde.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
 			dtde.acceptDrop(DnDConstants.ACTION_COPY);
@@ -57,10 +60,13 @@ public final class PlaybackQueueDropTarget extends DropTarget {
 				@SuppressWarnings("unchecked")
 				List<File> fileList = (List<File>) transferable.getTransferData(DataFlavor.javaFileListFlavor);
 				controller.onDropFilesToQueue(row, fileList);
+				dtde.dropComplete(true);
 			} catch (UnsupportedFlavorException e) {
 				LOGGER.log(Level.WARNING, "Drag-n-drop of files into queue failed - unsupported data flavor", e);
+				dtde.rejectDrop();
 			} catch (IOException e) {
 				LOGGER.log(Level.WARNING, "Drag-n-drop of files into queue failed - IO issue", e);
+				dtde.rejectDrop();
 			}
 		} else {
 			super.drop(dtde);
