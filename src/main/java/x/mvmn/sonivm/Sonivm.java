@@ -32,6 +32,8 @@ public class Sonivm implements Runnable {
 		initConsoleLogging();
 		LOGGER.info("Sonivm startup");
 
+		// Change application display name in macOS
+		System.setProperty("apple.awt.application.name", "Sonivm");
 		// Spring Boot makes app headless by default
 		System.setProperty("java.awt.headless", "false");
 		// Enable macOS native menu bar usage
