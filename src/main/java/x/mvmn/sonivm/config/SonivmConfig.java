@@ -42,6 +42,8 @@ import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.ui.util.swing.menu.JMenuBarBuilder;
 import x.mvmn.sonivm.ui.util.swing.menu.JMenuBarBuilder.JMenuBuilder;
 import x.mvmn.sonivm.util.Pair;
+import x.mvmn.sonivm.util.ver.SemanticVersion;
+import x.mvmn.sonivm.util.ver.SemanticVersionUtil;
 
 @Configuration
 public class SonivmConfig {
@@ -71,6 +73,12 @@ public class SonivmConfig {
 
 		return new SonivmUI(mainWindow, eqWindow, sonivmIcon, trayIconPopupMenu, preferencesService, sonivmController,
 				lastFMScrobblingService, playbackQueueService, winAmpSkinsService, eqService, eqPresetService, playQueueTableModel);
+	}
+
+	@Bean
+	@Scope("singleton")
+	public SemanticVersion sonivmVersion() {
+		return SemanticVersionUtil.parse(appVersion);
 	}
 
 	@Bean

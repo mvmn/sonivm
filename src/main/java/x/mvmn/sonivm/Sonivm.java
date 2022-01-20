@@ -1,10 +1,14 @@
 package x.mvmn.sonivm;
 
+import java.awt.Desktop;
 import java.io.File;
+import java.net.URL;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+
+import javax.swing.JOptionPane;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -27,6 +31,9 @@ public class Sonivm implements Runnable {
 
 	@Autowired
 	private SonivmUI sonivmUI;
+
+	@Autowired
+	private UpdatesService updatesService;
 
 	public static void main(String[] args) {
 		initConsoleLogging();
@@ -71,5 +78,17 @@ public class Sonivm implements Runnable {
 
 	public void run() {
 		sonivmUI.show();
+
+		String updateLink = updatesService.getUpdateLink();
+		if (updateLink != null) {
+			if (JOptionPane.OK_OPTION == JOptionPane.showConfirmDialog(null, "Sonivm update is available. Open download page?",
+					"Update available", JOptionPane.OK_CANCEL_OPTION)) {
+				try {
+					Desktop.getDesktop().browse(new URL(updateLink).toURI());
+				} catch (Exception e) {
+					LOGGER.log(Level.WARNING, "Failed to open update URL", e);
+				}
+			}
+		}
 	}
 }
