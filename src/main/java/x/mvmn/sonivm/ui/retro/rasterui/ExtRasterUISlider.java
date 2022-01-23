@@ -58,6 +58,10 @@ public class ExtRasterUISlider extends RasterUISlider {
 		}
 		BufferedImage argbBackgroundImage = super.image;
 		Graphics2D g2d = argbBackgroundImage.createGraphics();
+
+		g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR));
+		g2d.fillRect(0, 0, argbBackgroundImage.getWidth(), argbBackgroundImage.getHeight());
+
 		g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
 		int backgroundToUse = sliderPositionToBackgroundIndex.apply(sliderPosition);
 		if (backgroundToUse < 0) {

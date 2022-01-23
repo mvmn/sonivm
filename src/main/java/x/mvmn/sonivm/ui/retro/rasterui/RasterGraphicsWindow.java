@@ -36,6 +36,7 @@ public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize 
 	private static final long serialVersionUID = 6971200625034588294L;
 
 	protected final BufferedImage backgroundImage;
+	protected final BufferedImage layerUIPreRender;
 	protected final BufferedImage transparencyMask;
 	protected final int initialWidth;
 	protected final int initialHeight;
@@ -75,6 +76,7 @@ public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize 
 		super.setBackground(new Color(0, 0, 0, 0));
 		this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		this.backgroundImage = backgroundImage;
+		this.layerUIPreRender = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 		this.transparencyMask = transparencyMask;
 		this.initialWidth = width;
 		this.initialHeight = height;
@@ -127,31 +129,45 @@ public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize 
 		if (!components.isEmpty()) {
 			Graphics2D g2 = (Graphics2D) g.create();
 
+			for (RasterUIComponent uiComponent : components) {
+				if (!uiComponent.isAutoScaled()) {
+					ImageUtil.drawOnto(this.layerUIPreRender, uiComponent.getImage(), uiComponent.getX(), uiComponent.getY());
+
+				}
+			}
+			if (RasterGraphicsWindow.this.getWidth() == initialWidth) {
+				g2.drawImage(this.layerUIPreRender, 0, 0, null);
+			} else {
+				g2.drawImage(this.layerUIPreRender.getScaledInstance(RasterGraphicsWindow.this.getWidth(), -1, Image.SCALE_SMOOTH), 0, 0,
+						null);
+			}
+
 			double scale = getScaleFactor();
 			for (RasterUIComponent uiComponent : components) {
 				if (uiComponent.isAutoScaled()) {
 					uiComponent.setScale(scale);
-				}
-				BufferedImage componentImage = uiComponent.getImage();
-				int x = uiComponent.getX();
-				int y = uiComponent.getY();
-				g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
-				if (RasterGraphicsWindow.this.getWidth() == initialWidth) {
-					g2.drawImage(componentImage, x, y, null);
-				} else {
-					int newX = (int) Math.round(x * scale);
-					int newY = (int) Math.round(y * scale);
-					Image imageToDraw = componentImage;
-					if (!uiComponent.isAutoScaled()) {
-						if (componentImage.getWidth() > componentImage.getHeight()) {
-							int newWidth = (int) Math.round(componentImage.getWidth() * scale);
-							imageToDraw = componentImage.getScaledInstance(newWidth, -1, Image.SCALE_SMOOTH);
-						} else {
-							int newHeight = (int) Math.round(componentImage.getHeight() * scale);
-							imageToDraw = componentImage.getScaledInstance(-1, newHeight, Image.SCALE_SMOOTH);
-						}
+
+					BufferedImage componentImage = uiComponent.getImage();
+					int x = uiComponent.getX();
+					int y = uiComponent.getY();
+					g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
+					if (RasterGraphicsWindow.this.getWidth() == initialWidth) {
+						g2.drawImage(componentImage, x, y, null);
+					} else {
+						int newX = (int) Math.round(x * scale);
+						int newY = (int) Math.round(y * scale);
+						Image imageToDraw = componentImage;
+						// if (!uiComponent.isAutoScaled()) {
+						// if (componentImage.getWidth() > componentImage.getHeight()) {
+						// int newWidth = (int) Math.round(componentImage.getWidth() * scale);
+						// imageToDraw = componentImage.getScaledInstance(newWidth, -1, Image.SCALE_SMOOTH);
+						// } else {
+						// int newHeight = (int) Math.round(componentImage.getHeight() * scale);
+						// imageToDraw = componentImage.getScaledInstance(-1, newHeight, Image.SCALE_SMOOTH);
+						// }
+						// }
+						g2.drawImage(imageToDraw, newX, newY, null);
 					}
-					g2.drawImage(imageToDraw, newX, newY, null);
 				}
 			}
 
