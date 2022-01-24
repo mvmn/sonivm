@@ -118,6 +118,7 @@ public class RasterUISlider extends RasterUIComponent implements MouseListener, 
 			}
 			g2d.drawImage(pressed ? sliderButtonPressed : sliderButtonReleased, x + handleXOffset, y + handleYOffset, null);
 		}
+		g2d.dispose();
 		super.repaint();
 	}
 

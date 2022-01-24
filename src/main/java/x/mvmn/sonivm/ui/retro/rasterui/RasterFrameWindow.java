@@ -266,7 +266,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 
 	@Override
 	protected void paintBackgroundPanel(Graphics g) {
-		Graphics2D g2 = (Graphics2D) g.create();
+		Graphics2D g2 = (Graphics2D) g;
 		g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
 		int width = newScaleCoord(getScaleFactor(), this.extensionWidthPixels + this.initialWidth);
 		if (backgroundImage.getWidth() == width) {
@@ -275,7 +275,6 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 			g2.drawImage(backgroundImage.getScaledInstance(width, -1, BufferedImage.SCALE_SMOOTH), 0, 0, null);
 		}
 		applyTransparencyMask(g2);
-		g2.dispose();
 		this.wrappedComponent.repaint();
 	}
 
@@ -363,6 +362,7 @@ public class RasterFrameWindow extends RasterGraphicsWindow {
 		int widthScaled = newScaleCoord(scaleFactor, width);
 		int heightScaled = newScaleCoord(scaleFactor, height);
 		this.backgroundImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+		this.layerUIPreRender = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 		renderBackground();
 		super.setSize(widthScaled, heightScaled);
 		updateComponentLocations();

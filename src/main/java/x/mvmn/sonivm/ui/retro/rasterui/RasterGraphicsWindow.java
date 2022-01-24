@@ -36,7 +36,7 @@ public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize 
 	private static final long serialVersionUID = 6971200625034588294L;
 
 	protected final BufferedImage backgroundImage;
-	protected final BufferedImage layerUIPreRender;
+	protected volatile BufferedImage layerUIPreRender;
 	protected final BufferedImage transparencyMask;
 	protected final int initialWidth;
 	protected final int initialHeight;
@@ -113,7 +113,7 @@ public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize 
 	}
 
 	protected void paintBackgroundPanel(Graphics g) {
-		Graphics2D g2 = (Graphics2D) g.create();
+		Graphics2D g2 = (Graphics2D) g;
 		g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
 		if (RasterGraphicsWindow.this.getWidth() == initialWidth) {
 			g2.drawImage(backgroundImage, 0, 0, null);
@@ -132,7 +132,6 @@ public class RasterGraphicsWindow extends JFrame implements RectLocationAndSize 
 			for (RasterUIComponent uiComponent : components) {
 				if (!uiComponent.isAutoScaled()) {
 					ImageUtil.drawOnto(this.layerUIPreRender, uiComponent.getImage(), uiComponent.getX(), uiComponent.getY());
-
 				}
 			}
 			if (RasterGraphicsWindow.this.getWidth() == initialWidth) {
