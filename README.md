@@ -29,3 +29,5 @@ Planned features:
 - Other minor improvements (like saving/restoring UI location/size between restarts)
 
 Requires Java 8 (AKA Java 1.8) or above
+
+Demo: https://www.youtube.com/watch?v=7QBx5QoutNg
