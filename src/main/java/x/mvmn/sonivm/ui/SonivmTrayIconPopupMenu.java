@@ -27,6 +27,7 @@ public class SonivmTrayIconPopupMenu {
 	private final MenuItem miRetroUIEQWindow = new MenuItem("Equalizer");
 	private final MenuItem miRetroUIPlaylistWindow = new MenuItem("Playlist");
 	private final Menu miRetroUISkins = new Menu("Skins...");
+	private final MenuItem miRetroUISkinsBrowser = new Menu("Skins browser...");
 	private final MenuItem miImportSkins = new MenuItem("Import skins...");
 	private final MenuItem miRefreshSkinsList = new MenuItem("Reload skins list");
 
@@ -46,6 +47,7 @@ public class SonivmTrayIconPopupMenu {
 		retroUIMenu.add(miRetroUIEQWindow);
 		retroUIMenu.add(miRetroUIPlaylistWindow);
 		retroUIMenu.add(miRetroUISkins);
+		retroUIMenu.add(miRetroUISkinsBrowser);
 		retroUIMenu.add(miImportSkins);
 		retroUIMenu.add(miRefreshSkinsList);
 		popupMenu.add(retroUIMenu);
@@ -72,6 +74,7 @@ public class SonivmTrayIconPopupMenu {
 		miRefreshSkinsList.addActionListener(actEvent -> sonivmUI.onRefreshSkinsList());
 
 		miRetroUISkins.addActionListener(actEvent -> sonivmUI.showSkinBrowser());
+		miRetroUISkinsBrowser.addActionListener(actEvent -> sonivmUI.showSkinBrowser());
 
 		miQuit.addActionListener(actEvent -> sonivmUI.onQuit());
 	}

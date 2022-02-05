@@ -51,6 +51,8 @@ import javax.swing.filechooser.FileFilter;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 
+import org.apache.commons.lang3.SystemUtils;
+
 import lombok.Getter;
 import x.mvmn.sonivm.PlaybackController;
 import x.mvmn.sonivm.PlaybackListener;
@@ -287,9 +289,11 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	}
 
 	protected void setMenuBars(Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> retroUIWindows) {
-		retroUIWindows.getA().getWindow().setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService).getJMenuBar());
-		retroUIWindows.getB().getWindow().setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService).getJMenuBar());
-		retroUIWindows.getC().getWindow().setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService).getJMenuBar());
+		if (SystemUtils.IS_OS_MAC_OSX) {
+			retroUIWindows.getA().getWindow().setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService).getJMenuBar());
+			retroUIWindows.getB().getWindow().setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService).getJMenuBar());
+			retroUIWindows.getC().getWindow().setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService).getJMenuBar());
+		}
 	}
 
 	protected void setIconImageOnRetroUIWindows() {
