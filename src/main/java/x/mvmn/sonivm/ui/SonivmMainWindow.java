@@ -50,6 +50,8 @@ import javax.swing.event.TableColumnModelEvent;
 import javax.swing.event.TableColumnModelListener;
 import javax.swing.table.DefaultTableCellRenderer;
 
+import org.jaudiotagger.tag.images.Artwork;
+
 import lombok.Getter;
 import lombok.Setter;
 import x.mvmn.sonivm.impl.RepeatMode;
@@ -92,6 +94,7 @@ public class SonivmMainWindow extends JFrame {
 	private final JCheckBox cbAutoStop;
 	private final JLabel lblDropTarget;
 	private final JScrollPane scrollTblPlayQueue;
+	private final ArtworkDisplay artworkDisplay;
 
 	private volatile List<Integer> searchMatches = Collections.emptyList();
 	private volatile int currentSearchMatch = -1;
@@ -131,7 +134,8 @@ public class SonivmMainWindow extends JFrame {
 			@Override
 			public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row,
 					int column) {
-				// Component result = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+				// Component result = super.getTableCellRendererComponent(table, value,
+				// isSelected, hasFocus, row, column);
 				renderJLabel.setText(value != null ? value.toString() : "");
 
 				boolean isHighlighted = row == playbackQueueTableModel.getIndexOfHighlightedRow();
@@ -228,10 +232,12 @@ public class SonivmMainWindow extends JFrame {
 			public void columnSelectionChanged(ListSelectionEvent e) {}
 		});
 
-		// DefaultTableCellRenderer rightRendererForDuration = new DefaultTableCellRenderer();
+		// DefaultTableCellRenderer rightRendererForDuration = new
+		// DefaultTableCellRenderer();
 		// rightRendererForDuration.setHorizontalAlignment(JLabel.RIGHT);
 		// tblPlayQueue.getColumnModel().getColumn(5).setCellRenderer(rightRendererForDuration);
-		// DefaultTableCellRenderer rightRendererForDate = new DefaultTableCellRenderer();
+		// DefaultTableCellRenderer rightRendererForDate = new
+		// DefaultTableCellRenderer();
 		// rightRendererForDate.setHorizontalAlignment(JLabel.RIGHT);
 		// tblPlayQueue.getColumnModel().getColumn(6).setCellRenderer(rightRendererForDate);
 
@@ -309,6 +315,11 @@ public class SonivmMainWindow extends JFrame {
 								.build())
 						.build())
 				.build();
+
+		artworkDisplay = new ArtworkDisplay();
+		artworkDisplay.setPreferredSize(new Dimension(0, tfSearch.getMinimumSize().height * 2));
+		topPanel = SwingUtil.panel(BorderLayout::new).addWest(artworkDisplay).addCenter(topPanel).build();
+
 		topPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 
 		{
@@ -741,5 +752,10 @@ public class SonivmMainWindow extends JFrame {
 
 	public void setVolumeSliderPosition(int percent) {
 		this.volumeSlider.setValue(percent);
+	}
+
+	public void setArtwork(Artwork artwork) {
+		this.artworkDisplay.set(artwork);
+		this.artworkDisplay.repaint();
 	}
 }

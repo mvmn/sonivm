@@ -52,6 +52,10 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 
 import org.apache.commons.lang3.SystemUtils;
+import org.jaudiotagger.audio.AudioFile;
+import org.jaudiotagger.audio.AudioFileIO;
+import org.jaudiotagger.tag.Tag;
+import org.jaudiotagger.tag.images.Artwork;
 
 import lombok.Getter;
 import x.mvmn.sonivm.PlaybackController;
@@ -338,7 +342,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			@Override
 			public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row,
 					int column) {
-				// Component result = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+				// Component result = super.getTableCellRendererComponent(table, value,
+				// isSelected, hasFocus, row, column);
 				renderJLabel.setText(value != null ? value.toString() : "");
 
 				boolean isHighlighted = row == playbackController.getTrackQueuePosition();
@@ -736,6 +741,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			}
 			switch (playbackState) {
 				case STOPPED:
+					mainWindow.setArtwork(null);
 					mainWindow.disallowSeek();
 					mainWindow.setCurrentPlayTimeDisplay(0, 0);
 					updateNowPlaying(null);
@@ -746,6 +752,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 					}
 					mainWindow.setPlayPauseButtonState(false);
 					trayIconPopupMenu.setPlayPauseButtonState(false);
+					updateArtwork(false);
 				break;
 				case PAUSED:
 					mainWindow.setPlayPauseButtonState(false);
@@ -754,11 +761,36 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 				case PLAYING:
 					mainWindow.setPlayPauseButtonState(true);
 					trayIconPopupMenu.setPlayPauseButtonState(true);
+					updateArtwork(true);
 				break;
 				default:
 					throw new IllegalArgumentException("Unsupported playback state " + playbackState);
 			}
 		}, false);
+	}
+
+	protected void updateArtwork(boolean playing) {
+		new Thread(() -> {
+			try {
+				Artwork artwork;
+				Tag tag = null;
+				PlaybackQueueEntry currentTrack = playbackQueueService.getCurrentEntry();
+				if (playing && currentTrack != null) {
+					AudioFile audioFile = AudioFileIO.read(new File(currentTrack.getTargetFileFullPath()));
+					if (audioFile != null) {
+						tag = audioFile.getTag();
+					}
+				}
+				if (tag != null) {
+					artwork = tag.getFirstArtwork();
+				} else {
+					artwork = null;
+				}
+				SwingUtil.runOnEDT(() -> mainWindow.setArtwork(artwork), false);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}).start();
 	}
 
 	protected void updateNowPlaying(PlaybackQueueEntry nowPlaying) {
