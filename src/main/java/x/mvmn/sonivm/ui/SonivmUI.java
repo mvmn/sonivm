@@ -78,8 +78,8 @@ import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
 import x.mvmn.sonivm.ui.retro.RetroUIEqualizerWindow;
 import x.mvmn.sonivm.ui.retro.RetroUIFactory;
 import x.mvmn.sonivm.ui.retro.RetroUIMainWindow;
-import x.mvmn.sonivm.ui.retro.RetroUIPlaylistWindow;
 import x.mvmn.sonivm.ui.retro.RetroUIPlayQueueTableModel;
+import x.mvmn.sonivm.ui.retro.RetroUIPlaylistWindow;
 import x.mvmn.sonivm.ui.retro.exception.WSZLoadingException;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.Tuple2;
@@ -344,13 +344,14 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 					int column) {
 				// Component result = super.getTableCellRendererComponent(table, value,
 				// isSelected, hasFocus, row, column);
-				renderJLabel.setText(value != null ? value.toString() : "");
+				String text = value != null ? value.toString() : "";
 
 				boolean isHighlighted = row == playbackController.getTrackQueuePosition();
 				renderJLabel.setFont(isHighlighted ? tblPlayQueue.getFont().deriveFont(Font.BOLD) : tblPlayQueue.getFont());
 
 				int originalColumnIndex = table.convertColumnIndexToModel(column);
 				renderJLabel.setHorizontalAlignment(originalColumnIndex == 2 ? JLabel.LEFT : JLabel.RIGHT);
+				renderJLabel.setText(text);
 
 				Color fgRegular = table.getForeground();
 				Color bgRegular = table.getBackground();

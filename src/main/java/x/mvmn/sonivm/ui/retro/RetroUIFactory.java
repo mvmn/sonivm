@@ -440,8 +440,35 @@ public class RetroUIFactory {
 		Wini plEditIni = loadIniFile(skinZip, "PLEDIT.TXT");
 		Color playlistTextColor = WinAmpSkinUtil.getColor(plEditIni, "Text", "Normal", textColor);
 		Color playlistBackgroundColor = WinAmpSkinUtil.getColor(plEditIni, "Text", "NormalBG", backgroundColor);
-		Color currentTrackTextColor = WinAmpSkinUtil.getColor(plEditIni, "Text", "Current", textColor.brighter());
+		Color currentTrackTextColor = WinAmpSkinUtil.getColor(plEditIni, "Text", "Current",
+				SwingUtil.getColorBrightness(textColor) > 600 ? textColor.darker() : textColor.brighter());
 		Color selectionBackgroundColor = WinAmpSkinUtil.getColor(plEditIni, "Text", "SelectedBG", backgroundColor.brighter());
+
+		if (SwingUtil.getColorDelta(playlistBackgroundColor, playlistTextColor) < 0.3) {
+			Color newPlaylistTextColor = SwingUtil.makeColorMoreDistant(playlistTextColor, playlistBackgroundColor, 80);
+			if (SwingUtil.getColorDelta(playlistBackgroundColor, newPlaylistTextColor) < 0.3) {
+				playlistBackgroundColor = SwingUtil.makeColorMoreDistant(playlistBackgroundColor, playlistTextColor, 80);
+			} else {
+				playlistTextColor = newPlaylistTextColor;
+			}
+		}
+
+		if (SwingUtil.getColorDelta(currentTrackTextColor, playlistTextColor) < 0.3) {
+			currentTrackTextColor = SwingUtil.makeColorMoreDistant(currentTrackTextColor, playlistTextColor, 80);
+			if (SwingUtil.getColorDelta(currentTrackTextColor, playlistBackgroundColor) < 0.3) {
+				currentTrackTextColor = SwingUtil.makeColorMoreDistant(currentTrackTextColor, playlistBackgroundColor, 80);
+			}
+		}
+
+		if (SwingUtil.getColorDelta(selectionBackgroundColor, playlistBackgroundColor) < 0.2) {
+			selectionBackgroundColor = SwingUtil.makeColorMoreDistant(selectionBackgroundColor, playlistBackgroundColor, 50);
+		}
+		if (SwingUtil.getColorDelta(selectionBackgroundColor, playlistTextColor) < 0.3) {
+			selectionBackgroundColor = SwingUtil.makeColorMoreDistant(selectionBackgroundColor, playlistTextColor, 80);
+		}
+		if (SwingUtil.getColorDelta(selectionBackgroundColor, playlistBackgroundColor) < 0.2) {
+			selectionBackgroundColor = SwingUtil.makeColorMoreDistant(selectionBackgroundColor, playlistBackgroundColor, 50);
+		}
 
 		playlistTable.setOpaque(true);
 		playlistTable.setBackground(playlistBackgroundColor);
@@ -478,10 +505,12 @@ public class RetroUIFactory {
 				.add(btnSearchPreviousMatch)
 				.build();
 		plPanel.add(searchPanel, BorderLayout.NORTH);
+		Color playlistBackgroundColorFinal = playlistBackgroundColor;
+		Color playlistTextColorFinal = playlistTextColor;
 		Stream.of(plPanel, searchPanel, playlistTable, lblSearch, lblMatches, tfSearch, btnSearchNextMatch, btnSearchPreviousMatch,
 				cbSearchFullPhrase, lblSearchMatchesCount, btnSearchClear).forEach(c -> {
-					c.setBackground(playlistBackgroundColor);
-					c.setForeground(playlistTextColor);
+					c.setBackground(playlistBackgroundColorFinal);
+					c.setForeground(playlistTextColorFinal);
 				});
 
 		JScrollPane playListScrollPane = new JScrollPane(playlistTable);

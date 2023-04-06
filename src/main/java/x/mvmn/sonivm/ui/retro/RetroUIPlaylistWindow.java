@@ -147,8 +147,6 @@ public class RetroUIPlaylistWindow {
 
 			@Override
 			public void changedUpdate(DocumentEvent e) {
-				// TODO Auto-generated method stub
-
 			}
 		});
 

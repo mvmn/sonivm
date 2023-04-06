@@ -768,4 +768,29 @@ public class SwingUtil {
 		int colorBrightness = red + green + blue;
 		return colorBrightness;
 	}
+
+	public static boolean isBrihght(Color color) {
+		return getColorBrightness(color) > 382; // (255*3)/2
+	}
+
+	public static double getColorDelta(Color c1, Color c2) {
+		return (Math.abs(c1.getRed() - c2.getRed()) + Math.abs(c1.getGreen() - c2.getGreen()) + Math.abs(c1.getBlue() - c2.getBlue()))
+				/ 765.0d;
+	}
+
+	public static Color makeColorMoreDistant(Color sourceColor, Color reference, int distance) {
+		int colorRGB = sourceColor.getRGB();
+		int red = (colorRGB >> 16) & 0xFF;
+		int green = (colorRGB >> 8) & 0xFF;
+		int blue = colorRGB & 0xFF;
+		int alpha = sourceColor.getAlpha();
+
+		return new Color(distantiateColorComponent(red, reference.getRed(), distance),
+				distantiateColorComponent(green, reference.getGreen(), distance),
+				distantiateColorComponent(blue, reference.getBlue(), distance), alpha);
+	}
+
+	private static int distantiateColorComponent(int component, int reference, int distance) {
+		return component > reference ? Math.min(component + distance, 255) : Math.max(component - distance, 0);
+	}
 }
