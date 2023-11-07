@@ -9,12 +9,11 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.commons.io.FileUtils;
 import org.springframework.stereotype.Service;
 
 import de.umass.lastfm.scrobble.ScrobbleData;
+import jakarta.annotation.PostConstruct;
 import x.mvmn.sonivm.lastfm.LastFMQueueService;
 import x.mvmn.sonivm.lastfm.ScrobbleDataHelper;
 import x.mvmn.sonivm.util.FileHelper;

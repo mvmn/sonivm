@@ -1,10 +1,9 @@
 package x.mvmn.sonivm.impl;
 
-import javax.annotation.PostConstruct;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
 import x.mvmn.sonivm.playqueue.PlaybackQueueChangeListener;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;

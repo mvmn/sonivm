@@ -13,7 +13,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
-import javax.annotation.PostConstruct;
 import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
@@ -30,6 +29,7 @@ import com.tagtraum.ffsampledsp.FFAudioFileReader;
 import com.tagtraum.ffsampledsp.FFAudioInputStream;
 
 import davaguine.jeq.spi.EqualizerInputStream;
+import jakarta.annotation.PostConstruct;
 import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.audio.AudioServiceEvent;

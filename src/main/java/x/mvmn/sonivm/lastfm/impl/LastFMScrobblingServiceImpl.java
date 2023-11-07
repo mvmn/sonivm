@@ -8,8 +8,6 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.annotation.PostConstruct;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +16,7 @@ import de.umass.lastfm.Session;
 import de.umass.lastfm.Track;
 import de.umass.lastfm.scrobble.ScrobbleData;
 import de.umass.lastfm.scrobble.ScrobbleResult;
+import jakarta.annotation.PostConstruct;
 import x.mvmn.sonivm.lastfm.LastFMQueueService;
 import x.mvmn.sonivm.lastfm.LastFMScrobblingService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;

@@ -29,7 +29,6 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.annotation.PostConstruct;
 import javax.sound.sampled.AudioSystem;
 import javax.swing.BorderFactory;
 import javax.swing.DropMode;
@@ -57,6 +56,7 @@ import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.images.Artwork;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import x.mvmn.sonivm.PlaybackController;
 import x.mvmn.sonivm.PlaybackListener;
