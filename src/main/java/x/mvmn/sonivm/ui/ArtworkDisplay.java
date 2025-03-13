@@ -38,6 +38,11 @@ public class ArtworkDisplay extends JComponent {
 		this.toolTip = null;
 
 		if (artwork != null && artwork instanceof StandardArtwork) {
+			int currentWidth = this.getWidth();
+			int currentHeight = this.getHeight();
+			if (currentWidth <= 0 || currentHeight <= 0) {
+				return;
+			}
 			try {
 				BufferedImage originalImage = (BufferedImage) artwork.getImage();
 				if (originalImage != null) {
@@ -54,7 +59,7 @@ public class ArtworkDisplay extends JComponent {
 					}
 					Image finalTooltipImage = tooltipImage;
 					Dimension imgDimension = new Dimension(tooltipImage.getWidth(null), tooltipImage.getHeight(null));
-					this.img = originalImage.getScaledInstance(this.getWidth(), this.getHeight(), Image.SCALE_SMOOTH);
+					this.img = originalImage.getScaledInstance(currentWidth, currentHeight, Image.SCALE_SMOOTH);
 					this.toolTip = new JToolTip() {
 						@Override
 						public Dimension getPreferredSize() {
