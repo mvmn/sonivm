@@ -10,6 +10,7 @@ import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -33,7 +34,9 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
@@ -238,6 +241,46 @@ public class SonivmMainWindow extends JFrame {
 			@Override
 			public void columnSelectionChanged(ListSelectionEvent e) {}
 		});
+		tblPlayQueue.addMouseListener(new MouseAdapter() {
+			private JPopupMenu popup = menu();
+
+			public JPopupMenu menu() {
+				JPopupMenu popup = new JPopupMenu();
+				JMenuItem edit = new JMenuItem("Edit metadata");
+				popup.add(edit);
+				edit.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						SonivmMainWindow.this.showEditMetadataDialog();
+					}
+				});
+				return popup;
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				if (e.getButton() == MouseEvent.BUTTON3) {
+					Point p = e.getPoint();
+					int row = tblPlayQueue.rowAtPoint(p);
+
+					// If click is not on a valid row, you might want to ignore or clear selection:
+					if (row == -1) {
+						return;
+					}
+
+					// If that row isn't selected already, select it (useful for single selection or to
+					// ensure Edit/Delete apply to the clicked row)
+					if (!tblPlayQueue.isRowSelected(row)) {
+						tblPlayQueue.getSelectionModel().setSelectionInterval(row, row);
+					}
+
+					// Optionally select the column too:
+					// if (!table.isColumnSelected(column)) table.getColumnModel().getSelectionModel().setSelectionInterval(column, column);
+
+					popup.show(e.getComponent(), e.getX(), e.getY());
+				}
+			}
+		});
 
 		// DefaultTableCellRenderer rightRendererForDuration = new
 		// DefaultTableCellRenderer();
@@ -431,7 +474,8 @@ public class SonivmMainWindow extends JFrame {
 
 		tblPlayQueue.addMouseListener(new MouseAdapter() {
 			public void mousePressed(MouseEvent mouseEvent) {
-				if (mouseEvent.getClickCount() == 2 && tblPlayQueue.getSelectedRow() != -1) {
+				if (mouseEvent.getClickCount() == 2 && tblPlayQueue.getSelectedRow() != -1
+						&& mouseEvent.getButton() == MouseEvent.BUTTON1) {
 					Point point = mouseEvent.getPoint();
 					int row = tblPlayQueue.rowAtPoint(point);
 					controller.onTrackSelect(row);
@@ -764,5 +808,13 @@ public class SonivmMainWindow extends JFrame {
 	public void setArtwork(Artwork artwork) {
 		this.artworkDisplay.set(artwork);
 		this.artworkDisplay.repaint();
+	}
+
+	private void showEditMetadataDialog() {
+		int[] selectedRows = this.tblPlayQueue.getSelectedRows();
+		if (selectedRows.length > 0) {
+			EditMetadataDialog dialog = new EditMetadataDialog(this, playbackQueueTableModel, selectedRows);
+			dialog.setVisible(true);
+		}
 	}
 }

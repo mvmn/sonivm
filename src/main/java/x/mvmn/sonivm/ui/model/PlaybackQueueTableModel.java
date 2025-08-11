@@ -77,6 +77,10 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 		}
 	}
 
+	public PlaybackQueueEntry getEntry(int row) {
+		return playQueueService.getEntryByIndex(row);
+	}
+
 	@Override
 	public int getRowCount() {
 		return playQueueService.getQueueSize();
@@ -141,5 +145,9 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 		return IntStream.of(playQueueService.findTracks(searchPredicate(text, fullPhrase)))
 				.mapToObj(Integer::valueOf)
 				.collect(Collectors.toList());
+	}
+
+	public void rowChanged(int row) {
+		playQueueService.signalUpdateInRow(row);
 	}
 }
