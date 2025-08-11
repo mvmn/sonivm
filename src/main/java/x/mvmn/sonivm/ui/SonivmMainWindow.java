@@ -42,6 +42,8 @@ import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.UIManager;
+import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -125,9 +127,13 @@ public class SonivmMainWindow extends JFrame {
 		tblPlayQueue.setDefaultRenderer(String.class, new DefaultTableCellRenderer() {
 			private static final long serialVersionUID = 8392498039681170058L;
 
+			Border emptyBorder = BorderFactory.createEmptyBorder(0, 4, 0, 4);
+			Border highlightBorder = new CompoundBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, tblPlayQueue.getForeground()),
+					BorderFactory.createEmptyBorder(0, 4, 0, 4));
+
 			private final JLabel renderJLabel = new JLabel();
 			{
-				renderJLabel.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 4));
+				renderJLabel.setBorder(emptyBorder);
 				renderJLabel.setOpaque(true);
 			}
 
@@ -186,6 +192,7 @@ public class SonivmMainWindow extends JFrame {
 
 				renderJLabel.setForeground(isSelected ? fgSelected : fgRegular);
 				renderJLabel.setBackground(isSelected ? bgSelected : bgRegular);
+				renderJLabel.setBorder(isHighlighted ? highlightBorder : emptyBorder);
 
 				// super.setForeground(isSelected ? fgSelected : fgRegular);
 				// super.setBackground(isSelected ? bgSelected : bgRegular);

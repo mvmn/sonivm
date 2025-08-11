@@ -55,12 +55,13 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	public String getValueAt(int row, int column) {
 		int currentQueuePlayPosition = playQueueService.getCurrentQueuePosition();
 		PlaybackQueueEntry entry = playQueueService.getEntryByIndex(row);
+		boolean nowPlayed = currentQueuePlayPosition == row;
 		switch (column) {
 			default:
 			case 0:
-				return (currentQueuePlayPosition == row ? "-> " : "") + (row + 1);
+				return (nowPlayed ? "-> " : "") + (row + 1);
 			case 1:
-				return entry.getTrackNumber() != null ? String.valueOf(entry.getTrackNumber()) : "";
+				return StringUtil.blankForNull(entry.getTrackNumber());
 			case 2:
 				return entry.getTitle();
 			case 3:
@@ -102,7 +103,7 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	// }
 
 	private Predicate<PlaybackQueueEntry> searchPredicate(String searchText, boolean searchFullPhrase) {
-		searchText = StringUtil.stripAccents(searchText.toLowerCase()).replaceAll("\\s+", " ").trim();
+		searchText = normalizeForSearch(searchText);
 		String[] searchTerms;
 		if (searchFullPhrase) {
 			searchTerms = new String[] { searchText };
@@ -133,7 +134,7 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	}
 
 	private String normalizeForSearch(String val) {
-		return StringUtil.stripAccents(StringUtil.blankForNull(val).toLowerCase()).replaceAll("\\s+", " ").trim();
+		return StringUtil.stripAccents(StringUtil.blankForNull(val)).toLowerCase().replaceAll("\\s+", " ").trim();
 	}
 
 	public List<Integer> search(String text, boolean fullPhrase) {
