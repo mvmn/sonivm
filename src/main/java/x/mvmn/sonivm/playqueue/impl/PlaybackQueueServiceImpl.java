@@ -1,6 +1,7 @@
 package x.mvmn.sonivm.playqueue.impl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -18,13 +19,70 @@ import x.mvmn.sonivm.util.IntRange;
 @Service
 public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 
-	private List<PlaybackQueueEntry> data = Collections.synchronizedList(new ArrayList<PlaybackQueueEntry>());
+	private final List<List<PlaybackQueueEntry>> datas = new CopyOnWriteArrayList<>(Arrays.asList(newEmptyQueue()));
+	private final List<String> queueNames = new ArrayList<>(Arrays.asList("Default"));
+	private volatile int currentViewedQueue = 0;
+	private volatile int currentPlaybackQueue = -1;
 	private volatile int currentQueuePosition = -1;
 
 	private static final Object QUEUE_POSITION_LOCK_OBJ = new Object();
 	private static final Object DATA_LOCK_OBJ = new Object();
 
 	private CopyOnWriteArrayList<PlaybackQueueChangeListener> changeListeners = new CopyOnWriteArrayList<>();
+
+	private static List<PlaybackQueueEntry> newEmptyQueue() {
+		return Collections.synchronizedList(new ArrayList<PlaybackQueueEntry>());
+	}
+
+	@Override
+	public void addQueue(String name) {
+		datas.add(newEmptyQueue());
+		queueNames.add(name);
+	}
+
+	@Override
+	public void removeQueue(int queueIndex) {
+		if (queueIndex > 0 && queueIndex < datas.size()) {
+			datas.remove(queueIndex);
+			queueNames.remove(queueIndex);
+			if (currentViewedQueue >= queueIndex) {
+				currentViewedQueue--;
+				signalUpdateInRows(0, Integer.MAX_VALUE);
+			}
+		}
+		if (currentPlaybackQueue == queueIndex) {
+			currentPlaybackQueue = -1;
+		}
+	}
+
+	@Override
+	public int getCurrentQueue() {
+		return currentViewedQueue;
+	}
+
+	@Override
+	public int getCurrentPlayQueue() {
+		return currentPlaybackQueue;
+	}
+
+	@Override
+	public void setCurrentQueue(int currentQueue) {
+		if (currentQueue < 0) {
+			currentQueue = 0;
+		}
+		this.currentViewedQueue = currentQueue;
+		signalUpdateInRows(0, Integer.MAX_VALUE);
+	}
+
+	@Override
+	public String getQueueName(int queueIndex) {
+		return queueNames.get(queueIndex);
+	}
+
+	@Override
+	public int getQueuesCount() {
+		return datas.size();
+	}
 
 	@Override
 	public int getCurrentQueuePosition() {
@@ -33,22 +91,23 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 
 	@Override
 	public PlaybackQueueEntry getCurrentEntry() {
-		return currentQueuePosition >= 0 ? data.get(currentQueuePosition) : null;
+		return currentQueuePosition >= 0 ? datas.get(currentPlaybackQueue).get(currentQueuePosition) : null;
 	}
 
 	@Override
 	public PlaybackQueueEntry getEntryByIndex(int index) {
-		return index >= 0 && index < data.size() ? data.get(index) : null;
-	};
+		return index >= 0 && index < getData().size() ? getData().get(index) : null;
+	}
 
 	@Override
 	public int getQueueSize() {
-		return data.size();
+		return getData().size();
 	}
 
 	@Override
 	public void setCurrentQueuePosition(int newPosition) {
-		int rows = data.size();
+		this.currentPlaybackQueue = this.currentViewedQueue;
+		int rows = getData().size();
 		int oldPosition = this.currentQueuePosition;
 		if (newPosition >= 0 && newPosition < rows) {
 			this.currentQueuePosition = newPosition;
@@ -64,7 +123,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	@Override
 	public void clearQueue() {
 		synchronized (DATA_LOCK_OBJ) {
-			data.clear();
+			getData().clear();
 		}
 	}
 
@@ -76,19 +135,21 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	@Override
 	public void addRows(int atIndex, Collection<PlaybackQueueEntry> newRows) {
 		synchronized (DATA_LOCK_OBJ) {
-			int dataSizeBeforeAdd = data.size();
+			int dataSizeBeforeAdd = getData().size();
 			if (atIndex < 0 || atIndex >= dataSizeBeforeAdd) {
 				int numberAdded = newRows.size();
-				data.addAll(newRows);
+				getData().addAll(newRows);
 				onTableRowsInsert(dataSizeBeforeAdd, dataSizeBeforeAdd + numberAdded - 1, false);
 			} else {
 				int numberAdded = newRows.size();
-				data.addAll(atIndex, newRows);
-				synchronized (QUEUE_POSITION_LOCK_OBJ) {
-					int currentQueuePosition = getCurrentQueuePosition();
-					if (currentQueuePosition >= atIndex) {
-						currentQueuePosition += numberAdded;
-						setCurrentQueuePosition(currentQueuePosition);
+				getData().addAll(atIndex, newRows);
+				if (this.currentViewedQueue == this.currentPlaybackQueue) {
+					synchronized (QUEUE_POSITION_LOCK_OBJ) {
+						int currentQueuePosition = getCurrentQueuePosition();
+						if (currentQueuePosition >= atIndex) {
+							currentQueuePosition += numberAdded;
+							setCurrentQueuePosition(currentQueuePosition);
+						}
 					}
 				}
 				onTableRowsInsert(atIndex, atIndex + numberAdded - 1, false);
@@ -99,7 +160,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	@Override
 	public void deleteRows(int fromIndex, int toIndex) {
 		synchronized (DATA_LOCK_OBJ) {
-			int dataSizeBeforeDelete = data.size();
+			int dataSizeBeforeDelete = getData().size();
 			if (fromIndex < 0) {
 				fromIndex = 0;
 			}
@@ -115,20 +176,22 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 
 			if (fromIndex < toIndex) {
 				for (int i = toIndex - 1; i >= fromIndex; i--) {
-					data.remove(i);
+					getData().remove(i);
 				}
 				int firstRow = fromIndex;
 				int lastRow = toIndex - 1;
 				onTableRowsDelete(firstRow, lastRow, true);
 			}
 		}
-		synchronized (QUEUE_POSITION_LOCK_OBJ) {
-			int currentQueuePosition = getCurrentQueuePosition();
-			if (currentQueuePosition > toIndex - 1) {
-				currentQueuePosition -= (toIndex - fromIndex);
-				setCurrentQueuePosition(currentQueuePosition);
-			} else if (currentQueuePosition >= fromIndex && currentQueuePosition < toIndex) {
-				setCurrentQueuePosition(-1);
+		if (this.currentViewedQueue == this.currentPlaybackQueue) {
+			synchronized (QUEUE_POSITION_LOCK_OBJ) {
+				int currentQueuePosition = getCurrentQueuePosition();
+				if (currentQueuePosition > toIndex - 1) {
+					currentQueuePosition -= (toIndex - fromIndex);
+					setCurrentQueuePosition(currentQueuePosition);
+				} else if (currentQueuePosition >= fromIndex && currentQueuePosition < toIndex) {
+					setCurrentQueuePosition(-1);
+				}
 			}
 		}
 	}
@@ -139,6 +202,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 		int rowCount = lastRow - firstRow + 1;
 		synchronized (DATA_LOCK_OBJ) {
 			List<PlaybackQueueEntry> selectedRowValues = new ArrayList<>(rowCount);
+			List<PlaybackQueueEntry> data = getData();
 			selectedRowValues.addAll(data.subList(firstRow, lastRow + 1));
 			for (int i = lastRow; i >= firstRow; i--) {
 				data.remove(i);
@@ -161,23 +225,25 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 		// from original to new location of the moved rows.
 		// 6 - Rows that include queue position were moved somewhere below - queue position must be increased by move offset,
 		// but decreased by number of rows removed before it during move.
-		synchronized (QUEUE_POSITION_LOCK_OBJ) {
-			int currentQueuePosition = getCurrentQueuePosition();
-			if (currentQueuePosition >= firstRow && currentQueuePosition <= lastRow) {
-				if (currentQueuePosition > originalToIndex) {
-					currentQueuePosition += originalToIndex - firstRow;
+		if (this.currentViewedQueue == this.currentPlaybackQueue) {
+			synchronized (QUEUE_POSITION_LOCK_OBJ) {
+				int currentQueuePosition = getCurrentQueuePosition();
+				if (currentQueuePosition >= firstRow && currentQueuePosition <= lastRow) {
+					if (currentQueuePosition > originalToIndex) {
+						currentQueuePosition += originalToIndex - firstRow;
+						setCurrentQueuePosition(currentQueuePosition);
+					} else {
+						//
+						currentQueuePosition += originalToIndex - firstRow - rowCount;
+						setCurrentQueuePosition(currentQueuePosition);
+					}
+				} else if (lastRow < currentQueuePosition && originalToIndex > currentQueuePosition) {
+					currentQueuePosition -= rowCount;
 					setCurrentQueuePosition(currentQueuePosition);
-				} else {
-					//
-					currentQueuePosition += originalToIndex - firstRow - rowCount;
+				} else if (firstRow > currentQueuePosition && originalToIndex <= currentQueuePosition) {
+					currentQueuePosition += rowCount;
 					setCurrentQueuePosition(currentQueuePosition);
 				}
-			} else if (lastRow < currentQueuePosition && originalToIndex > currentQueuePosition) {
-				currentQueuePosition -= rowCount;
-				setCurrentQueuePosition(currentQueuePosition);
-			} else if (firstRow > currentQueuePosition && originalToIndex <= currentQueuePosition) {
-				currentQueuePosition += rowCount;
-				setCurrentQueuePosition(currentQueuePosition);
 			}
 		}
 	}
@@ -185,7 +251,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	@Override
 	public List<PlaybackQueueEntry> getCopyOfQueue() {
 		synchronized (DATA_LOCK_OBJ) {
-			return new ArrayList<>(data);
+			return new ArrayList<>(getData());
 		}
 	}
 
@@ -202,7 +268,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	@Override
 	public void signalUpdateInTrackInfo(PlaybackQueueEntry updatedEntry) {
 		// TODO: optimize
-		int row = data.indexOf(updatedEntry);
+		int row = getData().indexOf(updatedEntry);
 		if (row >= 0) {
 			signalUpdateInRow(row);
 		}
@@ -235,6 +301,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	public int[] findTracks(Predicate<PlaybackQueueEntry> matches) {
 		List<Integer> result = new ArrayList<>();
 		synchronized (DATA_LOCK_OBJ) {
+			List<PlaybackQueueEntry> data = getData();
 			int rows = data.size();
 			for (int i = 0; i < rows; i++) {
 				PlaybackQueueEntry queueEntry = data.get(i);
@@ -249,6 +316,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	@Override
 	public IntRange detectTrackRange(int currentPosition, BiPredicate<PlaybackQueueEntry, PlaybackQueueEntry> condition) {
 		synchronized (DATA_LOCK_OBJ) {
+			List<PlaybackQueueEntry> data = getData();
 			int trackCount = data.size();
 			if (trackCount > 0) {
 				PlaybackQueueEntry currentTrack = data.get(currentPosition);
@@ -275,5 +343,9 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 				return new IntRange(-1, -1);
 			}
 		}
+	}
+
+	private List<PlaybackQueueEntry> getData() {
+		return datas.get(currentViewedQueue);
 	}
 }

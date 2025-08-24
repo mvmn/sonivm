@@ -33,6 +33,10 @@ public interface PlaybackController extends AudioServiceEventListener {
 	boolean onDropQueueRowsInsideQueue(int queuePosition, int firstRow, int lastRow);
 
 	void onDeleteRowsFromQueue(int firstRow, int lastRow);
+	
+	void onQueueAdd();
+	
+	void onQueueRemove();
 
 	void restorePlaybackState();
 

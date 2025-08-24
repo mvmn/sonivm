@@ -19,6 +19,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
@@ -43,6 +44,8 @@ public class RetroUIPlaylistWindow {
 	protected final JTable playlistTable;
 	@Getter
 	protected final PlaylistColors playlistColors;
+	@Getter
+	private final JTabbedPane tabsPlaylists;
 
 	@Getter
 	protected final JTextField retroUISearchInput;

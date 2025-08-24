@@ -55,11 +55,11 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	public String getValueAt(int row, int column) {
 		int currentQueuePlayPosition = playQueueService.getCurrentQueuePosition();
 		PlaybackQueueEntry entry = playQueueService.getEntryByIndex(row);
-		boolean nowPlayed = currentQueuePlayPosition == row;
+		boolean nowPlayed = currentQueuePlayPosition == row && playQueueService.getCurrentQueue() == playQueueService.getCurrentPlayQueue();
 		switch (column) {
 			default:
 			case 0:
-				return (nowPlayed ? "-> " : "") + (row + 1);
+				return (nowPlayed ? "\uD83D\uDD0A " : "") + (row + 1);
 			case 1:
 				return StringUtil.blankForNull(entry.getTrackNumber());
 			case 2:
@@ -87,6 +87,11 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	}
 
 	public int getIndexOfHighlightedRow() {
+		return playQueueService.getCurrentPlayQueue() == playQueueService.getCurrentQueue() ? playQueueService.getCurrentQueuePosition()
+				: -1;
+	}
+
+	public int getCurrentQueuePosition() {
 		return playQueueService.getCurrentQueuePosition();
 	}
 
@@ -142,12 +147,38 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	}
 
 	public List<Integer> search(String text, boolean fullPhrase) {
-		return IntStream.of(playQueueService.findTracks(searchPredicate(text, fullPhrase)))
+		List<Integer> result = IntStream.of(playQueueService.findTracks(searchPredicate(text, fullPhrase)))
 				.mapToObj(Integer::valueOf)
 				.collect(Collectors.toList());
+		setSearchMatchedRows(result);
+		return result;
 	}
 
 	public void rowChanged(int row) {
 		playQueueService.signalUpdateInRow(row);
+	}
+
+	public void addQueue(String queueName) {
+		playQueueService.addQueue(queueName);
+	}
+
+	public int getQueuesCount() {
+		return playQueueService.getQueuesCount();
+	}
+
+	public String getQueueName(int index) {
+		return playQueueService.getQueueName(index);
+	}
+
+	public void deleteQueue(int index) {
+		playQueueService.removeQueue(index);
+	}
+
+	public void switchQueue(int index) {
+		playQueueService.setCurrentQueue(index);
+	}
+
+	public int getCurrentPlayQueue() {
+		return playQueueService.getCurrentPlayQueue();
 	}
 }

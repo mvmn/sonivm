@@ -44,6 +44,7 @@ import javax.swing.JTable;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.TableColumnModelEvent;
 import javax.swing.event.TableColumnModelListener;
@@ -165,6 +166,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			mainWindow.setRepeatMode(playbackController.getRepeatMode());
 			mainWindow.setAutoStop(playbackController.isAutoStop());
 			mainWindow.setVolumeSliderPosition(playbackController.getCurrentVolumePercentage());
+			mainWindow.reloadQueueTabNames();
 		}, false);
 
 		SwingUtil.runOnEDT(() -> {
@@ -244,6 +246,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		lastFMScrobblingService.addStatusListener(this);
 
 		restoreMainWindowPlaybackState();
+		SwingUtil.runOnEDT(() -> mainWindow.updatePlayQueueSizeLabel(), false);
 	}
 
 	public void showMainWindow() {
@@ -287,6 +290,17 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 				}
 			});
 			setIconImageOnRetroUIWindows();
+			
+			for (int i = 0; i < playbackQueueService.getQueuesCount(); i++) {
+				retroUIWindows.getC().getTabsPlaylists().addTab(playbackQueueService.getQueueName(i), new JLabel());
+			}
+			retroUIWindows.getC().getTabsPlaylists().addChangeListener(new ChangeListener() {
+				@Override
+				public void stateChanged(ChangeEvent e) {
+					int idx = retroUIWindows.getC().getTabsPlaylists().getSelectedIndex();
+					playbackQueueService.setCurrentQueue(idx);
+				}
+			});
 		} catch (WSZLoadingException e) {
 			LOGGER.log(Level.SEVERE, "Failed to cosntruct UI from WinAmp skin: " + retroUISkin, e);
 		}
@@ -1279,5 +1293,15 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 				.concat(Stream.of(AudioDeviceOption.builder().audioDeviceInfo(null).build()),
 						Stream.of(AudioSystem.getMixerInfo()).map(AudioDeviceOption::of))
 				.collect(Collectors.toList());
+	}
+
+	@Override
+	public void onQueueAdd() {
+		playbackController.onQueueAdd();
+	}
+
+	@Override
+	public void onQueueRemove() {
+		playbackController.onQueueRemove();
 	}
 }
