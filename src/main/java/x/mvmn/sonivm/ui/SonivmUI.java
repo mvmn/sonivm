@@ -290,7 +290,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 				}
 			});
 			setIconImageOnRetroUIWindows();
-			
+
 			for (int i = 0; i < playbackQueueService.getQueuesCount(); i++) {
 				retroUIWindows.getC().getTabsPlaylists().addTab(playbackQueueService.getQueueName(i), new JLabel());
 			}
@@ -662,12 +662,16 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		boolean result = playbackController.onDropQueueRowsInsideQueue(queuePosition, firstRow, lastRow);
 		if (result) {
 			SwingUtil.runOnEDT(() -> {
-				mainWindow.setSelectedPlayQueueRows(queuePosition, queuePosition + (lastRow - firstRow));
+				int rowCount = lastRow - firstRow;
+				int selectionStart = queuePosition;
+				int selectionEnd = queuePosition + rowCount;
+				if (queuePosition > firstRow) {
+					selectionStart -= rowCount + 1;
+					selectionEnd -= rowCount + 1;
+				}
+				mainWindow.setSelectedPlayQueueRows(selectionStart, selectionEnd);
 				if (retroUIWindows != null) {
-					retroUIWindows.getC()
-							.getPlaylistTable()
-							.getSelectionModel()
-							.setSelectionInterval(queuePosition, queuePosition + (lastRow - firstRow));
+					retroUIWindows.getC().getPlaylistTable().getSelectionModel().setSelectionInterval(selectionStart, selectionEnd);
 				}
 			}, false);
 		}

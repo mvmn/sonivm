@@ -331,13 +331,8 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 	@Override
 	public boolean onDropQueueRowsInsideQueue(int insertPosition, int firstRow, int lastRow) {
-		int rowCount = lastRow - firstRow + 1;
 		if (insertPosition > lastRow || insertPosition < firstRow) {
 			playbackQueueService.moveRows(insertPosition, firstRow, lastRow);
-
-			if (lastRow < insertPosition) {
-				insertPosition -= rowCount;
-			}
 
 			savePlayQueueContents();
 
