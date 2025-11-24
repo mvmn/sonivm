@@ -39,6 +39,7 @@ import x.mvmn.sonivm.playqueue.PlaybackQueueEntryCompareBiPredicate;
 import x.mvmn.sonivm.playqueue.PlaybackQueueFileImportService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
+import x.mvmn.sonivm.ui.util.NotificationsUtil;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.IntRange;
 
@@ -324,8 +325,8 @@ public class PlaybackControllerImpl implements PlaybackController {
 	@Override
 	public void onDropFilesToQueue(int queuePosition, List<File> files, Consumer<String> importProgressListener) {
 		new Thread(() -> {
-			playbackQueueFileImportService.importFilesIntoPlayQueue(playbackQueueService, queuePosition, files, importProgressListener);
-			PlaybackControllerImpl.this.savePlayQueueContents();
+			playbackQueueFileImportService.importFilesIntoPlayQueue(playbackQueueService, queuePosition, files, importProgressListener,
+					PlaybackControllerImpl.this::savePlayQueueContents);
 		}).start();
 	}
 
@@ -531,6 +532,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 		if (scrobblingEnabled) {
 			lastFmSetNowPlaying(this.currentTrackInfo);
 		}
+		NotificationsUtil.notify(this.currentTrackInfo.toDisplayStr());
 	}
 
 	private void lastFmSetNowPlaying(PlaybackQueueEntry trackInfo) {
