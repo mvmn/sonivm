@@ -21,6 +21,11 @@ public class AbstractActionAdaptor extends AbstractAction {
 		this.handler = handler;
 	}
 
+	public AbstractActionAdaptor(String name, Consumer<ActionEvent> handler) {
+		super(name);
+		this.handler = handler;
+	}
+
 	@Override
 	public void actionPerformed(ActionEvent actEvent) {
 		handler.accept(actEvent);

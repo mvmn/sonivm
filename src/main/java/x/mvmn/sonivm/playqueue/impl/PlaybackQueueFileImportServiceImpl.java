@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,9 +40,6 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 	private static final Logger LOGGER = Logger.getLogger(PlaybackQueueFileImportServiceImpl.class.getCanonicalName());
 
 	@Autowired
-	private PlaybackQueueService playbackQueueService;
-
-	@Autowired
 	private TagRetrievalService tagRetrievalService;
 
 	@Autowired
@@ -51,21 +49,25 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 
 	private volatile boolean shutdownRequested = false;
 
+	private final AtomicLong activeTagReadingTasks = new AtomicLong();
+
 	@Override
-	public void importFilesIntoPlayQueue(int queuePosition, List<File> filesToImport, Consumer<String> importProgressListener) {
+	public void importFilesIntoPlayQueue(PlaybackQueueService playbackQueueService, int queuePosition, List<File> filesToImport,
+			Consumer<String> importProgressListener, Runnable onTagLoadCompletion) {
 		filesToImport.sort(Comparator.comparing(File::getName));
 		if (queuePosition < 0) {
 			queuePosition = playbackQueueService.getQueueSize();
 		}
 		for (File file : filesToImport) {
-			queuePosition += addFileToQueue(queuePosition, file, importProgressListener);
+			queuePosition += addFileToQueue(playbackQueueService, queuePosition, file, importProgressListener, onTagLoadCompletion);
 			if (this.shutdownRequested) {
 				break;
 			}
 		}
 	}
 
-	private int addFileToQueue(int queuePosition, File file, Consumer<String> importProgressListener) {
+	private int addFileToQueue(PlaybackQueueService playbackQueueService, int queuePosition, File file,
+			Consumer<String> importProgressListener, Runnable onTagLoadCompletion) {
 		if (this.shutdownRequested) {
 			return 0;
 		}
@@ -110,8 +112,8 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 					String fileName = remainingFile.getName();
 					String extension = FilenameUtils.getExtension(fileName);
 					if (remainingFile.isDirectory()) {
-						addedFromRemainingFiles += addFileToQueue(queuePosition + addedFromRemainingFiles, remainingFile,
-								importProgressListener);
+						addedFromRemainingFiles += addFileToQueue(playbackQueueService, queuePosition + addedFromRemainingFiles,
+								remainingFile, importProgressListener, onTagLoadCompletion);
 					} else if (supportedExtensions.contains(extension.toLowerCase())) {
 						entriesToAdd.add(fileToQueueEntry(remainingFile));
 					}
@@ -119,7 +121,7 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 
 				playbackQueueService.addRows(queuePosition + addedFromRemainingFiles, entriesToAdd);
 				importProgressListener.accept("files from directory " + file.getName());
-				entriesToAdd.forEach(this::createTagReadingTask);
+				entriesToAdd.forEach(v -> createTagReadingTask(playbackQueueService, v, onTagLoadCompletion));
 
 				return addedFromRemainingFiles + countOfTracksAddedFromAllCueFiles + entriesToAdd.size();
 			}
@@ -149,7 +151,7 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 					playbackQueueService.addRows(newEntries);
 				}
 				importProgressListener.accept(file.getName());
-				createTagReadingTask(queueEntry);
+				createTagReadingTask(playbackQueueService, queueEntry, onTagLoadCompletion);
 				return 1;
 			} else {
 				return 0;
@@ -164,17 +166,29 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 		return PlaybackQueueEntry.builder().targetFileFullPath(file.getAbsolutePath()).targetFileName(file.getName()).build();
 	}
 
-	private void createTagReadingTask(PlaybackQueueEntry queueEntry) {
+	private void createTagReadingTask(PlaybackQueueService playbackQueueService, PlaybackQueueEntry queueEntry,
+			Runnable onTagLoadCompletion) {
+		activeTagReadingTasks.incrementAndGet();
 		tagReadingTaskExecutor.submit(() -> {
 			try {
 				TrackMetadata meta = tagRetrievalService.getAudioFileMetadata(new File(queueEntry.getTargetFileFullPath()));
 				queueEntry.setTrackMetadata(meta);
 				playbackQueueService.signalUpdateInTrackInfo(queueEntry);
-				onTagRead(true, "Loaded tags for " + queueEntry.getTargetFileFullPath());
+				String message = "Loaded tags for " + queueEntry.getTargetFileFullPath();
+				if (LOGGER.isLoggable(Level.FINE)) {
+					LOGGER.log(Level.FINE, message);
+				}
+				onTagRead(true, message);
 			} catch (Throwable t) {
 				String message = "Failed to read tags for file " + queueEntry.getTargetFileFullPath();
 				LOGGER.log(Level.WARNING, message, t);
 				onTagRead(false, message);
+			} finally {
+				if (activeTagReadingTasks.decrementAndGet() == 0) {
+					if (onTagLoadCompletion != null) {
+						onTagLoadCompletion.run();
+					}
+				}
 			}
 		});
 	}

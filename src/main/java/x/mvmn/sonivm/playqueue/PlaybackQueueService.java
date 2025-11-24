@@ -42,4 +42,18 @@ public interface PlaybackQueueService {
 	int[] findTracks(Predicate<PlaybackQueueEntry> matches);
 
 	IntRange detectTrackRange(int currentPosition, BiPredicate<PlaybackQueueEntry, PlaybackQueueEntry> condition);
+
+	void addQueue(String name);
+
+	void removeQueue(int queueIndex);
+
+	int getCurrentQueue();
+
+	void setCurrentQueue(int currentQueue);
+
+	String getQueueName(int queueIndex);
+
+	int getQueuesCount();
+
+	int getCurrentPlayQueue();
 }

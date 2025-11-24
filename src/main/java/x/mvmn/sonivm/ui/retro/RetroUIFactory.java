@@ -39,6 +39,7 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
@@ -504,10 +505,12 @@ public class RetroUIFactory {
 				.add(btnSearchNextMatch)
 				.add(btnSearchPreviousMatch)
 				.build();
-		plPanel.add(searchPanel, BorderLayout.NORTH);
+		JTabbedPane playlistTabs = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT);
+		plPanel.add(playlistTabs, BorderLayout.NORTH);
+		plPanel.add(searchPanel, BorderLayout.SOUTH);
 		Color playlistBackgroundColorFinal = playlistBackgroundColor;
 		Color playlistTextColorFinal = playlistTextColor;
-		Stream.of(plPanel, searchPanel, playlistTable, lblSearch, lblMatches, tfSearch, btnSearchNextMatch, btnSearchPreviousMatch,
+		Stream.of(playlistTabs, plPanel, searchPanel, playlistTable, lblSearch, lblMatches, tfSearch, btnSearchNextMatch, btnSearchPreviousMatch,
 				cbSearchFullPhrase, lblSearchMatchesCount, btnSearchClear).forEach(c -> {
 					c.setBackground(playlistBackgroundColorFinal);
 					c.setForeground(playlistTextColorFinal);
@@ -526,6 +529,7 @@ public class RetroUIFactory {
 		resultBuilder.c(RetroUIPlaylistWindow.builder()
 				.window(plEditWin)
 				.playlistTable(playlistTable)
+				.tabsPlaylists(playlistTabs)
 				.playlistColors(RetroUIPlaylistWindow.PlaylistColors.builder()
 						.backgroundColor(backgroundColor)
 						.selectionBackgroundColor(selectionBackgroundColor)

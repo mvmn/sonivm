@@ -19,6 +19,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import javax.swing.AbstractAction;
@@ -35,11 +36,13 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
@@ -48,6 +51,7 @@ import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.ListSelectionEvent;
@@ -68,6 +72,12 @@ import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.TimeDateUtil;
 
 public class SonivmMainWindow extends JFrame {
+	private static final String BTN_TEXT_PAUSE = " \u23F8 ";
+	private static final String BTN_TEXT_PREVTRACK = " \u23EE ";
+	private static final String BTN_TEXT_NEXTTRACK = " \u23ED ";
+	private static final String BTN_TEXT_STOP = " \u23F9 ";
+	private static final String BTN_TEXT_PLAY = " \u25B6 ";
+
 	private static final long serialVersionUID = -3402450540379541023L;
 
 	private final PlaybackQueueTableModel playbackQueueTableModel;
@@ -76,6 +86,8 @@ public class SonivmMainWindow extends JFrame {
 	private final JLabel lblPlayTimeElapsed;
 	private final JLabel lblPlayTimeRemaining;
 	private final JTable tblPlayQueue;
+	private final JTabbedPane tabsPlaylists;
+
 	private final JButton btnPlayPause;
 	private final JButton btnStop;
 	private final JButton btnNextTrack;
@@ -291,10 +303,10 @@ public class SonivmMainWindow extends JFrame {
 		// rightRendererForDate.setHorizontalAlignment(JLabel.RIGHT);
 		// tblPlayQueue.getColumnModel().getColumn(6).setCellRenderer(rightRendererForDate);
 
-		btnPlayPause = new JButton("->");
-		btnStop = new JButton("[x]");
-		btnNextTrack = new JButton(">>");
-		btnPreviousTrack = new JButton("<<");
+		btnPlayPause = new JButton(BTN_TEXT_PLAY);
+		btnStop = new JButton(BTN_TEXT_STOP);
+		btnNextTrack = new JButton(BTN_TEXT_NEXTTRACK);
+		btnPreviousTrack = new JButton(BTN_TEXT_PREVTRACK);
 		lblStatus = new JLabel("");
 		lblNowPlayingTrack = new JLabel("");
 		lblPlayTimeElapsed = new JLabel("00:00 / 00:00");
@@ -417,6 +429,7 @@ public class SonivmMainWindow extends JFrame {
 		lblDropTarget.setToolTipText("Drag&drop here to add/move to the end of the playback queue");
 		lblDropTarget.setBorder(BorderFactory.createEtchedBorder());
 
+		tabsPlaylists = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT);
 		scrollTblPlayQueue = new JScrollPane(tblPlayQueue);
 		tblPlayQueue.setDragEnabled(true);
 		tblPlayQueue.setDropMode(DropMode.USE_SELECTION);
@@ -425,7 +438,7 @@ public class SonivmMainWindow extends JFrame {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				if (e.getClickCount() == 2) {
-					int nowPlayingQueuePos = playbackQueueTableModel.getIndexOfHighlightedRow();
+					int nowPlayingQueuePos = playbackQueueTableModel.getCurrentQueuePosition();
 					if (nowPlayingQueuePos > -1) {
 						scrollToTrack(nowPlayingQueuePos);
 					}
@@ -439,6 +452,7 @@ public class SonivmMainWindow extends JFrame {
 		this.getContentPane().add(topPanel, BorderLayout.NORTH);
 		this.getContentPane()
 				.add(SwingUtil.panel(BorderLayout::new)
+						.add(tabsPlaylists, BorderLayout.NORTH)
 						.add(scrollTblPlayQueue, BorderLayout.CENTER)
 						.add(lblDropTarget, BorderLayout.SOUTH)
 						.build(), BorderLayout.CENTER);
@@ -449,10 +463,40 @@ public class SonivmMainWindow extends JFrame {
 	}
 
 	public void registerHandler(SonivmUIController controller) {
+		tabsPlaylists.addChangeListener(new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				int idx = tabsPlaylists.getSelectedIndex();
+				playbackQueueTableModel.switchQueue(idx);
+				updatePlayQueueSizeLabel();
+			}
+		});		
+		AtomicInteger clickedTab = new AtomicInteger();
+		SwingUtil.addPopupMenu(tabsPlaylists, e -> clickedTab.set(tabsPlaylists.indexAtLocation(e.getX(), e.getY())),
+				new JMenuItem(new AbstractActionAdaptor("Close", e -> {
+					int index = clickedTab.get();
+					if (index >= 1) {
+						if (JOptionPane.showConfirmDialog(tabsPlaylists,
+								"Are you sure you want to close " + tabsPlaylists.getTitleAt(index) + "?", "Are you sure?",
+								JOptionPane.YES_NO_OPTION) == JOptionPane.OK_OPTION) {
+							tabsPlaylists.removeTabAt(index);
+							this.playbackQueueTableModel.deleteQueue(index);
+							controller.onQueueRemove();
+						}
+					}
+				})), new JMenuItem(new AbstractActionAdaptor("Add", e -> {
+					String name = JOptionPane.showInputDialog(tabsPlaylists, "Enter name");
+					if (name != null && !name.trim().isEmpty()) {
+						this.playbackQueueTableModel.addQueue(name);
+						controller.onQueueAdd();
+						tabsPlaylists.addTab(name, new JLabel());
+					}
+				})));
+
 		tblPlayQueue.setTransferHandler(new PlayQueueTableDnDTransferHandler(tblPlayQueue, controller));
 
 		scrollTblPlayQueue.setDropTarget(new PlaybackQueueDropTarget(controller, tblPlayQueue));
-		lblDropTarget.setDropTarget(new PlaybackQueueDropTarget(controller, tblPlayQueue));
+		tabsPlaylists.setDropTarget(new PlaybackQueueDropTarget(controller, tblPlayQueue));
 
 		// this.addWindowListener(new WindowAdapter() {
 		// @Override
@@ -649,7 +693,7 @@ public class SonivmMainWindow extends JFrame {
 	}
 
 	public void setPlayPauseButtonState(boolean playing) {
-		btnPlayPause.setText(playing ? "||" : "->");
+		btnPlayPause.setText(playing ? BTN_TEXT_PAUSE : BTN_TEXT_PLAY);
 	}
 
 	public void setCurrentPlayTimeDisplay(int playedSeconds, int totalSeconds) {
@@ -679,10 +723,24 @@ public class SonivmMainWindow extends JFrame {
 		}
 		this.lblNowPlayingTrack.setText(trackInfoText);
 		this.lblNowPlayingTrack.setToolTipText(fileInfo);
+
+		int idx = this.playbackQueueTableModel.getCurrentPlayQueue();
+		this.tabsPlaylists.setSelectedIndex(idx); // redundant?
+		if (trackInfo == null) {
+			idx = -1;
+		}
+		for (int i = 0; i < this.tabsPlaylists.getTabCount(); i++) {
+			String title = this.tabsPlaylists.getTitleAt(i);
+			if (title.startsWith("\uD83D\uDD0A ")) {
+				title = title.substring(3);
+			}
+			this.tabsPlaylists.setTitleAt(i, idx == i ? ("\uD83D\uDD0A " + title) : title);
+		}
 	}
 
 	public void scrollToTrack(int rowNumber) {
 		if (rowNumber > -1) {
+			this.tabsPlaylists.setSelectedIndex(this.playbackQueueTableModel.getCurrentPlayQueue());
 			this.tblPlayQueue.scrollRectToVisible(new Rectangle(tblPlayQueue.getCellRect(rowNumber, 0, true)));
 		}
 	}
@@ -705,7 +763,6 @@ public class SonivmMainWindow extends JFrame {
 	}
 
 	public void setSearchMatchedRows(List<Integer> rows) {
-		this.playbackQueueTableModel.setSearchMatchedRows(rows);
 		this.tblPlayQueue.repaint();
 		this.lblSearchMatchesCount.setText(String.valueOf(rows.size()));
 	}
@@ -760,6 +817,7 @@ public class SonivmMainWindow extends JFrame {
 		new Thread(() -> {
 			if (text == null || text.trim().isEmpty()) {
 				searchMatches = Collections.emptyList();
+				playbackQueueTableModel.setSearchMatchedRows(searchMatches);
 			} else {
 				searchMatches = playbackQueueTableModel.search(text, fullPhrase);
 			}
@@ -815,6 +873,13 @@ public class SonivmMainWindow extends JFrame {
 		if (selectedRows.length > 0) {
 			EditMetadataDialog dialog = new EditMetadataDialog(this, playbackQueueTableModel, selectedRows);
 			dialog.setVisible(true);
+		}
+	}
+
+	public void reloadQueueTabNames() {
+		tabsPlaylists.removeAll();
+		for (int i = 0; i < this.playbackQueueTableModel.getQueuesCount(); i++) {
+			tabsPlaylists.addTab(this.playbackQueueTableModel.getQueueName(i), new JLabel());
 		}
 	}
 }

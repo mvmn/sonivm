@@ -46,7 +46,9 @@ import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
 import javax.swing.JFormattedTextField;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JProgressBar;
 import javax.swing.JSeparator;
 import javax.swing.JSlider;
@@ -792,5 +794,34 @@ public class SwingUtil {
 
 	private static int distantiateColorComponent(int component, int reference, int distance) {
 		return component > reference ? Math.min(component + distance, 255) : Math.max(component - distance, 0);
+	}
+	
+	public static void addPopupMenu(JComponent component, Consumer<MouseEvent> beforeShow, JMenuItem... menuItems) {
+		JPopupMenu popupMenu = new JPopupMenu();
+		for (JMenuItem mi : menuItems) {
+			popupMenu.add(mi);
+		}
+		component.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mousePressed(MouseEvent e) {
+				if (e.isPopupTrigger()) {
+					showMenu(e);
+				}
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				if (e.isPopupTrigger()) {
+					showMenu(e);
+				}
+			}
+
+			private void showMenu(MouseEvent e) {
+				if (beforeShow != null) {
+					beforeShow.accept(e);
+				}
+				popupMenu.show(e.getComponent(), e.getX(), e.getY());
+			}
+		});
 	}
 }

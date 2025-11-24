@@ -6,8 +6,8 @@ import java.util.function.Consumer;
 
 public interface PlaybackQueueFileImportService {
 
-	void importFilesIntoPlayQueue(int queuePosition, List<File> filesToImport, Consumer<String> importProgressListener);
-	
-	void shutdown();
+	void importFilesIntoPlayQueue(PlaybackQueueService playbackQueueService, int queuePosition, List<File> filesToImport,
+			Consumer<String> importProgressListener, Runnable onTagLoadCompletion);
 
+	void shutdown();
 }

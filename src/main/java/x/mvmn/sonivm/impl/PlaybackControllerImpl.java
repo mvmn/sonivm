@@ -1,7 +1,10 @@
 package x.mvmn.sonivm.impl;
 
 import java.io.File;
+import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -15,7 +18,9 @@ import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.Getter;
@@ -34,6 +39,7 @@ import x.mvmn.sonivm.playqueue.PlaybackQueueEntryCompareBiPredicate;
 import x.mvmn.sonivm.playqueue.PlaybackQueueFileImportService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
+import x.mvmn.sonivm.ui.util.NotificationsUtil;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.IntRange;
 
@@ -41,6 +47,8 @@ import x.mvmn.sonivm.util.IntRange;
 public class PlaybackControllerImpl implements PlaybackController {
 
 	private static final Logger LOGGER = Logger.getLogger(PlaybackControllerImpl.class.getSimpleName());
+
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 	@Autowired
 	private AudioService audioService;
@@ -133,6 +141,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 	@Override
 	public void onNextTrack() {
+		playbackQueueService.setCurrentQueue(playbackQueueService.getCurrentPlayQueue());
 		doNextTrack(true);
 	}
 
@@ -154,7 +163,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 		if (trackCount > 0) {
 			if (ShuffleMode.OFF != shuffleState) {
-				PlaybackQueueEntry currentTrack = playbackQueueService.getEntryByIndex(currentTrackQueuePos);
+				PlaybackQueueEntry currentTrack = playbackQueueService.getCurrentEntry();
 				switch (shuffleState) {
 					case ALBUM: {
 						int[] matchingTrackIndexes = playbackQueueService
@@ -245,6 +254,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 	@Override
 	public void onPreviousTrack() {
+		playbackQueueService.setCurrentQueue(playbackQueueService.getCurrentPlayQueue());
 		int currentTrack = playbackQueueService.getCurrentQueuePosition();
 		if (currentTrack > 0) {
 			switchToTrack(--currentTrack);
@@ -314,18 +324,18 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 	@Override
 	public void onDropFilesToQueue(int queuePosition, List<File> files, Consumer<String> importProgressListener) {
-		new Thread(() -> playbackQueueFileImportService.importFilesIntoPlayQueue(queuePosition, files, importProgressListener)).start();
+		new Thread(() -> {
+			playbackQueueFileImportService.importFilesIntoPlayQueue(playbackQueueService, queuePosition, files, importProgressListener,
+					PlaybackControllerImpl.this::savePlayQueueContents);
+		}).start();
 	}
 
 	@Override
 	public boolean onDropQueueRowsInsideQueue(int insertPosition, int firstRow, int lastRow) {
-		int rowCount = lastRow - firstRow + 1;
 		if (insertPosition > lastRow || insertPosition < firstRow) {
 			playbackQueueService.moveRows(insertPosition, firstRow, lastRow);
 
-			if (lastRow < insertPosition) {
-				insertPosition -= rowCount;
-			}
+			savePlayQueueContents();
 
 			return true;
 		} else {
@@ -360,34 +370,80 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 	private void savePlayQueueContents() {
 		try {
-			LOGGER.info("Storing play queue.");
-			new ObjectMapper().writeValue(getPlayQueueStorageFile(), this.playbackQueueService.getCopyOfQueue());
-			LOGGER.info("Storing play queue succeeded.");
+			LOGGER.info("Storing play queues.");
+			saveQueueNames();
+			int currentQueue = this.playbackQueueService.getCurrentQueue();
+			int queueCount = this.playbackQueueService.getQueuesCount();
+			for (int i = 0; i < queueCount; i++) {
+				this.playbackQueueService.setCurrentQueue(i);
+				OBJECT_MAPPER.writeValue(getPlayQueueStorageFile(i), this.playbackQueueService.getCopyOfQueue());
+			}
+			this.playbackQueueService.setCurrentQueue(currentQueue);
+			LOGGER.info("Storing play queues succeeded.");
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to store the playback queue", e);
 		}
 	}
 
+	private List<String> loadQueueNamesList() throws JsonParseException, JsonMappingException, IOException {
+		File queueNamesFile = getPlayQueueNamesFile();
+
+		List<String> queueNamesList = new ArrayList<>();
+		queueNamesList.add("Default");
+		if (queueNamesFile.exists()) {
+			String[] queueNames = OBJECT_MAPPER.readValue(queueNamesFile, String[].class);
+			queueNamesList.addAll(Arrays.asList(queueNames));
+		}
+		return queueNamesList;
+	}
+
 	private void restorePlayQueueContents() {
 		try {
-			LOGGER.info("Restoring play queue.");
-			File queueFile = getPlayQueueStorageFile();
-			if (queueFile.exists()) {
-				List<PlaybackQueueEntry> queueEntries = new ObjectMapper().readValue(queueFile,
-						new TypeReference<List<PlaybackQueueEntry>>() {});
-				this.playbackQueueService.clearQueue();
-				this.playbackQueueService.addRows(queueEntries);
-				LOGGER.info("Restoring play queue succeeded.");
-			} else {
-				LOGGER.info("Restoring play queue not needed - no queue stored yet.");
+			LOGGER.info("Restoring play queues.");
+			List<String> queueNamesList = loadQueueNamesList();
+
+			for (int i = 0; i < queueNamesList.size(); i++) {
+				File queueFile = getPlayQueueStorageFile(i);
+				if (queueFile.exists()) {
+					List<PlaybackQueueEntry> queueEntries = OBJECT_MAPPER.readValue(queueFile,
+							new TypeReference<List<PlaybackQueueEntry>>() {});
+					if (i > 0) {
+						this.playbackQueueService.addQueue(queueNamesList.get(i));
+					}
+					this.playbackQueueService.setCurrentQueue(i);
+					this.playbackQueueService.clearQueue();
+					this.playbackQueueService.addRows(queueEntries);
+					LOGGER.info("Restoring play queue " + i + " succeeded.");
+				} else {
+					LOGGER.info("Restoring play queue " + i + " not needed - no queue stored yet.");
+				}
 			}
+			LOGGER.info("Restoring play queues completed.");
 		} catch (Exception e) {
-			LOGGER.log(Level.WARNING, "Failed to retrieve and restore the playback queue", e);
+			LOGGER.log(Level.WARNING, "Failed to retrieve and restore the playback queues", e);
 		}
 	}
 
-	private File getPlayQueueStorageFile() {
-		return new File(new File(System.getProperty("sonivm_home_folder")), "queue.json");
+	private void saveQueueNames() {
+		try {
+			List<String> names = new ArrayList<>();
+			for (int i = 1; i < this.playbackQueueService.getQueuesCount(); i++) {
+				names.add(this.playbackQueueService.getQueueName(i));
+			}
+
+			OBJECT_MAPPER.writeValue(getPlayQueueNamesFile(), names);
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "Failed to store queue names", e);
+		}
+	}
+
+	private File getPlayQueueStorageFile(int queueIndex) {
+		return new File(new File(System.getProperty("sonivm_home_folder")),
+				queueIndex > 0 ? ("queue_" + queueIndex + ".json") : "queue.json");
+	}
+
+	private File getPlayQueueNamesFile() {
+		return new File(new File(System.getProperty("sonivm_home_folder")), "queue_names.json");
 	}
 
 	@Override
@@ -476,6 +532,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 		if (scrobblingEnabled) {
 			lastFmSetNowPlaying(this.currentTrackInfo);
 		}
+		NotificationsUtil.notify(this.currentTrackInfo.toDisplayStr());
 	}
 
 	private void lastFmSetNowPlaying(PlaybackQueueEntry trackInfo) {
@@ -489,6 +546,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 	@Override
 	public void onDeleteRowsFromQueue(int firstRow, int lastRow) {
 		playbackQueueService.deleteRows(firstRow, lastRow + 1);
+		savePlayQueueContents();
 	}
 
 	private void updatePlayingState(boolean playing) {
@@ -657,5 +715,15 @@ public class PlaybackControllerImpl implements PlaybackController {
 	@Override
 	public int getBalance() {
 		return audioService.getBalanceLR();
+	}
+
+	@Override
+	public void onQueueAdd() {
+		saveQueueNames();
+	}
+
+	@Override
+	public void onQueueRemove() {
+		savePlayQueueContents();
 	}
 }
