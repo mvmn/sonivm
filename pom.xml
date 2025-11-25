@@ -1,4 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
@@ -117,11 +119,15 @@
 						<phase>package</phase>
 						<configuration>
 							<tasks>
-								<echo file="${project.build.directory}/${project.artifactId}.sh" append="false">
-									cd&#032;&quot;$(dirname&#032;&quot;$0&quot;)&quot;&#xD;&#xA;java&#032;-jar&#032;${project.artifactId}-${project.version}.jar&#032;-Xmx720m
+								<echo
+									file="${project.build.directory}/${project.artifactId}.sh"
+									append="false">
+									cd&#032;&quot;$(dirname&#032;&quot;$0&quot;)&quot;&#xD;&#xA;java&#032;--add-exports&#032;java.desktop/com.apple.eawt=ALL-UNNAMED&#032;-jar&#032;${project.artifactId}-${project.version}.jar&#032;-Xmx720m
 								</echo>
-								<echo file="${project.build.directory}/${project.artifactId}.bat" append="false">
-									java&#032;-jar&#032;${project.artifactId}-${project.version}.jar&#032;-Xmx720m
+								<echo
+									file="${project.build.directory}/${project.artifactId}.bat"
+									append="false">
+									java&#032;--add-exports&#032;java.desktop/com.apple.eawt=ALL-UNNAMED&#032;-jar&#032;${project.artifactId}-${project.version}.jar&#032;-Xmx720m
 								</echo>
 							</tasks>
 						</configuration>
