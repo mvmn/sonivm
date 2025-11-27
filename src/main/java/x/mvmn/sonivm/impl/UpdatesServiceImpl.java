@@ -19,9 +19,9 @@ import x.mvmn.sonivm.util.ver.SemanticVersion;
 import x.mvmn.sonivm.util.ver.SemanticVersionUtil;
 
 @Service
-public class UpadesServiceImpl implements UpdatesService {
+public class UpdatesServiceImpl implements UpdatesService {
 
-	private static final Logger LOGGER = Logger.getLogger(UpadesServiceImpl.class.getCanonicalName());
+	private static final Logger LOGGER = Logger.getLogger(UpdatesServiceImpl.class.getCanonicalName());
 
 	@Value("${releases.url:https://api.github.com/repos/mvmn/sonivm/releases}")
 	protected String releasesUrl = "https://api.github.com/repos/mvmn/sonivm/releases";
