@@ -132,7 +132,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 	}
 
 	private void onTrackFinished() {
-		if (autoStop) {
+		if (autoStop || playbackQueueService.getCurrentQueuePosition() == -1) {
 			doStop();
 		} else {
 			doNextTrack(false);
