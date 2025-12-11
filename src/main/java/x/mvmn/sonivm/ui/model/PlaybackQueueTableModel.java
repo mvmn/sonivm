@@ -85,6 +85,10 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	public int getRowCount() {
 		return playQueueService.getQueueSize();
 	}
+	
+	public long getQueueLength() {
+		return playQueueService.getQueueLength();
+	}
 
 	public int getIndexOfHighlightedRow() {
 		return playQueueService.getCurrentPlayQueue() == playQueueService.getCurrentQueue() ? playQueueService.getCurrentQueuePosition()

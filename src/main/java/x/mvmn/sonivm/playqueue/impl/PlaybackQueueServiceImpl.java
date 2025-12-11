@@ -103,6 +103,15 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	public int getQueueSize() {
 		return getData().size();
 	}
+	
+	@Override
+	public long getQueueLength() {
+		return getData().stream()
+				.mapToLong(
+						t -> t.getTrackMetadata() != null && t.getTrackMetadata().getDuration() != null ? t.getTrackMetadata().getDuration()
+								: 0L)
+				.sum();
+	}
 
 	@Override
 	public void setCurrentQueuePosition(int newPosition) {

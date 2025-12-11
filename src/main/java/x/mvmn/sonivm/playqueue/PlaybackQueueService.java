@@ -56,4 +56,6 @@ public interface PlaybackQueueService {
 	int getQueuesCount();
 
 	int getCurrentPlayQueue();
+
+	long getQueueLength();
 }

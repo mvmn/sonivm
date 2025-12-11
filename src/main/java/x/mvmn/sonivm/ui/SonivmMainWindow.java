@@ -768,7 +768,9 @@ public class SonivmMainWindow extends JFrame {
 	}
 
 	public void updatePlayQueueSizeLabel() {
-		this.lblQueueSize.setText("" + playbackQueueTableModel.getRowCount());
+		long totalSeconds = playbackQueueTableModel.getQueueLength();
+		String queueLength = String.format("%02d:%02d:%02d", totalSeconds / 3600, (totalSeconds % 3600) / 60, totalSeconds % 60);
+		this.lblQueueSize.setText("" + playbackQueueTableModel.getRowCount() + ". Length: " + queueLength);
 	}
 
 	public String getSearchText() {
