@@ -74,6 +74,7 @@ public class PreferencesServiceImpl implements PreferencesService {
 	private static final String KEY_RETROUI_SKIN = "retrouiskin";
 	private static final String KEY_VOLUME = "volume";
 	private static final String KEY_BALANCE = "balance";
+	private static final String KEY_NOTIFICATIONS_ENABLED = "notificationsenabled";
 
 	private final Preferences prefs;
 	private final KeyAndNonce keyAndNonce;
@@ -449,5 +450,15 @@ public class PreferencesServiceImpl implements PreferencesService {
 
 	protected void setIntArrayProperty(String prefKey, int[] values) {
 		prefs.put(prefKey, IntStream.of(values).mapToObj(String::valueOf).collect(Collectors.joining(",")));
+	}
+
+	@Override
+	public void setNotificationsEnabled(boolean enabled) {
+		prefs.put(KEY_NOTIFICATIONS_ENABLED, Boolean.toString(enabled));
+	}
+
+	@Override
+	public boolean areNotificationsEnabled() {
+		return Boolean.valueOf(prefs.get(KEY_NOTIFICATIONS_ENABLED, Boolean.TRUE.toString()));
 	}
 }

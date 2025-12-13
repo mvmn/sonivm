@@ -119,4 +119,8 @@ public interface PreferencesService {
 	void setBalance(int balanceLR);
 
 	int getBalance();
+
+	void setNotificationsEnabled(boolean enabled);
+
+	boolean areNotificationsEnabled();
 }

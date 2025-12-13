@@ -157,8 +157,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		updateSkinsList();
 		SwingUtil.registerQuitHandler(this::onQuit);
 
-		mainWindow.setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService).getJMenuBar());
-		eqWindow.setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService).getJMenuBar());
+		mainWindow.setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService, playbackQueueService).getJMenuBar());
+		eqWindow.setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService, playbackQueueService).getJMenuBar());
 
 		playbackController.restorePlaybackState();
 		SwingUtil.runOnEDT(() -> {
@@ -308,9 +308,15 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 	protected void setMenuBars(Tuple3<RetroUIMainWindow, RetroUIEqualizerWindow, RetroUIPlaylistWindow> retroUIWindows) {
 		if (SystemUtils.IS_OS_MAC_OSX) {
-			retroUIWindows.getA().getWindow().setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService).getJMenuBar());
-			retroUIWindows.getB().getWindow().setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService).getJMenuBar());
-			retroUIWindows.getC().getWindow().setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService).getJMenuBar());
+			retroUIWindows.getA()
+					.getWindow()
+					.setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService, playbackQueueService).getJMenuBar());
+			retroUIWindows.getB()
+					.getWindow()
+					.setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService, playbackQueueService).getJMenuBar());
+			retroUIWindows.getC()
+					.getWindow()
+					.setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService, playbackQueueService).getJMenuBar());
 		}
 	}
 
@@ -593,6 +599,10 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		initRetroUI();
 		restoreRetroUIWindowsState();
 		retroUIRegHandlerAndUpdateState();
+
+		if (!retroUIWindows.getA().getWindow().isVisible() && !mainWindow.isVisible()) {
+			mainWindow.setVisible(true);
+		}
 	}
 
 	public static void applyWindowState(Window window, Tuple4<Boolean, String, Point, Dimension> windowState, boolean visibleByDefault) {

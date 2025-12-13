@@ -532,7 +532,9 @@ public class PlaybackControllerImpl implements PlaybackController {
 		if (scrobblingEnabled) {
 			lastFmSetNowPlaying(this.currentTrackInfo);
 		}
-		NotificationsUtil.notify(this.currentTrackInfo.toDisplayStr());
+		if (preferencesService.areNotificationsEnabled()) {
+			NotificationsUtil.notify(this.currentTrackInfo.toDisplayStr());
+		}
 	}
 
 	private void lastFmSetNowPlaying(PlaybackQueueEntry trackInfo) {

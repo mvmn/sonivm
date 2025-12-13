@@ -3,6 +3,7 @@ package x.mvmn.sonivm.ui;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -15,7 +16,9 @@ import javax.swing.UIManager.LookAndFeelInfo;
 import lombok.Getter;
 import x.mvmn.sonivm.PlaybackController;
 import x.mvmn.sonivm.impl.AudioDeviceOption;
+import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
+import x.mvmn.sonivm.ui.guessgame.GuessMusicGameUI;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.ui.util.swing.menu.JMenuBarBuilder;
 import x.mvmn.sonivm.ui.util.swing.menu.JMenuBarBuilder.JMenuBuilder;
@@ -26,11 +29,23 @@ public class SonivmMenuBar {
 	@Getter
 	protected final JMenuBar jMenuBar;
 
-	public SonivmMenuBar(SonivmUIController ui, PlaybackController sonivmController, PreferencesService preferencesService) {
+	private AtomicReference<GuessMusicGameUI> gameUIRef = new AtomicReference<>();
+
+	public SonivmMenuBar(SonivmUIController ui,
+			PlaybackController sonivmController,
+			PreferencesService preferencesService,
+			PlaybackQueueService playbackQueueService) {
 		List<AudioDeviceOption> audioDevices = SonivmUI.getAudioDeviceOptions();
 		int scrobblePercentage = preferencesService.getPercentageToScrobbleAt(70);
 
 		JMenuBuilder<JMenuBarBuilder> menuBuilder = new JMenuBarBuilder().menu("Options");
+		menuBuilder.subMenu("Popup notifications")
+				.item("Enable")
+				.actr(e -> preferencesService.setNotificationsEnabled(true))
+				.build()
+				.item("Disable")
+				.actr(e -> preferencesService.setNotificationsEnabled(false))
+				.build().build();
 
 		JMenuBuilder<JMenuBuilder<JMenuBuilder<JMenuBarBuilder>>> menuBuilderLastFMScrobblePercentage = menuBuilder.subMenu("LastFM")
 				.item("Set credentials...")
@@ -150,10 +165,22 @@ public class SonivmMenuBar {
 				.item("Retro UI playlist")
 				.actr(actEvent -> ui.onShowRetroUIPlaylistWindow())
 				.build()
+				.separator()
+				.item("Guess the music game")
+				.actr(e -> SonivmMenuBar.this.showGame(playbackQueueService, sonivmController))
+				.build()
 				.build()
 				.build();
 
 		this.jMenuBar = result;
 	}
 
+	private void showGame(PlaybackQueueService playbackQueueService, PlaybackController playbackController) {
+		GuessMusicGameUI ui = gameUIRef.updateAndGet(v -> {
+			return v != null ? v : new GuessMusicGameUI(playbackQueueService, playbackController);
+		});
+		ui.pack();
+		SwingUtil.moveToScreenCenter(ui);
+		ui.setVisible(true);
+	}
 }
