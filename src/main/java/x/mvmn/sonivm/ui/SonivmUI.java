@@ -38,6 +38,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -748,7 +749,15 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 	@Override
 	public void onDeleteRowsFromQueue(int start, int end) {
-		playbackController.onDeleteRowsFromQueue(start, end);
+		int queueSize = playbackQueueService.getQueueSize();
+		if (end - start + 1 == queueSize) {
+			if (JOptionPane.OK_OPTION == JOptionPane.showConfirmDialog(this.mainWindow, "Delete all items in the queue?", "Are you sure?", JOptionPane.YES_NO_OPTION)) {
+				playbackController.onDeleteRowsFromQueue(start, end);
+
+			}
+		} else {
+			playbackController.onDeleteRowsFromQueue(start, end);
+		}
 	}
 
 	@Override
