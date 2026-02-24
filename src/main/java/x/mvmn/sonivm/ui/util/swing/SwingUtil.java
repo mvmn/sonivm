@@ -313,6 +313,10 @@ public class SwingUtil {
 			this.panel.setLayout(layoutFactory.apply(this.panel));
 		}
 
+		public static PanelBuilder of(Function<JPanel, LayoutManager> layoutFactory) {
+			return new PanelBuilder(layoutFactory);
+		}
+
 		public PanelBuilder add(Component cmp) {
 			this.panel.add(cmp);
 			return this;
@@ -795,7 +799,7 @@ public class SwingUtil {
 	private static int distantiateColorComponent(int component, int reference, int distance) {
 		return component > reference ? Math.min(component + distance, 255) : Math.max(component - distance, 0);
 	}
-	
+
 	public static void addPopupMenu(JComponent component, Consumer<MouseEvent> beforeShow, JMenuItem... menuItems) {
 		JPopupMenu popupMenu = new JPopupMenu();
 		for (JMenuItem mi : menuItems) {

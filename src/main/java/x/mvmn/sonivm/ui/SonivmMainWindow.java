@@ -17,9 +17,13 @@ import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.List;
+import java.util.SortedMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.swing.AbstractAction;
@@ -266,6 +270,71 @@ public class SonivmMainWindow extends JFrame {
 						SonivmMainWindow.this.showEditMetadataDialog();
 					}
 				});
+				JMenuItem autoNum = new JMenuItem("Auto-number tracks");
+				popup.add(autoNum);
+				autoNum.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						int[] selectedRows = tblPlayQueue.getSelectedRows();
+						for (int i = 0; i < selectedRows.length; i++) {
+							PlaybackQueueEntry entry = playbackQueueTableModel.getEntry(selectedRows[i]);
+							entry.getTrackMetadata().setTrackNumber(String.format("%02d", i + 1));
+						}
+					}
+				});
+
+				JMenuItem convertEncoding = new JMenuItem("Convert text encoding");
+				popup.add(convertEncoding);
+				convertEncoding.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						SortedMap<String, Charset> availableCharsets = Charset.availableCharsets();
+						String[] charsets = availableCharsets.keySet().stream().toArray(String[]::new);
+						JComboBox<String> sourceEncoding = new JComboBox<>(charsets);
+						sourceEncoding.setBorder(BorderFactory.createTitledBorder("Source encoding"));
+						JComboBox<String> targetEncoding = new JComboBox<>(charsets);
+						targetEncoding.setBorder(BorderFactory.createTitledBorder("Target encoding"));
+						if (JOptionPane.OK_OPTION == JOptionPane.showConfirmDialog(null,
+								SwingUtil.PanelBuilder.of(p -> new GridLayout(2, 1)).add(sourceEncoding).add(targetEncoding).build(),
+								"Choose encoding", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE)) {
+							Charset source = availableCharsets.get(sourceEncoding.getSelectedItem());
+							Charset target = availableCharsets.get(targetEncoding.getSelectedItem());
+							int[] selectedRows = tblPlayQueue.getSelectedRows();
+							Function<String, String> conversion = val -> val != null ? new String(val.getBytes(source), target) : null;
+							for (int i = 0; i < selectedRows.length; i++) {
+								PlaybackQueueEntry entry = playbackQueueTableModel.getEntry(selectedRows[i]);
+								entry.getTrackMetadata().setAlbum(conversion.apply(entry.getTrackMetadata().getAlbum()));
+								entry.getTrackMetadata().setArtist(conversion.apply(entry.getTrackMetadata().getArtist()));
+								entry.getTrackMetadata().setTitle(conversion.apply(entry.getTrackMetadata().getTitle()));
+								entry.getTrackMetadata().setGenre(conversion.apply(entry.getTrackMetadata().getGenre()));
+								entry.getTrackMetadata().setDate(conversion.apply(entry.getTrackMetadata().getDate()));
+								entry.getTrackMetadata().setTrackNumber(conversion.apply(entry.getTrackMetadata().getTrackNumber()));
+							}
+						}
+					}
+				});
+
+				JMenuItem sentenceCase = new JMenuItem("Sentence case");
+				popup.add(sentenceCase);
+				sentenceCase.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						int[] selectedRows = tblPlayQueue.getSelectedRows();
+						Function<String, String> conversion = val -> val != null
+								? Stream.of(val.split(" +"))
+										.map(v -> v.length() < 1 ? v
+												: v.substring(0, 1).toUpperCase() + v.substring(1, v.length()).toLowerCase())
+										.collect(Collectors.joining(" "))
+								: null;
+						for (int i = 0; i < selectedRows.length; i++) {
+							PlaybackQueueEntry entry = playbackQueueTableModel.getEntry(selectedRows[i]);
+							entry.getTrackMetadata().setAlbum(conversion.apply(entry.getTrackMetadata().getAlbum()));
+							entry.getTrackMetadata().setArtist(conversion.apply(entry.getTrackMetadata().getArtist()));
+							entry.getTrackMetadata().setTitle(conversion.apply(entry.getTrackMetadata().getTitle()));
+							entry.getTrackMetadata().setGenre(conversion.apply(entry.getTrackMetadata().getGenre()));
+						}
+					}
+				});
 				return popup;
 			}
 
@@ -470,7 +539,7 @@ public class SonivmMainWindow extends JFrame {
 				playbackQueueTableModel.switchQueue(idx);
 				updatePlayQueueSizeLabel();
 			}
-		});		
+		});
 		AtomicInteger clickedTab = new AtomicInteger();
 		SwingUtil.addPopupMenu(tabsPlaylists, e -> clickedTab.set(tabsPlaylists.indexAtLocation(e.getX(), e.getY())),
 				new JMenuItem(new AbstractActionAdaptor("Close", e -> {
