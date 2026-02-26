@@ -1327,4 +1327,9 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	public void onQueueRemove() {
 		playbackController.onQueueRemove();
 	}
+	
+	@Override
+	public void onQueueRename(int index) {
+		playbackController.onQueueRename(index);	
+	}
 }

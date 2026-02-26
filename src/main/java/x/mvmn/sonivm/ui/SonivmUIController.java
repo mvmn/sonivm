@@ -97,4 +97,6 @@ public interface SonivmUIController {
 	void onQueueAdd();
 	
 	void onQueueRemove();
+
+	void onQueueRename(int index);
 }

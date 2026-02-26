@@ -20,7 +20,7 @@ import x.mvmn.sonivm.util.IntRange;
 public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 
 	private final List<List<PlaybackQueueEntry>> datas = new CopyOnWriteArrayList<>(Arrays.asList(newEmptyQueue()));
-	private final List<String> queueNames = new ArrayList<>(Arrays.asList("Default"));
+	private final List<String> queueNames = new CopyOnWriteArrayList<>(Arrays.asList("Default"));
 	private volatile int currentViewedQueue = 0;
 	private volatile int currentPlaybackQueue = -1;
 	private volatile int currentQueuePosition = -1;
@@ -80,6 +80,11 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	}
 
 	@Override
+	public void setQueueName(int queueIndex, String queueName) {
+		queueNames.set(queueIndex, queueName);
+	}
+
+	@Override
 	public int getQueuesCount() {
 		return datas.size();
 	}
@@ -103,7 +108,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	public int getQueueSize() {
 		return getData().size();
 	}
-	
+
 	@Override
 	public long getQueueLength() {
 		return getData().stream()
@@ -356,5 +361,13 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 
 	private List<PlaybackQueueEntry> getData() {
 		return datas.get(currentViewedQueue);
+	}
+
+	@Override
+	public void copyRowsToOtherQueue(int queue, int fromIndex, int toIndex) {
+		if (queue == this.currentViewedQueue) {
+			throw new IllegalArgumentException("Queue must be different from current one");
+		}
+		datas.get(queue).addAll(datas.get(this.currentViewedQueue).subList(fromIndex, toIndex));
 	}
 }

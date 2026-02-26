@@ -85,7 +85,7 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	public int getRowCount() {
 		return playQueueService.getQueueSize();
 	}
-	
+
 	public long getQueueLength() {
 		return playQueueService.getQueueLength();
 	}
@@ -165,6 +165,10 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	public void addQueue(String queueName) {
 		playQueueService.addQueue(queueName);
 	}
+	
+	public void renameQueue(int index, String queueName) {
+		playQueueService.setQueueName(index, queueName);
+	}
 
 	public int getQueuesCount() {
 		return playQueueService.getQueuesCount();
@@ -182,7 +186,15 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 		playQueueService.setCurrentQueue(index);
 	}
 
-	public int getCurrentPlayQueue() {
+	public int getCurrentViewedQueue() {
+		return playQueueService.getCurrentQueue();
+	}
+
+	public void copyRowsToOtherQueue(int queue, int fromIndex, int toIndex) {
+		playQueueService.copyRowsToOtherQueue(queue, fromIndex, toIndex);
+	}
+
+	public int getCurrentPlayedQueue() {
 		return playQueueService.getCurrentPlayQueue();
 	}
 }

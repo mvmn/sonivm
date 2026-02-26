@@ -36,6 +36,8 @@ public interface PlaybackController extends AudioServiceEventListener {
 	
 	void onQueueAdd();
 	
+	void onQueueRename(int queueIndex);
+	
 	void onQueueRemove();
 
 	void restorePlaybackState();

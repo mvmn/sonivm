@@ -18,6 +18,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.SortedMap;
@@ -39,6 +40,7 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -258,8 +260,6 @@ public class SonivmMainWindow extends JFrame {
 			public void columnSelectionChanged(ListSelectionEvent e) {}
 		});
 		tblPlayQueue.addMouseListener(new MouseAdapter() {
-			private JPopupMenu popup = menu();
-
 			public JPopupMenu menu() {
 				JPopupMenu popup = new JPopupMenu();
 				JMenuItem edit = new JMenuItem("Edit metadata");
@@ -280,6 +280,7 @@ public class SonivmMainWindow extends JFrame {
 							PlaybackQueueEntry entry = playbackQueueTableModel.getEntry(selectedRows[i]);
 							entry.getTrackMetadata().setTrackNumber(String.format("%02d", i + 1));
 						}
+						// TODO: controller: save queue
 					}
 				});
 
@@ -307,9 +308,8 @@ public class SonivmMainWindow extends JFrame {
 								entry.getTrackMetadata().setArtist(conversion.apply(entry.getTrackMetadata().getArtist()));
 								entry.getTrackMetadata().setTitle(conversion.apply(entry.getTrackMetadata().getTitle()));
 								entry.getTrackMetadata().setGenre(conversion.apply(entry.getTrackMetadata().getGenre()));
-								entry.getTrackMetadata().setDate(conversion.apply(entry.getTrackMetadata().getDate()));
-								entry.getTrackMetadata().setTrackNumber(conversion.apply(entry.getTrackMetadata().getTrackNumber()));
 							}
+							// TODO: controller: save queue
 						}
 					}
 				});
@@ -333,8 +333,29 @@ public class SonivmMainWindow extends JFrame {
 							entry.getTrackMetadata().setTitle(conversion.apply(entry.getTrackMetadata().getTitle()));
 							entry.getTrackMetadata().setGenre(conversion.apply(entry.getTrackMetadata().getGenre()));
 						}
+						// TODO: controller: save queue
 					}
 				});
+
+				JMenu addToQueue = new JMenu("Add to queue...");
+				popup.add(addToQueue);
+				for (int i = 0; i < playbackQueueTableModel.getQueuesCount(); i++) {
+					if (i == playbackQueueTableModel.getCurrentViewedQueue()) {
+						continue;
+					}
+					JMenuItem addToQueueOption = new JMenuItem(playbackQueueTableModel.getQueueName(i));
+					addToQueue.add(addToQueueOption);
+					final int targetQueueNum = i;
+					addToQueueOption.addActionListener(e -> {
+						int[] selectedRowIndicies = tblPlayQueue.getSelectedRows();
+						if (selectedRowIndicies.length > 0) {
+							int max = Arrays.stream(selectedRowIndicies).max().orElse(0);
+							int min = Arrays.stream(selectedRowIndicies).min().orElse(0);
+							playbackQueueTableModel.copyRowsToOtherQueue(targetQueueNum, min, max + 1);
+							// TODO: controller: save queue
+						}
+					});
+				}
 				return popup;
 			}
 
@@ -358,7 +379,7 @@ public class SonivmMainWindow extends JFrame {
 					// Optionally select the column too:
 					// if (!table.isColumnSelected(column)) table.getColumnModel().getSelectionModel().setSelectionInterval(column, column);
 
-					popup.show(e.getComponent(), e.getX(), e.getY());
+					menu().show(e.getComponent(), e.getX(), e.getY());
 				}
 			}
 		});
@@ -551,6 +572,16 @@ public class SonivmMainWindow extends JFrame {
 							tabsPlaylists.removeTabAt(index);
 							this.playbackQueueTableModel.deleteQueue(index);
 							controller.onQueueRemove();
+						}
+					}
+				})), new JMenuItem(new AbstractActionAdaptor("Rename", e -> {
+					int index = clickedTab.get();
+					if (index >= 1) {
+						String newName = JOptionPane.showInputDialog("Enter queue name");
+						if (newName != null && !newName.trim().isEmpty()) {
+							this.playbackQueueTableModel.renameQueue(index, newName);
+							tabsPlaylists.setTitleAt(index, newName);
+							controller.onQueueRename(index);
 						}
 					}
 				})), new JMenuItem(new AbstractActionAdaptor("Add", e -> {
@@ -793,7 +824,7 @@ public class SonivmMainWindow extends JFrame {
 		this.lblNowPlayingTrack.setText(trackInfoText);
 		this.lblNowPlayingTrack.setToolTipText(fileInfo);
 
-		int idx = this.playbackQueueTableModel.getCurrentPlayQueue();
+		int idx = this.playbackQueueTableModel.getCurrentPlayedQueue();
 		this.tabsPlaylists.setSelectedIndex(idx); // redundant?
 		if (trackInfo == null) {
 			idx = -1;
@@ -809,7 +840,7 @@ public class SonivmMainWindow extends JFrame {
 
 	public void scrollToTrack(int rowNumber) {
 		if (rowNumber > -1) {
-			this.tabsPlaylists.setSelectedIndex(this.playbackQueueTableModel.getCurrentPlayQueue());
+			this.tabsPlaylists.setSelectedIndex(this.playbackQueueTableModel.getCurrentViewedQueue());
 			this.tblPlayQueue.scrollRectToVisible(new Rectangle(tblPlayQueue.getCellRect(rowNumber, 0, true)));
 		}
 	}

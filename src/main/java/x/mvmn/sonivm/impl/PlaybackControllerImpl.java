@@ -723,6 +723,11 @@ public class PlaybackControllerImpl implements PlaybackController {
 	public void onQueueAdd() {
 		saveQueueNames();
 	}
+	
+	@Override
+	public void onQueueRename(int queueIndex) {
+		saveQueueNames();
+	}
 
 	@Override
 	public void onQueueRemove() {
