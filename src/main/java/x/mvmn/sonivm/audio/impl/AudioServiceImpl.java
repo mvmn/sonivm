@@ -105,6 +105,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 							}
 							if (readBytes < 1) {
 								LOGGER.info("End of track");
+								currentSourceDataLine.drain();
 								doStop();
 								executeListenerActions(AudioServiceEvent.builder().type(AudioServiceEvent.Type.FINISH).build());
 							} else {
