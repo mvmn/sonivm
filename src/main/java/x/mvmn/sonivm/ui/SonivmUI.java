@@ -1001,7 +1001,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		this.retroUIWindows.getA().getWindow().addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyPressed(KeyEvent e) {
-				Runnable action = playbackControlKeyActionsMap.get(KeyStroke.getKeyStroke(e.getKeyCode(), e.getModifiers()));
+				Runnable action = playbackControlKeyActionsMap.get(KeyStroke.getKeyStroke(e.getKeyCode(), e.getModifiersEx()));
 				if (action != null) {
 					action.run();
 				}
@@ -1010,7 +1010,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		this.retroUIWindows.getB().getWindow().addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyPressed(KeyEvent e) {
-				Runnable action = playbackControlKeyActionsMap.get(KeyStroke.getKeyStroke(e.getKeyCode(), e.getModifiers()));
+				Runnable action = playbackControlKeyActionsMap.get(KeyStroke.getKeyStroke(e.getKeyCode(), e.getModifiersEx()));
 				if (action != null) {
 					action.run();
 				}

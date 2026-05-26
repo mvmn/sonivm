@@ -1,6 +1,6 @@
 package x.mvmn.sonivm.impl;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
@@ -50,7 +50,7 @@ public class UpadesServiceImpl implements UpdatesService {
 	private Map<SemanticVersion, String> getReleases() {
 		try {
 			Map<SemanticVersion, String> result = new TreeMap<>();
-			JsonNode rootNode = new ObjectMapper().readTree(new URL(releasesUrl).openConnection().getInputStream());
+			JsonNode rootNode = new ObjectMapper().readTree(new URI(releasesUrl).toURL().openConnection().getInputStream());
 			if (!rootNode.isArray()) {
 				throw new Exception("Response is not a JSON Array");
 			}

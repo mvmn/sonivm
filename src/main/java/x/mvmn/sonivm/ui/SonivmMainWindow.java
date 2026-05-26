@@ -352,7 +352,6 @@ public class SonivmMainWindow extends JFrame {
 							int max = Arrays.stream(selectedRowIndicies).max().orElse(0);
 							int min = Arrays.stream(selectedRowIndicies).min().orElse(0);
 							playbackQueueTableModel.copyRowsToOtherQueue(targetQueueNum, min, max + 1);
-							// TODO: controller: save queue
 						}
 					});
 				}

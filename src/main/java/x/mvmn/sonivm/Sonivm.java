@@ -2,7 +2,7 @@ package x.mvmn.sonivm;
 
 import java.awt.Desktop;
 import java.io.File;
-import java.net.URL;
+import java.net.URI;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -13,6 +13,7 @@ import javax.swing.JOptionPane;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import com.formdev.flatlaf.FlatDarculaLaf;
@@ -36,9 +37,33 @@ public class Sonivm implements Runnable {
 	private UpdatesService updatesService;
 
 	public static void main(String[] args) {
+		Sonivm launcher = init(args).getBean(Sonivm.class);
+		SwingUtil.runOnEDT(launcher::run, false);
+	}
+
+	public static ApplicationContext init(String[] args) {
 		initConsoleLogging();
 		LOGGER.info("Sonivm startup");
 
+		initSwing();
+		initHomeFolder();
+
+		return SpringApplication.run(Sonivm.class, args);
+	}
+
+	private static void initHomeFolder() {
+		// Ensure data folder exists
+		File userHome = new File(System.getProperty("user.home"));
+		File appHomeFolder = new File(userHome, ".sonivm");
+		if (!appHomeFolder.exists()) {
+			LOGGER.info("Creating Sonivm data folder at " + appHomeFolder.getAbsolutePath());
+			appHomeFolder.mkdir();
+		}
+
+		System.setProperty("sonivm_home_folder", appHomeFolder.getAbsolutePath());
+	}
+
+	private static void initSwing() {
 		// Change application display name in macOS
 		System.setProperty("apple.awt.application.name", "Sonivm");
 		// Spring Boot makes app headless by default
@@ -51,20 +76,6 @@ public class Sonivm implements Runnable {
 		LOGGER.info("Installing Look&Feels");
 		// Install FlatLaF look&feels
 		SwingUtil.installLookAndFeels(true, FlatLightLaf.class, FlatIntelliJLaf.class, FlatDarkLaf.class, FlatDarculaLaf.class);
-
-		// Ensure data folder exists
-		File userHome = new File(System.getProperty("user.home"));
-		File appHomeFolder = new File(userHome, ".sonivm");
-		if (!appHomeFolder.exists()) {
-			LOGGER.info("Creating Sonivm data folder at " + appHomeFolder.getAbsolutePath());
-			appHomeFolder.mkdir();
-		}
-
-		System.setProperty("sonivm_home_folder", appHomeFolder.getAbsolutePath());
-
-		// Run the app
-		Sonivm launcher = SpringApplication.run(Sonivm.class, args).getBean(Sonivm.class);
-		SwingUtil.runOnEDT(launcher::run, false);
 	}
 
 	private static void initConsoleLogging() {
@@ -84,7 +95,7 @@ public class Sonivm implements Runnable {
 			if (JOptionPane.OK_OPTION == JOptionPane.showConfirmDialog(null, "Sonivm update is available. Open download page?",
 					"Update available", JOptionPane.OK_CANCEL_OPTION)) {
 				try {
-					Desktop.getDesktop().browse(new URL(updateLink).toURI());
+					Desktop.getDesktop().browse(new URI(updateLink));
 				} catch (Exception e) {
 					LOGGER.log(Level.WARNING, "Failed to open update URL", e);
 				}
