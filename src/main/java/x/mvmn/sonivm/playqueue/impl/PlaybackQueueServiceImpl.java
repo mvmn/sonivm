@@ -110,7 +110,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	}
 
 	@Override
-	public long getQueueLength() {
+	public long getQueueDuration() {
 		return getData().stream()
 				.mapToLong(
 						t -> t.getTrackMetadata() != null && t.getTrackMetadata().getDuration() != null ? t.getTrackMetadata().getDuration()
@@ -119,8 +119,8 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	}
 
 	@Override
-	public void setCurrentQueuePosition(int newPosition) {
-		this.currentPlaybackQueue = this.currentViewedQueue;
+	public void setCurrentQueuePosition(int queueNum, int newPosition) {
+		this.currentPlaybackQueue = queueNum;
 		int rows = getData().size();
 		int oldPosition = this.currentQueuePosition;
 		if (newPosition >= 0 && newPosition < rows) {
@@ -162,7 +162,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 						int currentQueuePosition = getCurrentQueuePosition();
 						if (currentQueuePosition >= atIndex) {
 							currentQueuePosition += numberAdded;
-							setCurrentQueuePosition(currentQueuePosition);
+							setCurrentQueuePosition(currentPlaybackQueue, currentQueuePosition);
 						}
 					}
 				}
@@ -202,9 +202,9 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 				int currentQueuePosition = getCurrentQueuePosition();
 				if (currentQueuePosition > toIndex - 1) {
 					currentQueuePosition -= (toIndex - fromIndex);
-					setCurrentQueuePosition(currentQueuePosition);
+					setCurrentQueuePosition(currentPlaybackQueue, currentQueuePosition);
 				} else if (currentQueuePosition >= fromIndex && currentQueuePosition < toIndex) {
-					setCurrentQueuePosition(-1);
+					setCurrentQueuePosition(currentPlaybackQueue, -1);
 				}
 			}
 		}
@@ -245,18 +245,18 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 				if (currentQueuePosition >= firstRow && currentQueuePosition <= lastRow) {
 					if (currentQueuePosition > originalToIndex) {
 						currentQueuePosition += originalToIndex - firstRow;
-						setCurrentQueuePosition(currentQueuePosition);
+						setCurrentQueuePosition(currentPlaybackQueue, currentQueuePosition);
 					} else {
 						//
 						currentQueuePosition += originalToIndex - firstRow - rowCount;
-						setCurrentQueuePosition(currentQueuePosition);
+						setCurrentQueuePosition(currentPlaybackQueue, currentQueuePosition);
 					}
 				} else if (lastRow < currentQueuePosition && originalToIndex > currentQueuePosition) {
 					currentQueuePosition -= rowCount;
-					setCurrentQueuePosition(currentQueuePosition);
+					setCurrentQueuePosition(currentPlaybackQueue, currentQueuePosition);
 				} else if (firstRow > currentQueuePosition && originalToIndex <= currentQueuePosition) {
 					currentQueuePosition += rowCount;
-					setCurrentQueuePosition(currentQueuePosition);
+					setCurrentQueuePosition(currentPlaybackQueue, currentQueuePosition);
 				}
 			}
 		}

@@ -87,7 +87,7 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	}
 
 	public long getQueueLength() {
-		return playQueueService.getQueueLength();
+		return playQueueService.getQueueDuration();
 	}
 
 	public int getIndexOfHighlightedRow() {

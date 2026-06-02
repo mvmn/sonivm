@@ -13,7 +13,7 @@ public interface PlaybackQueueService {
 
 	int getCurrentQueuePosition();
 
-	void setCurrentQueuePosition(int newPosition);
+	void setCurrentQueuePosition(int queueNum, int newPosition);
 
 	PlaybackQueueEntry getCurrentEntry();
 
@@ -24,7 +24,7 @@ public interface PlaybackQueueService {
 	void addRows(Collection<PlaybackQueueEntry> newRows);
 
 	void addRows(int atIndex, Collection<PlaybackQueueEntry> newRows);
-	
+
 	void copyRowsToOtherQueue(int queue, int fromIndex, int toIndex);
 
 	void deleteRows(int fromIndex, int toIndex);
@@ -54,12 +54,12 @@ public interface PlaybackQueueService {
 	void setCurrentQueue(int currentQueue);
 
 	String getQueueName(int queueIndex);
-	
+
 	void setQueueName(int queueIndex, String queueName);
 
 	int getQueuesCount();
 
 	int getCurrentPlayQueue();
 
-	long getQueueLength();
+	long getQueueDuration();
 }

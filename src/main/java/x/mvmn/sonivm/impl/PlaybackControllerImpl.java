@@ -280,7 +280,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 		} else {
 			PlaybackQueueEntry currentTrack = !audioService.isStopped() ? currentTrackInfo : null;
 			PlaybackQueueEntry newTrack = playbackQueueService.getEntryByIndex(trackQueuePosition);
-			playbackQueueService.setCurrentQueuePosition(trackQueuePosition);
+			playbackQueueService.setCurrentQueuePosition(playbackQueueService.getCurrentQueue(), trackQueuePosition);
 			if (!stopCurrent && newTrack.isCueSheetTrack() && currentTrack != null && currentTrack.isCueSheetTrack()
 					&& currentTrack.getTargetFileFullPath().equals(newTrack.getTargetFileFullPath())
 					&& currentTrack.getCueSheetTrackFinishTimeMillis().equals(newTrack.getCueSheetTrackStartTimeMillis())) {
@@ -318,7 +318,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 		audioService.stop();
 		this.currentAudioFileInfo = null;
 		this.currentTrackInfo = null;
-		playbackQueueService.setCurrentQueuePosition(-1);
+		playbackQueueService.setCurrentQueuePosition(playbackQueueService.getCurrentQueue(), -1);
 		listeners.forEach(listener -> listener.onPlaybackStateChange(PlaybackState.STOPPED));
 	}
 

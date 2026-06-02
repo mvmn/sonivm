@@ -144,7 +144,6 @@ public class AudioServiceImpl implements AudioService, Runnable {
 			this.shutdownRequested = true;
 		}
 		LOGGER.info("Playback thread shutting down. Shutdown requested flag state: " + shutdownRequested);
-		playbackEventListenerExecutor.shutdown();
 		if (PlaybackState.STOPPED != this.state) {
 			try {
 				doStop();
@@ -152,6 +151,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				handleTaskException(e);
 			}
 		}
+		playbackEventListenerExecutor.shutdown();
 	}
 
 	@Override

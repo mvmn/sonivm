@@ -118,7 +118,7 @@ public class GuessMusicGameUI extends JFrame implements PlaybackListener {
 			return;
 		}
 		if (playbackQueueService.getCurrentQueuePosition() < 0) {
-			playbackQueueService.setCurrentQueuePosition(0);
+			playbackQueueService.setCurrentQueuePosition(playbackQueueService.getCurrentQueue(), 0);
 		}
 
 		PlaybackQueueEntry curEntry = playbackQueueService.getCurrentEntry();
