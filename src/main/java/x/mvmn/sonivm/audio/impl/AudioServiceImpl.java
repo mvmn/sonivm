@@ -411,6 +411,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		this.currentNormalizedStream.close();
 		this.currentFFAudioInputStream.close();
 		this.playbackBuffer = null;
+		this.audioDataQueue.clear();
 		this.previousDataLineMillisecondsPosition = 0L;
 		this.state = PlaybackState.STOPPED;
 		executeListenerActions(AudioServiceEvent.builder().type(AudioServiceEvent.Type.STOP).build());
