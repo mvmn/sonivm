@@ -30,6 +30,8 @@ import com.tagtraum.ffsampledsp.FFAudioFileReader;
 import com.tagtraum.ffsampledsp.FFAudioInputStream;
 
 import davaguine.jeq.spi.EqualizerInputStream;
+import lombok.Builder;
+import lombok.Data;
 import x.mvmn.sonivm.audio.AudioFileInfo;
 import x.mvmn.sonivm.audio.AudioService;
 import x.mvmn.sonivm.audio.AudioServiceEvent;
@@ -72,13 +74,47 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private volatile int balanceLR = 50;
 
 	private List<AudioServiceEventListener> listeners = new CopyOnWriteArrayList<>();
+	private ConcurrentLinkedQueue<AudioDataBuffer> audioDataQueue = new ConcurrentLinkedQueue<>();
 
 	@PostConstruct
 	public void startPlaybackThread() {
-		Thread playbackThread = new Thread(this);
+		Thread controlThread = new Thread(this);
+		controlThread.setPriority(Thread.MAX_PRIORITY);
+		controlThread.setDaemon(true);
+		controlThread.start();
+		Thread playbackThread = new Thread(() -> doPlay());
 		playbackThread.setPriority(Thread.MAX_PRIORITY);
 		playbackThread.setDaemon(true);
 		playbackThread.start();
+	}
+
+	private void doPlay() {
+		try {
+			while (!this.shutdownRequested) {
+				SourceDataLine sourceDl = currentSourceDataLine;
+				if (sourceDl != null && PlaybackState.PAUSED != this.state) {
+					updatePlayPosition();
+					AudioDataBuffer buffer = audioDataQueue.poll();
+					if (buffer == null) {
+						Thread.yield();
+						Thread.sleep(1000);
+					} else {
+						sourceDl.write(buffer.getBuffer(), 0, buffer.getAmount());
+					}
+				}
+			}
+		} catch (InterruptedException interruptException) {
+			Thread.interrupted();
+			this.shutdownRequested = true;
+		}
+		LOGGER.info("Audioplay thread shutting down.");
+	}
+
+	@Data
+	@Builder
+	private static class AudioDataBuffer {
+		private final byte[] buffer;
+		private final int amount;
 	}
 
 	@Override
@@ -97,6 +133,10 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				} else {
 					try {
 						if (PlaybackState.PLAYING == state) {
+							if (audioDataQueue.size() >= 5) {
+								updatePlayPosition();
+								continue;
+							}
 							int readBytes = -1;
 							byte[] buffer = playbackBuffer;
 							readBytes = (useEqualizer ? currentEqInputStream : currentNormalizedStream).read(buffer);
@@ -112,21 +152,9 @@ public class AudioServiceImpl implements AudioService, Runnable {
 								if (LOGGER.isLoggable(Level.FINEST)) {
 									LOGGER.finest("Writing bytes to source data line: " + readBytes);
 								}
-								currentSourceDataLine.write(buffer, 0, readBytes);
-								if (requestedSeekPositionMillisec == null) {
-									long dataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
-									long delta = dataLineMillisecondsPosition - this.previousDataLineMillisecondsPosition;
-									if (delta > 100) { // Every 1/10th of a second (or at least not more frequent)
-										long currentPlayPositionMillis = playbackStartPositionMillisec
-												+ (dataLineMillisecondsPosition - startingDataLineMillisecondsPosition);
-										executeListenerActions(AudioServiceEvent.builder()
-												.type(AudioServiceEvent.Type.PROGRESS)
-												.playbackPositionMilliseconds(currentPlayPositionMillis)
-												.playbackDeltaMilliseconds(delta)
-												.build());
-										this.previousDataLineMillisecondsPosition = dataLineMillisecondsPosition;
-									}
-								}
+								// currentSourceDataLine.write(buffer, 0, readBytes);
+								audioDataQueue.add(AudioDataBuffer.builder().buffer(buffer.clone()).amount(readBytes).build());
+								updatePlayPosition();
 							}
 						} else {
 							Thread.yield();
@@ -143,7 +171,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 			Thread.interrupted();
 			this.shutdownRequested = true;
 		}
-		LOGGER.info("Playback thread shutting down. Shutdown requested flag state: " + shutdownRequested);
+		LOGGER.info("Playback control thread shutting down. Shutdown requested flag state: " + shutdownRequested);
 		if (PlaybackState.STOPPED != this.state) {
 			try {
 				doStop();
@@ -152,6 +180,23 @@ public class AudioServiceImpl implements AudioService, Runnable {
 			}
 		}
 		playbackEventListenerExecutor.shutdown();
+	}
+
+	private void updatePlayPosition() {
+		if (requestedSeekPositionMillisec == null) {
+			long dataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
+			long delta = dataLineMillisecondsPosition - this.previousDataLineMillisecondsPosition;
+			if (delta > 100) { // Every 1/10th of a second (or at least not more frequent)
+				long currentPlayPositionMillis = playbackStartPositionMillisec
+						+ (dataLineMillisecondsPosition - startingDataLineMillisecondsPosition);
+				executeListenerActions(AudioServiceEvent.builder()
+						.type(AudioServiceEvent.Type.PROGRESS)
+						.playbackPositionMilliseconds(currentPlayPositionMillis)
+						.playbackDeltaMilliseconds(delta)
+						.build());
+				this.previousDataLineMillisecondsPosition = dataLineMillisecondsPosition;
+			}
+		}
 	}
 
 	@Override
@@ -236,7 +281,10 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						currentSourceDataLine = selectedAudioDevice != null
 								? AudioSystem.getSourceDataLine(normalizedStream.getFormat(), selectedAudioDevice)
 								: AudioSystem.getSourceDataLine(normalizedStream.getFormat());
-						currentSourceDataLine.open(normalizedStream.getFormat());
+
+						int dataLineBufferSize = ((int) (normalizedStream.getFormat().getFrameRate() / 2))
+								* normalizedStream.getFormat().getFrameSize(); // * 10;
+						currentSourceDataLine.open(normalizedStream.getFormat(), dataLineBufferSize);
 						currentSourceDataLine.start();
 						this.currentSourceDataLine = currentSourceDataLine;
 
@@ -338,6 +386,8 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 	private void doSeek(long seekPositionMillisec) throws UnsupportedOperationException, IOException {
 		this.currentFFAudioInputStream.seek(seekPositionMillisec, TimeUnit.MILLISECONDS);
+		this.audioDataQueue.clear();
+//		this.currentSourceDataLine.flush();
 		this.playbackStartPositionMillisec = seekPositionMillisec;
 		this.startingDataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
 	}
