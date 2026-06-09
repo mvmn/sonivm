@@ -135,6 +135,8 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						if (PlaybackState.PLAYING == state) {
 							if (audioDataQueue.size() >= 5) {
 								updatePlayPosition();
+								Thread.yield();
+								Thread.sleep(100);
 								continue;
 							}
 							int readBytes = -1;
