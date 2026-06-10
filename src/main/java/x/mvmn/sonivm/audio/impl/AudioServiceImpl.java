@@ -101,6 +101,9 @@ public class AudioServiceImpl implements AudioService, Runnable {
 					} else {
 						sourceDl.write(buffer.getBuffer(), 0, buffer.getAmount());
 					}
+				} else {
+					Thread.yield();
+					Thread.sleep(200);					
 				}
 			}
 		} catch (InterruptedException interruptException) {
