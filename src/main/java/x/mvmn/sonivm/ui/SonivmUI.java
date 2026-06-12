@@ -299,7 +299,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 				@Override
 				public void stateChanged(ChangeEvent e) {
 					int idx = retroUIWindows.getC().getTabsPlaylists().getSelectedIndex();
-					playbackQueueService.setCurrentQueue(idx);
+					playbackQueueService.setCurrentlyViewedQueue(idx);
 				}
 			});
 		} catch (WSZLoadingException e) {
@@ -749,7 +749,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 	@Override
 	public void onDeleteRowsFromQueue(int start, int end) {
-		int queueSize = playbackQueueService.getQueueSize();
+		int queueSize = playbackQueueService.getViewedQueueSize();
 		if (end - start + 1 == queueSize) {
 			if (JOptionPane.OK_OPTION == JOptionPane.showConfirmDialog(this.mainWindow, "Delete all items in the queue?", "Are you sure?", JOptionPane.YES_NO_OPTION)) {
 				playbackController.onDeleteRowsFromQueue(start, end);

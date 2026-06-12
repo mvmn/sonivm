@@ -824,7 +824,7 @@ public class SonivmMainWindow extends JFrame {
 		this.lblNowPlayingTrack.setToolTipText(fileInfo);
 
 		int idx = this.playbackQueueTableModel.getCurrentPlayedQueue();
-		this.tabsPlaylists.setSelectedIndex(idx); // redundant?
+		//this.tabsPlaylists.setSelectedIndex(idx); // redundant?
 		if (trackInfo == null) {
 			idx = -1;
 		}

@@ -9,7 +9,9 @@ import x.mvmn.sonivm.util.IntRange;
 
 public interface PlaybackQueueService {
 
-	int getQueueSize();
+	int getViewedQueueSize();
+	
+	int getPlayQueueSize();
 
 	int getCurrentQueuePosition();
 
@@ -17,7 +19,7 @@ public interface PlaybackQueueService {
 
 	PlaybackQueueEntry getCurrentEntry();
 
-	PlaybackQueueEntry getEntryByIndex(int index);
+	PlaybackQueueEntry getEntryByIndex(int queue, int index);
 
 	void clearQueue();
 
@@ -49,9 +51,9 @@ public interface PlaybackQueueService {
 
 	void removeQueue(int queueIndex);
 
-	int getCurrentQueue();
+	int getCurrentlyViewedQueue();
 
-	void setCurrentQueue(int currentQueue);
+	void setCurrentlyViewedQueue(int currentQueue);
 
 	String getQueueName(int queueIndex);
 
@@ -62,4 +64,6 @@ public interface PlaybackQueueService {
 	int getCurrentPlayQueue();
 
 	long getQueueDuration();
+
+	int getQueueSize(int queue);
 }

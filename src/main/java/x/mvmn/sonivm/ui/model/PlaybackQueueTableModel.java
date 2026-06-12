@@ -54,8 +54,9 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	@Override
 	public String getValueAt(int row, int column) {
 		int currentQueuePlayPosition = playQueueService.getCurrentQueuePosition();
-		PlaybackQueueEntry entry = playQueueService.getEntryByIndex(row);
-		boolean nowPlayed = currentQueuePlayPosition == row && playQueueService.getCurrentQueue() == playQueueService.getCurrentPlayQueue();
+		PlaybackQueueEntry entry = playQueueService.getEntryByIndex(playQueueService.getCurrentlyViewedQueue(), row);
+		boolean nowPlayed = currentQueuePlayPosition == row
+				&& playQueueService.getCurrentlyViewedQueue() == playQueueService.getCurrentPlayQueue();
 		switch (column) {
 			default:
 			case 0:
@@ -78,12 +79,12 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	}
 
 	public PlaybackQueueEntry getEntry(int row) {
-		return playQueueService.getEntryByIndex(row);
+		return playQueueService.getEntryByIndex(playQueueService.getCurrentlyViewedQueue(), row);
 	}
 
 	@Override
 	public int getRowCount() {
-		return playQueueService.getQueueSize();
+		return playQueueService.getViewedQueueSize();
 	}
 
 	public long getQueueLength() {
@@ -91,7 +92,8 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	}
 
 	public int getIndexOfHighlightedRow() {
-		return playQueueService.getCurrentPlayQueue() == playQueueService.getCurrentQueue() ? playQueueService.getCurrentQueuePosition()
+		return playQueueService.getCurrentPlayQueue() == playQueueService.getCurrentlyViewedQueue()
+				? playQueueService.getCurrentQueuePosition()
 				: -1;
 	}
 
@@ -165,7 +167,7 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	public void addQueue(String queueName) {
 		playQueueService.addQueue(queueName);
 	}
-	
+
 	public void renameQueue(int index, String queueName) {
 		playQueueService.setQueueName(index, queueName);
 	}
@@ -183,11 +185,11 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 	}
 
 	public void switchQueue(int index) {
-		playQueueService.setCurrentQueue(index);
+		playQueueService.setCurrentlyViewedQueue(index);
 	}
 
 	public int getCurrentViewedQueue() {
-		return playQueueService.getCurrentQueue();
+		return playQueueService.getCurrentlyViewedQueue();
 	}
 
 	public void copyRowsToOtherQueue(int queue, int fromIndex, int toIndex) {

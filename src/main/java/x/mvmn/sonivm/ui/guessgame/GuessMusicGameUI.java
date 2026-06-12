@@ -114,11 +114,11 @@ public class GuessMusicGameUI extends JFrame implements PlaybackListener {
 	}
 
 	protected void initGuesses() {
-		if (playbackQueueService.getQueueSize() < 4) {
+		if (playbackQueueService.getViewedQueueSize() < 4) {
 			return;
 		}
 		if (playbackQueueService.getCurrentQueuePosition() < 0) {
-			playbackQueueService.setCurrentQueuePosition(playbackQueueService.getCurrentQueue(), 0);
+			playbackQueueService.setCurrentQueuePosition(playbackQueueService.getCurrentlyViewedQueue(), 0);
 		}
 
 		PlaybackQueueEntry curEntry = playbackQueueService.getCurrentEntry();
@@ -126,11 +126,11 @@ public class GuessMusicGameUI extends JFrame implements PlaybackListener {
 		int skip = playbackQueueService.getCurrentQueuePosition();
 		{
 			List<PlaybackQueueEntry> opts = new ArrayList<>(4);
-			random.ints(0, playbackQueueService.getQueueSize())
+			random.ints(0, playbackQueueService.getViewedQueueSize())
 					.distinct()
 					.filter(v -> v != skip)
 					.limit(3)
-					.mapToObj(playbackQueueService::getEntryByIndex)
+					.mapToObj(idx -> playbackQueueService.getEntryByIndex(playbackQueueService.getCurrentPlayQueue(), idx))
 					.forEach(opts::add);
 			correctOptNormal = random.nextInt(4);
 			opts.add(correctOptNormal, curEntry);
@@ -151,7 +151,7 @@ public class GuessMusicGameUI extends JFrame implements PlaybackListener {
 						.filter(v -> hardChoices[v] != skip)
 						.limit(Math.min(hardChoices.length - 1, 3))
 						.map(v -> hardChoices[v])
-						.mapToObj(playbackQueueService::getEntryByIndex)
+						.mapToObj(idx -> playbackQueueService.getEntryByIndex(playbackQueueService.getCurrentPlayQueue(), idx))
 						.forEach(opts::add);
 			}
 			correctOptHard = random.nextInt(4);
@@ -201,7 +201,7 @@ public class GuessMusicGameUI extends JFrame implements PlaybackListener {
 	protected void switchToNextTrack() {
 		Thread trackSwitch = new Thread() {
 			public void run() {
-				playbackController.onTrackSelect(random.nextInt(playbackQueueService.getQueueSize()));
+				playbackController.onTrackSelect(random.nextInt(playbackQueueService.getPlayQueueSize()));
 				seekNeeded = true;
 			}
 		};
