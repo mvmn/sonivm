@@ -56,7 +56,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	}
 
 	@Override
-	public int getCurrentQueue() {
+	public int getCurrentlyViewedQueue() {
 		return currentViewedQueue;
 	}
 
@@ -66,7 +66,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	}
 
 	@Override
-	public void setCurrentQueue(int currentQueue) {
+	public void setCurrentlyViewedQueue(int currentQueue) {
 		if (currentQueue < 0) {
 			currentQueue = 0;
 		}
@@ -100,13 +100,24 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	}
 
 	@Override
-	public PlaybackQueueEntry getEntryByIndex(int index) {
-		return index >= 0 && index < getData().size() ? getData().get(index) : null;
+	public PlaybackQueueEntry getEntryByIndex(int queue, int index) {
+		if (queue < 0 || queue >= datas.size()) {
+			return null;
+		}
+		return index >= 0 && index < datas.get(queue).size() ? datas.get(queue).get(index) : null;
 	}
 
 	@Override
-	public int getQueueSize() {
+	public int getViewedQueueSize() {
 		return getData().size();
+	}
+	
+	@Override
+	public int getQueueSize(int queue) {
+		if (queue < 0 || queue >= datas.size()) {
+			return 0;
+		}
+		return datas.get(queue).size();
 	}
 
 	@Override
@@ -369,5 +380,13 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 			throw new IllegalArgumentException("Queue must be different from current one");
 		}
 		datas.get(queue).addAll(datas.get(this.currentViewedQueue).subList(fromIndex, toIndex));
+	}
+
+	@Override
+	public int getPlayQueueSize() {
+		if (currentPlaybackQueue >= 0) {
+			return datas.get(currentPlaybackQueue).size();
+		}
+		return 0;
 	}
 }

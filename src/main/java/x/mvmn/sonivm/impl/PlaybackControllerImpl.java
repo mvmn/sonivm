@@ -128,7 +128,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 	@Override
 	public void onTrackSelect(int index) {
-		switchToTrack(index);
+		switchToTrack(playbackQueueService.getCurrentlyViewedQueue(), index);
 	}
 
 	private void onTrackFinished() {
@@ -141,12 +141,12 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 	@Override
 	public void onNextTrack() {
-		playbackQueueService.setCurrentQueue(playbackQueueService.getCurrentPlayQueue());
+		playbackQueueService.setCurrentlyViewedQueue(playbackQueueService.getCurrentPlayQueue());
 		doNextTrack(true);
 	}
 
 	private void doNextTrack(boolean userRequested) {
-		int trackCount = playbackQueueService.getQueueSize();
+		int trackCount = playbackQueueService.getPlayQueueSize();
 		int currentTrackQueuePos = playbackQueueService.getCurrentQueuePosition();
 		ShuffleMode shuffleState = this.shuffleMode;
 		RepeatMode repeatState = this.repeatMode;
@@ -172,7 +172,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 						if (matchingTrackIndexes.length < 1) {
 							tryPlayFromStartOfQueue();
 						} else {
-							switchToTrack(
+							switchToTrack(playbackQueueService.getCurrentPlayQueue(),
 									matchingTrackIndexes[new Random(System.currentTimeMillis()).nextInt(matchingTrackIndexes.length)]);
 						}
 						return;
@@ -183,7 +183,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 						if (matchingTrackIndexes.length < 1) {
 							tryPlayFromStartOfQueue();
 						} else {
-							switchToTrack(
+							switchToTrack(playbackQueueService.getCurrentPlayQueue(),
 									matchingTrackIndexes[new Random(System.currentTimeMillis()).nextInt(matchingTrackIndexes.length)]);
 						}
 						return;
@@ -194,7 +194,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 						if (matchingTrackIndexes.length < 1) {
 							tryPlayFromStartOfQueue();
 						} else {
-							switchToTrack(
+							switchToTrack(playbackQueueService.getCurrentPlayQueue(),
 									matchingTrackIndexes[new Random(System.currentTimeMillis()).nextInt(matchingTrackIndexes.length)]);
 						}
 						return;
@@ -204,7 +204,8 @@ public class PlaybackControllerImpl implements PlaybackController {
 					break;
 					default:
 					case PLAYLIST: {
-						switchToTrack(new Random(System.currentTimeMillis()).nextInt(trackCount));
+						switchToTrack(playbackQueueService.getCurrentPlayQueue(),
+								new Random(System.currentTimeMillis()).nextInt(trackCount));
 						return;
 					}
 				}
@@ -234,7 +235,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 						break;
 					}
 					if (currentTrackQueuePos == endOfRange) {
-						switchToTrack(startOfRange);
+						switchToTrack(playbackQueueService.getCurrentPlayQueue(), startOfRange);
 						return;
 					}
 				}
@@ -244,7 +245,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 				} else if (currentTrackQueuePos < 0) {
 					tryPlayFromStartOfQueue();
 				} else {
-					switchToTrack(++currentTrackQueuePos, userRequested);
+					switchToTrack(playbackQueueService.getCurrentPlayQueue(), ++currentTrackQueuePos, userRequested);
 				}
 			}
 		} else {
@@ -254,33 +255,34 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 	@Override
 	public void onPreviousTrack() {
-		playbackQueueService.setCurrentQueue(playbackQueueService.getCurrentPlayQueue());
+		playbackQueueService.setCurrentlyViewedQueue(playbackQueueService.getCurrentPlayQueue());
 		int currentTrack = playbackQueueService.getCurrentQueuePosition();
 		if (currentTrack > 0) {
-			switchToTrack(--currentTrack);
+			switchToTrack(playbackQueueService.getCurrentPlayQueue(), --currentTrack);
 		}
 	}
 
 	private void tryPlayFromStartOfQueue() {
-		if (playbackQueueService.getQueueSize() > 0) {
-			switchToTrack(0);
+		if (playbackQueueService.getViewedQueueSize() > 0) {
+			switchToTrack(playbackQueueService.getCurrentlyViewedQueue(), 0);
 		} else {
 			doStop();
 		}
 	}
 
-	private void switchToTrack(int trackQueuePosition) {
-		switchToTrack(trackQueuePosition, true);
+	private void switchToTrack(int queue, int trackQueuePosition) {
+		switchToTrack(queue, trackQueuePosition, true);
 	}
 
-	private void switchToTrack(int trackQueuePosition, boolean stopCurrent) {
-		int queueSize = playbackQueueService.getQueueSize();
+	private void switchToTrack(int queue, int trackQueuePosition, boolean stopCurrent) {
+		queue = queue >= 0 ? queue : playbackQueueService.getCurrentlyViewedQueue();
+		int queueSize = playbackQueueService.getQueueSize(queue);
 		if (trackQueuePosition >= queueSize) {
 			doStop();
 		} else {
 			PlaybackQueueEntry currentTrack = !audioService.isStopped() ? currentTrackInfo : null;
-			PlaybackQueueEntry newTrack = playbackQueueService.getEntryByIndex(trackQueuePosition);
-			playbackQueueService.setCurrentQueuePosition(playbackQueueService.getCurrentQueue(), trackQueuePosition);
+			PlaybackQueueEntry newTrack = playbackQueueService.getEntryByIndex(queue, trackQueuePosition);
+			playbackQueueService.setCurrentQueuePosition(queue, trackQueuePosition);
 			if (!stopCurrent && newTrack.isCueSheetTrack() && currentTrack != null && currentTrack.isCueSheetTrack()
 					&& currentTrack.getTargetFileFullPath().equals(newTrack.getTargetFileFullPath())
 					&& currentTrack.getCueSheetTrackFinishTimeMillis().equals(newTrack.getCueSheetTrackStartTimeMillis())) {
@@ -288,7 +290,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 				LOGGER.fine("Next CUE track is a continuation of same auido file");
 				handleStartTrackPlay(currentAudioFileInfo);
 			} else {
-				File track = new File(playbackQueueService.getEntryByIndex(trackQueuePosition).getTargetFileFullPath());
+				File track = new File(playbackQueueService.getEntryByIndex(queue, trackQueuePosition).getTargetFileFullPath());
 				if (stopCurrent || currentTrack != null && currentTrack.isCueSheetTrack()) {
 					audioService.stop();
 				}
@@ -318,7 +320,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 		audioService.stop();
 		this.currentAudioFileInfo = null;
 		this.currentTrackInfo = null;
-		playbackQueueService.setCurrentQueuePosition(playbackQueueService.getCurrentQueue(), -1);
+		playbackQueueService.setCurrentQueuePosition(playbackQueueService.getCurrentlyViewedQueue(), -1);
 		listeners.forEach(listener -> listener.onPlaybackStateChange(PlaybackState.STOPPED));
 	}
 
@@ -372,13 +374,13 @@ public class PlaybackControllerImpl implements PlaybackController {
 		try {
 			LOGGER.info("Storing play queues.");
 			saveQueueNames();
-			int currentQueue = this.playbackQueueService.getCurrentQueue();
+			int currentQueue = this.playbackQueueService.getCurrentlyViewedQueue();
 			int queueCount = this.playbackQueueService.getQueuesCount();
 			for (int i = 0; i < queueCount; i++) {
-				this.playbackQueueService.setCurrentQueue(i);
+				this.playbackQueueService.setCurrentlyViewedQueue(i);
 				OBJECT_MAPPER.writeValue(getPlayQueueStorageFile(i), this.playbackQueueService.getCopyOfQueue());
 			}
-			this.playbackQueueService.setCurrentQueue(currentQueue);
+			this.playbackQueueService.setCurrentlyViewedQueue(currentQueue);
 			LOGGER.info("Storing play queues succeeded.");
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to store the playback queue", e);
@@ -410,7 +412,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 					if (i > 0) {
 						this.playbackQueueService.addQueue(queueNamesList.get(i));
 					}
-					this.playbackQueueService.setCurrentQueue(i);
+					this.playbackQueueService.setCurrentlyViewedQueue(i);
 					this.playbackQueueService.clearQueue();
 					this.playbackQueueService.addRows(queueEntries);
 					LOGGER.info("Restoring play queue " + i + " succeeded.");
@@ -723,7 +725,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 	public void onQueueAdd() {
 		saveQueueNames();
 	}
-	
+
 	@Override
 	public void onQueueRename(int queueIndex) {
 		saveQueueNames();

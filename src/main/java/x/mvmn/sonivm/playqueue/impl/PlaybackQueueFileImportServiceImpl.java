@@ -56,7 +56,7 @@ public class PlaybackQueueFileImportServiceImpl implements PlaybackQueueFileImpo
 			Consumer<String> importProgressListener, Runnable onTagLoadCompletion) {
 		filesToImport.sort(Comparator.comparing(File::getName));
 		if (queuePosition < 0) {
-			queuePosition = playbackQueueService.getQueueSize();
+			queuePosition = playbackQueueService.getViewedQueueSize();
 		}
 		for (File file : filesToImport) {
 			queuePosition += addFileToQueue(playbackQueueService, queuePosition, file, importProgressListener, onTagLoadCompletion);
