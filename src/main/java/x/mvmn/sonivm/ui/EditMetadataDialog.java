@@ -14,10 +14,12 @@ import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
+import x.mvmn.sonivm.playqueue.PlaybackQueuePersistenceService;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
 import x.mvmn.sonivm.util.StringUtil;
@@ -41,7 +43,11 @@ public class EditMetadataDialog extends JDialog {
 	private JCheckBox cbDate = new JCheckBox();
 	private JCheckBox cbGenre = new JCheckBox();
 
-	public EditMetadataDialog(JFrame parentWindow, PlaybackQueueTableModel playbackQueueTableModel, int[] selectedRows) {
+	public EditMetadataDialog(JFrame parentWindow,
+			PlaybackQueueTableModel playbackQueueTableModel,
+			PlaybackQueuePersistenceService persistence,
+			int[] selectedRows,
+			int queueIndex) {
 		super(parentWindow, "Edit metadata", true);
 
 		tfTrackNumber.setText("1234");
@@ -101,8 +107,9 @@ public class EditMetadataDialog extends JDialog {
 		btnOk.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				boolean atLeastOneChange = false;
 				for (int i = 0; i < selectedRows.length; i++) {
-					PlaybackQueueEntry entry = playbackQueueTableModel.getEntry(selectedRows[i]);
+					PlaybackQueueEntry entry = playbackQueueTableModel.getEntry(queueIndex, selectedRows[i]);
 					boolean changed = false;
 					if (cbTrackNumber.isSelected()) {
 						entry.getTrackMetadata().setTrackNumber(tfTrackNumber.getText());
@@ -129,9 +136,16 @@ public class EditMetadataDialog extends JDialog {
 						changed = true;
 					}
 					if (changed) {
+						atLeastOneChange = true;
 						playbackQueueTableModel.rowChanged(selectedRows[i]);
+						int finalIndex = i;
+						SwingUtilities.invokeLater(() -> playbackQueueTableModel.fireTableRowsUpdated(finalIndex, finalIndex));
 					}
 				}
+				if (atLeastOneChange) {
+					persistence.savePlayQueueContents(queueIndex);
+				}
+
 				EditMetadataDialog.this.close();
 			}
 		});

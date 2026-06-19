@@ -82,6 +82,10 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 		return playQueueService.getEntryByIndex(playQueueService.getCurrentlyViewedQueue(), row);
 	}
 
+	public PlaybackQueueEntry getEntry(int queue, int row) {
+		return playQueueService.getEntryByIndex(queue, row);
+	}
+
 	@Override
 	public int getRowCount() {
 		return playQueueService.getViewedQueueSize();

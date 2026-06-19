@@ -274,9 +274,9 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	}
 
 	@Override
-	public List<PlaybackQueueEntry> getCopyOfQueue() {
+	public List<PlaybackQueueEntry> getCopyOfQueue(int queueIndex) {
 		synchronized (DATA_LOCK_OBJ) {
-			return new ArrayList<>(getData());
+			return new ArrayList<>(datas.get(queueIndex));
 		}
 	}
 

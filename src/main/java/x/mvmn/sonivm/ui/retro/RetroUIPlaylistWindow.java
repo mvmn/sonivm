@@ -194,7 +194,7 @@ public class RetroUIPlaylistWindow {
 						break;
 					}
 					default:
-						Runnable action = playbackControlKeyActionsMap.get(KeyStroke.getKeyStroke(e.getKeyCode(), e.getModifiers()));
+						Runnable action = playbackControlKeyActionsMap.get(KeyStroke.getKeyStroke(e.getKeyCode(), e.getModifiersEx()));
 						if (action != null) {
 							action.run();
 						}

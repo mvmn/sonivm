@@ -72,6 +72,7 @@ import lombok.Setter;
 import x.mvmn.sonivm.impl.RepeatMode;
 import x.mvmn.sonivm.impl.ShuffleMode;
 import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
+import x.mvmn.sonivm.playqueue.PlaybackQueuePersistenceService;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
 import x.mvmn.sonivm.ui.util.swing.ImageUtil;
 import x.mvmn.sonivm.ui.util.swing.SwingUtil;
@@ -87,6 +88,7 @@ public class SonivmMainWindow extends JFrame {
 	private static final long serialVersionUID = -3402450540379541023L;
 
 	private final PlaybackQueueTableModel playbackQueueTableModel;
+	private final PlaybackQueuePersistenceService playbackQueuePersistenceService;
 	private final JLabel lblStatus;
 	private final JLabel lblNowPlayingTrack;
 	private final JLabel lblPlayTimeElapsed;
@@ -128,9 +130,12 @@ public class SonivmMainWindow extends JFrame {
 	@Setter
 	private volatile boolean columnsResized = false;
 
-	public SonivmMainWindow(String title, PlaybackQueueTableModel playbackQueueTableModel) {
+	public SonivmMainWindow(String title,
+			PlaybackQueueTableModel playbackQueueTableModel,
+			PlaybackQueuePersistenceService playbackQueuePersistenceService) {
 		super(title);
 		this.playbackQueueTableModel = playbackQueueTableModel;
+		this.playbackQueuePersistenceService = playbackQueuePersistenceService;
 
 		tblPlayQueue = new JTable(playbackQueueTableModel) {
 			private static final long serialVersionUID = -6310314844571818281L;
@@ -280,7 +285,8 @@ public class SonivmMainWindow extends JFrame {
 							PlaybackQueueEntry entry = playbackQueueTableModel.getEntry(selectedRows[i]);
 							entry.getTrackMetadata().setTrackNumber(String.format("%02d", i + 1));
 						}
-						// TODO: controller: save queue
+						playbackQueuePersistenceService
+								.savePlayQueueContents(SonivmMainWindow.this.playbackQueueTableModel.getCurrentViewedQueue());
 					}
 				});
 
@@ -309,7 +315,8 @@ public class SonivmMainWindow extends JFrame {
 								entry.getTrackMetadata().setTitle(conversion.apply(entry.getTrackMetadata().getTitle()));
 								entry.getTrackMetadata().setGenre(conversion.apply(entry.getTrackMetadata().getGenre()));
 							}
-							// TODO: controller: save queue
+							playbackQueuePersistenceService
+									.savePlayQueueContents(SonivmMainWindow.this.playbackQueueTableModel.getCurrentViewedQueue());
 						}
 					}
 				});
@@ -333,7 +340,8 @@ public class SonivmMainWindow extends JFrame {
 							entry.getTrackMetadata().setTitle(conversion.apply(entry.getTrackMetadata().getTitle()));
 							entry.getTrackMetadata().setGenre(conversion.apply(entry.getTrackMetadata().getGenre()));
 						}
-						// TODO: controller: save queue
+						playbackQueuePersistenceService
+								.savePlayQueueContents(SonivmMainWindow.this.playbackQueueTableModel.getCurrentViewedQueue());
 					}
 				});
 
@@ -824,7 +832,7 @@ public class SonivmMainWindow extends JFrame {
 		this.lblNowPlayingTrack.setToolTipText(fileInfo);
 
 		int idx = this.playbackQueueTableModel.getCurrentPlayedQueue();
-		//this.tabsPlaylists.setSelectedIndex(idx); // redundant?
+		// this.tabsPlaylists.setSelectedIndex(idx); // redundant?
 		if (trackInfo == null) {
 			idx = -1;
 		}
@@ -972,7 +980,8 @@ public class SonivmMainWindow extends JFrame {
 	private void showEditMetadataDialog() {
 		int[] selectedRows = this.tblPlayQueue.getSelectedRows();
 		if (selectedRows.length > 0) {
-			EditMetadataDialog dialog = new EditMetadataDialog(this, playbackQueueTableModel, selectedRows);
+			EditMetadataDialog dialog = new EditMetadataDialog(this, playbackQueueTableModel, playbackQueuePersistenceService, selectedRows,
+					playbackQueueTableModel.getCurrentViewedQueue());
 			dialog.setVisible(true);
 		}
 	}

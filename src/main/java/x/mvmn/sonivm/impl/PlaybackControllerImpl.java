@@ -1,10 +1,7 @@
 package x.mvmn.sonivm.impl;
 
 import java.io.File;
-import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -17,11 +14,6 @@ import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.Getter;
 import x.mvmn.sonivm.PlaybackController;
@@ -37,6 +29,7 @@ import x.mvmn.sonivm.lastfm.LastFMScrobblingService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
 import x.mvmn.sonivm.playqueue.PlaybackQueueEntryCompareBiPredicate;
 import x.mvmn.sonivm.playqueue.PlaybackQueueFileImportService;
+import x.mvmn.sonivm.playqueue.PlaybackQueuePersistenceService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.ui.util.NotificationsUtil;
@@ -47,8 +40,9 @@ import x.mvmn.sonivm.util.IntRange;
 public class PlaybackControllerImpl implements PlaybackController {
 
 	private static final Logger LOGGER = Logger.getLogger(PlaybackControllerImpl.class.getSimpleName());
-
-	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+	
+	@Autowired
+	private PlaybackQueuePersistenceService playbackQueuePersistenceService;
 
 	@Autowired
 	private AudioService audioService;
@@ -328,7 +322,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 	public void onDropFilesToQueue(int queuePosition, List<File> files, Consumer<String> importProgressListener) {
 		new Thread(() -> {
 			playbackQueueFileImportService.importFilesIntoPlayQueue(playbackQueueService, queuePosition, files, importProgressListener,
-					PlaybackControllerImpl.this::savePlayQueueContents);
+					playbackQueuePersistenceService::savePlayQueuesContents);
 		}).start();
 	}
 
@@ -337,7 +331,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 		if (insertPosition > lastRow || insertPosition < firstRow) {
 			playbackQueueService.moveRows(insertPosition, firstRow, lastRow);
 
-			savePlayQueueContents();
+			playbackQueuePersistenceService.savePlayQueuesContents();
 
 			return true;
 		} else {
@@ -352,7 +346,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 		audioService.shutdown();
 
 		savePlaybackState();
-		savePlayQueueContents();
+		playbackQueuePersistenceService.savePlayQueuesContents();
 		saveEqState();
 	}
 
@@ -368,84 +362,6 @@ public class PlaybackControllerImpl implements PlaybackController {
 		} catch (Throwable t) {
 			LOGGER.log(Level.WARNING, "Failed to store shuffle/repeat preferences", t);
 		}
-	}
-
-	private void savePlayQueueContents() {
-		try {
-			LOGGER.info("Storing play queues.");
-			saveQueueNames();
-			int currentQueue = this.playbackQueueService.getCurrentlyViewedQueue();
-			int queueCount = this.playbackQueueService.getQueuesCount();
-			for (int i = 0; i < queueCount; i++) {
-				this.playbackQueueService.setCurrentlyViewedQueue(i);
-				OBJECT_MAPPER.writeValue(getPlayQueueStorageFile(i), this.playbackQueueService.getCopyOfQueue());
-			}
-			this.playbackQueueService.setCurrentlyViewedQueue(currentQueue);
-			LOGGER.info("Storing play queues succeeded.");
-		} catch (Exception e) {
-			LOGGER.log(Level.WARNING, "Failed to store the playback queue", e);
-		}
-	}
-
-	private List<String> loadQueueNamesList() throws JsonParseException, JsonMappingException, IOException {
-		File queueNamesFile = getPlayQueueNamesFile();
-
-		List<String> queueNamesList = new ArrayList<>();
-		queueNamesList.add("Default");
-		if (queueNamesFile.exists()) {
-			String[] queueNames = OBJECT_MAPPER.readValue(queueNamesFile, String[].class);
-			queueNamesList.addAll(Arrays.asList(queueNames));
-		}
-		return queueNamesList;
-	}
-
-	private void restorePlayQueueContents() {
-		try {
-			LOGGER.info("Restoring play queues.");
-			List<String> queueNamesList = loadQueueNamesList();
-
-			for (int i = 0; i < queueNamesList.size(); i++) {
-				File queueFile = getPlayQueueStorageFile(i);
-				if (queueFile.exists()) {
-					List<PlaybackQueueEntry> queueEntries = OBJECT_MAPPER.readValue(queueFile,
-							new TypeReference<List<PlaybackQueueEntry>>() {});
-					if (i > 0) {
-						this.playbackQueueService.addQueue(queueNamesList.get(i));
-					}
-					this.playbackQueueService.setCurrentlyViewedQueue(i);
-					this.playbackQueueService.clearQueue();
-					this.playbackQueueService.addRows(queueEntries);
-					LOGGER.info("Restoring play queue " + i + " succeeded.");
-				} else {
-					LOGGER.info("Restoring play queue " + i + " not needed - no queue stored yet.");
-				}
-			}
-			LOGGER.info("Restoring play queues completed.");
-		} catch (Exception e) {
-			LOGGER.log(Level.WARNING, "Failed to retrieve and restore the playback queues", e);
-		}
-	}
-
-	private void saveQueueNames() {
-		try {
-			List<String> names = new ArrayList<>();
-			for (int i = 1; i < this.playbackQueueService.getQueuesCount(); i++) {
-				names.add(this.playbackQueueService.getQueueName(i));
-			}
-
-			OBJECT_MAPPER.writeValue(getPlayQueueNamesFile(), names);
-		} catch (Exception e) {
-			LOGGER.log(Level.WARNING, "Failed to store queue names", e);
-		}
-	}
-
-	private File getPlayQueueStorageFile(int queueIndex) {
-		return new File(new File(System.getProperty("sonivm_home_folder")),
-				queueIndex > 0 ? ("queue_" + queueIndex + ".json") : "queue.json");
-	}
-
-	private File getPlayQueueNamesFile() {
-		return new File(new File(System.getProperty("sonivm_home_folder")), "queue_names.json");
 	}
 
 	@Override
@@ -550,7 +466,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 	@Override
 	public void onDeleteRowsFromQueue(int firstRow, int lastRow) {
 		playbackQueueService.deleteRows(firstRow, lastRow + 1);
-		savePlayQueueContents();
+		playbackQueuePersistenceService.savePlayQueuesContents();
 	}
 
 	private void updatePlayingState(boolean playing) {
@@ -560,7 +476,7 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 	@Override
 	public void restorePlaybackState() {
-		restorePlayQueueContents();
+		playbackQueuePersistenceService.restorePlayQueues();
 
 		try {
 			this.scrobblingEnabled = this.preferencesService.getPassword() != null;
@@ -723,16 +639,16 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 	@Override
 	public void onQueueAdd() {
-		saveQueueNames();
+		playbackQueuePersistenceService.saveQueueNames();
 	}
 
 	@Override
 	public void onQueueRename(int queueIndex) {
-		saveQueueNames();
+		playbackQueuePersistenceService.saveQueueNames();
 	}
 
 	@Override
 	public void onQueueRemove() {
-		savePlayQueueContents();
+		playbackQueuePersistenceService.savePlayQueuesContents();
 	}
 }

@@ -18,6 +18,7 @@ import x.mvmn.sonivm.WinAmpSkinsService;
 import x.mvmn.sonivm.eq.EqualizerPresetService;
 import x.mvmn.sonivm.eq.SonivmEqualizerService;
 import x.mvmn.sonivm.lastfm.LastFMScrobblingService;
+import x.mvmn.sonivm.playqueue.PlaybackQueuePersistenceService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
 import x.mvmn.sonivm.ui.EqualizerWindow;
@@ -42,12 +43,12 @@ public class SonivmConfig {
 	public SonivmUI sonivmUI(PlaybackController sonivmController, PlaybackQueueTableModel playbackQueueTableModel,
 			PreferencesService preferencesService, SonivmEqualizerService eqService, EqualizerPresetService eqPresetService,
 			BufferedImage sonivmIcon, SonivmTrayIconPopupMenu trayIconPopupMenu, LastFMScrobblingService lastFMScrobblingService,
-			PlaybackQueueService playbackQueueService, WinAmpSkinsService winAmpSkinsService, PlaybackQueueTableModel playQueueTableModel) {
-
+			PlaybackQueueService playbackQueueService, PlaybackQueuePersistenceService playbackQueuePersistenceService,
+			WinAmpSkinsService winAmpSkinsService, PlaybackQueueTableModel playQueueTableModel) {
 		initLookAndFeel(preferencesService);
 		SwingUtil.runOnEDT(() -> SwingUtil.setTaskbarIcon(sonivmIcon), true);
 
-		SonivmMainWindow mainWindow = new SonivmMainWindow(appVersion, playbackQueueTableModel);
+		SonivmMainWindow mainWindow = new SonivmMainWindow(appVersion, playbackQueueTableModel, playbackQueuePersistenceService);
 		mainWindow.setIconImage(sonivmIcon);
 		EqualizerWindow eqWindow = new EqualizerWindow(appVersion + " equalizer", 10);
 		eqWindow.setIconImage(sonivmIcon);

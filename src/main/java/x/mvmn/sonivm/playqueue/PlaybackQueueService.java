@@ -33,7 +33,7 @@ public interface PlaybackQueueService {
 
 	void moveRows(int toIndex, int firstRow, int lastRow);
 
-	List<PlaybackQueueEntry> getCopyOfQueue();
+	List<PlaybackQueueEntry> getCopyOfQueue(int queueIndex);
 
 	void signalUpdateInRow(int rowIndex);
 
