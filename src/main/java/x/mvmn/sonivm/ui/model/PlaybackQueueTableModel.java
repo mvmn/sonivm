@@ -2,6 +2,7 @@ package x.mvmn.sonivm.ui.model;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -202,5 +203,9 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 
 	public int getCurrentPlayedQueue() {
 		return playQueueService.getCurrentPlayQueue();
+	}
+
+	public void sortTracks(Comparator<PlaybackQueueEntry> comparator, int[] selectedRows) {
+		playQueueService.sortTracks(comparator, selectedRows);
 	}
 }

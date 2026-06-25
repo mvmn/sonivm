@@ -1,6 +1,7 @@
 package x.mvmn.sonivm.playqueue;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
@@ -66,4 +67,6 @@ public interface PlaybackQueueService {
 	long getQueueDuration();
 
 	int getQueueSize(int queue);
+
+	void sortTracks(Comparator<PlaybackQueueEntry> comparator, int[] selectedRows);
 }

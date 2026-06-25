@@ -20,6 +20,7 @@ import java.awt.event.MouseListener;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -287,6 +288,26 @@ public class SonivmMainWindow extends JFrame {
 						}
 						playbackQueuePersistenceService
 								.savePlayQueueContents(SonivmMainWindow.this.playbackQueueTableModel.getCurrentViewedQueue());
+					}
+				});
+				
+				JMenuItem sortByNum = new JMenuItem("Sort by track number");
+				popup.add(sortByNum);
+				sortByNum.addActionListener(new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						int[] selectedRows = tblPlayQueue.getSelectedRows();
+						if (selectedRows.length > 0) {
+							playbackQueueTableModel.sortTracks(Comparator.comparing((PlaybackQueueEntry v) -> {
+								try {
+									return Long.parseLong(v.getTrackNumber());
+								} catch (NumberFormatException nfe) {
+									return 0L;
+								}
+							}), selectedRows);
+							playbackQueuePersistenceService
+									.savePlayQueueContents(SonivmMainWindow.this.playbackQueueTableModel.getCurrentViewedQueue());
+						}
 					}
 				});
 

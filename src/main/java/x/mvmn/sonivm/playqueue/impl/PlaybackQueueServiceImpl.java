@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiPredicate;
@@ -111,7 +113,7 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 	public int getViewedQueueSize() {
 		return getData().size();
 	}
-	
+
 	@Override
 	public int getQueueSize(int queue) {
 		if (queue < 0 || queue >= datas.size()) {
@@ -388,5 +390,30 @@ public class PlaybackQueueServiceImpl implements PlaybackQueueService {
 			return datas.get(currentPlaybackQueue).size();
 		}
 		return 0;
+	}
+
+	@Override
+	public void sortTracks(Comparator<PlaybackQueueEntry> comparator, int[] selectedRows) {
+		if (selectedRows == null || selectedRows.length < 1) {
+			return;
+		}
+		PlaybackQueueEntry currentlyPlayed = null;
+		List<PlaybackQueueEntry> entries = new ArrayList<>();
+		for (int i : selectedRows) {
+			PlaybackQueueEntry entry = datas.get(currentViewedQueue).get(i);
+			entries.add(entry);
+			if (i == currentQueuePosition) {
+				currentlyPlayed = entry;
+			}
+		}
+		entries.sort(comparator);
+		Iterator<PlaybackQueueEntry> entriesIterator = entries.iterator();
+		for (int i : selectedRows) {
+			PlaybackQueueEntry entry = entriesIterator.next();
+			datas.get(currentViewedQueue).set(i, entry);
+			if (currentlyPlayed != null && currentlyPlayed.equals(entry)) {
+				currentQueuePosition = i;
+			}
+		}
 	}
 }
