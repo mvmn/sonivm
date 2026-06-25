@@ -104,6 +104,7 @@ public class PlaybackQueuePersistenceServiceImpl implements PlaybackQueuePersist
 					LOGGER.info("Restoring play queue " + i + " not needed - no queue stored yet.");
 				}
 			}
+			this.playbackQueueService.setCurrentlyViewedQueue(0);
 			LOGGER.info("Restoring play queues completed.");
 		} catch (Exception e) {
 			LOGGER.log(Level.WARNING, "Failed to retrieve and restore the playback queues", e);
