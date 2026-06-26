@@ -76,6 +76,7 @@ import x.mvmn.sonivm.playqueue.PlaybackQueueChangeListener;
 import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
 import x.mvmn.sonivm.playqueue.PlaybackQueueService;
 import x.mvmn.sonivm.prefs.PreferencesService;
+import x.mvmn.sonivm.ui.model.MusicLibraryTableModel;
 import x.mvmn.sonivm.ui.model.PlaybackQueueTableModel;
 import x.mvmn.sonivm.ui.retro.RetroUIEqualizerWindow;
 import x.mvmn.sonivm.ui.retro.RetroUIFactory;
@@ -109,6 +110,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	protected final AbstractTableModel retroUIPlayQueueTableModel;
 	protected final SonivmEqualizerService eqService;
 	protected final EqualizerPresetService eqPresetService;
+	protected final MusicLibraryTableModel musicLibraryTableModel;
 
 	protected final RetroUIFactory retroUIFactory = new RetroUIFactory(); // TODO: inject
 
@@ -124,6 +126,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	protected volatile boolean retroUIPlayQueueColumnsMoved = false;
 	protected volatile boolean retroUIPlayQueueColumnsResized = false;
 
+
 	public SonivmUI(SonivmMainWindow mainWindow,
 			EqualizerWindow eqWindow,
 			BufferedImage sonivmIcon,
@@ -135,7 +138,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			WinAmpSkinsService winAmpSkinsService,
 			SonivmEqualizerService eqService,
 			EqualizerPresetService eqPresetService,
-			PlaybackQueueTableModel playQueueTableModel) {
+			PlaybackQueueTableModel playQueueTableModel,
+			MusicLibraryTableModel musicLibraryTableModel) {
 		super();
 		this.mainWindow = mainWindow;
 		this.eqWindow = eqWindow;
@@ -150,6 +154,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		this.eqPresetService = eqPresetService;
 		this.playQueueTableModel = playQueueTableModel;
 		this.retroUIPlayQueueTableModel = new RetroUIPlayQueueTableModel(this, playQueueTableModel);
+		this.musicLibraryTableModel = musicLibraryTableModel;
 	}
 
 	@PostConstruct
@@ -160,6 +165,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 		mainWindow.setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService, playbackQueueService).getJMenuBar());
 		eqWindow.setJMenuBar(new SonivmMenuBar(this, playbackController, preferencesService, playbackQueueService).getJMenuBar());
+
+		mainWindow.setMusicLibraryTab(new MusicLibraryTab(musicLibraryTableModel, this));
 
 		playbackController.restorePlaybackState();
 		SwingUtil.runOnEDT(() -> {
@@ -298,7 +305,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			retroUIWindows.getC().getTabsPlaylists().addChangeListener(new ChangeListener() {
 				@Override
 				public void stateChanged(ChangeEvent e) {
-					int idx = retroUIWindows.getC().getTabsPlaylists().getSelectedIndex();
+					int idx = retroUIWindows.getC().getTabsPlaylists().getSelectedIndex() + 1;
 					playbackQueueService.setCurrentlyViewedQueue(idx);
 				}
 			});

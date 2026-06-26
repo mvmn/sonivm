@@ -130,6 +130,9 @@ public class SonivmMainWindow extends JFrame {
 	@Getter
 	@Setter
 	private volatile boolean columnsResized = false;
+	
+	private final JTabbedPane tabsContent;
+	private MusicLibraryTab musicLibraryTab;
 
 	public SonivmMainWindow(String title,
 			PlaybackQueueTableModel playbackQueueTableModel,
@@ -566,14 +569,20 @@ public class SonivmMainWindow extends JFrame {
 		lblNowPlayingTrack.addMouseListener(onNowPlayingDoubleClick);
 		nowPlayingText.addMouseListener(onNowPlayingDoubleClick);
 
+		// Create outer JTabbedPane to switch between play queues and music library
+		tabsContent = new JTabbedPane();
+		
+		// Create the play queues panel with tabs and table
+		JPanel playQueuesPanel = SwingUtil.panel(BorderLayout::new)
+				.add(tabsPlaylists, BorderLayout.NORTH)
+				.add(scrollTblPlayQueue, BorderLayout.CENTER)
+				.add(lblDropTarget, BorderLayout.SOUTH)
+				.build();
+		tabsContent.addTab("Play Queues", playQueuesPanel);
+		
 		this.getContentPane().setLayout(new BorderLayout());
 		this.getContentPane().add(topPanel, BorderLayout.NORTH);
-		this.getContentPane()
-				.add(SwingUtil.panel(BorderLayout::new)
-						.add(tabsPlaylists, BorderLayout.NORTH)
-						.add(scrollTblPlayQueue, BorderLayout.CENTER)
-						.add(lblDropTarget, BorderLayout.SOUTH)
-						.build(), BorderLayout.CENTER);
+		this.getContentPane().add(tabsContent, BorderLayout.CENTER);
 		this.getContentPane().add(volumeSlider, BorderLayout.EAST);
 		this.getContentPane().add(bottomPanel, BorderLayout.SOUTH);
 
@@ -584,7 +593,7 @@ public class SonivmMainWindow extends JFrame {
 		tabsPlaylists.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
-				int idx = tabsPlaylists.getSelectedIndex();
+				int idx = tabsPlaylists.getSelectedIndex() + 1;
 				playbackQueueTableModel.switchQueue(idx);
 				updatePlayQueueSizeLabel();
 			}
@@ -593,23 +602,23 @@ public class SonivmMainWindow extends JFrame {
 		SwingUtil.addPopupMenu(tabsPlaylists, e -> clickedTab.set(tabsPlaylists.indexAtLocation(e.getX(), e.getY())),
 				new JMenuItem(new AbstractActionAdaptor("Close", e -> {
 					int index = clickedTab.get();
-					if (index >= 1) {
+					if (index > 1) {
 						if (JOptionPane.showConfirmDialog(tabsPlaylists,
 								"Are you sure you want to close " + tabsPlaylists.getTitleAt(index) + "?", "Are you sure?",
 								JOptionPane.YES_NO_OPTION) == JOptionPane.OK_OPTION) {
 							tabsPlaylists.removeTabAt(index);
-							this.playbackQueueTableModel.deleteQueue(index);
+							this.playbackQueueTableModel.deleteQueue(index + 1);
 							controller.onQueueRemove();
 						}
 					}
 				})), new JMenuItem(new AbstractActionAdaptor("Rename", e -> {
 					int index = clickedTab.get();
-					if (index >= 1) {
+					if (index > 1) {
 						String newName = JOptionPane.showInputDialog("Enter queue name");
 						if (newName != null && !newName.trim().isEmpty()) {
-							this.playbackQueueTableModel.renameQueue(index, newName);
+							this.playbackQueueTableModel.renameQueue(index + 1, newName);
 							tabsPlaylists.setTitleAt(index, newName);
-							controller.onQueueRename(index);
+							controller.onQueueRename(index + 1);
 						}
 					}
 				})), new JMenuItem(new AbstractActionAdaptor("Add", e -> {
@@ -1007,10 +1016,16 @@ public class SonivmMainWindow extends JFrame {
 		}
 	}
 
+	// For proper integration - the music library tab would be added here to ensure it persists
 	public void reloadQueueTabNames() {
 		tabsPlaylists.removeAll();
 		for (int i = 0; i < this.playbackQueueTableModel.getQueuesCount(); i++) {
 			tabsPlaylists.addTab(this.playbackQueueTableModel.getQueueName(i), new JLabel());
 		}
+	}
+
+	public void setMusicLibraryTab(MusicLibraryTab musicLibraryTab) {
+		this.musicLibraryTab = musicLibraryTab;
+		tabsContent.addTab("Music Library", musicLibraryTab.getPanel());
 	}
 }
