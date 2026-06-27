@@ -305,7 +305,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			retroUIWindows.getC().getTabsPlaylists().addChangeListener(new ChangeListener() {
 				@Override
 				public void stateChanged(ChangeEvent e) {
-					int idx = retroUIWindows.getC().getTabsPlaylists().getSelectedIndex() + 1;
+					int idx = retroUIWindows.getC().getTabsPlaylists().getSelectedIndex();
 					playbackQueueService.setCurrentlyViewedQueue(idx);
 				}
 			});

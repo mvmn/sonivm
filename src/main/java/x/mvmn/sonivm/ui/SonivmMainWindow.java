@@ -593,7 +593,7 @@ public class SonivmMainWindow extends JFrame {
 		tabsPlaylists.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
-				int idx = tabsPlaylists.getSelectedIndex() + 1;
+				int idx = tabsPlaylists.getSelectedIndex();
 				playbackQueueTableModel.switchQueue(idx);
 				updatePlayQueueSizeLabel();
 			}
@@ -602,23 +602,23 @@ public class SonivmMainWindow extends JFrame {
 		SwingUtil.addPopupMenu(tabsPlaylists, e -> clickedTab.set(tabsPlaylists.indexAtLocation(e.getX(), e.getY())),
 				new JMenuItem(new AbstractActionAdaptor("Close", e -> {
 					int index = clickedTab.get();
-					if (index > 1) {
+					if (index >= 1) {
 						if (JOptionPane.showConfirmDialog(tabsPlaylists,
 								"Are you sure you want to close " + tabsPlaylists.getTitleAt(index) + "?", "Are you sure?",
 								JOptionPane.YES_NO_OPTION) == JOptionPane.OK_OPTION) {
 							tabsPlaylists.removeTabAt(index);
-							this.playbackQueueTableModel.deleteQueue(index + 1);
+							this.playbackQueueTableModel.deleteQueue(index);
 							controller.onQueueRemove();
 						}
 					}
 				})), new JMenuItem(new AbstractActionAdaptor("Rename", e -> {
 					int index = clickedTab.get();
-					if (index > 1) {
+					if (index >= 1) {
 						String newName = JOptionPane.showInputDialog("Enter queue name");
 						if (newName != null && !newName.trim().isEmpty()) {
-							this.playbackQueueTableModel.renameQueue(index + 1, newName);
+							this.playbackQueueTableModel.renameQueue(index, newName);
 							tabsPlaylists.setTitleAt(index, newName);
-							controller.onQueueRename(index + 1);
+							controller.onQueueRename(index);
 						}
 					}
 				})), new JMenuItem(new AbstractActionAdaptor("Add", e -> {
