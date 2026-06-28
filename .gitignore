@@ -44,3 +44,5 @@ Thumbs.db
 dependency-reduced-pom.xml
 pom.xml.versionsBackup
 .vscode/
+.opencode/
+

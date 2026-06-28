@@ -99,4 +99,16 @@ public interface SonivmUIController {
 	void onQueueRemove();
 
 	void onQueueRename(int index);
+
+	void onLibrarySearch(String text);
+
+	void onLibraryFilterChange();
+
+	void onLibraryTrackDoubleClick(int selectedRow);
+
+	void onLibraryRescan();
+
+	void onLibraryAddFolder();
+
+	void onLibraryRemoveFolder(int index);
 }

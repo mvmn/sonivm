@@ -8,18 +8,20 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.swing.SwingUtilities;
 import javax.swing.table.AbstractTableModel;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import x.mvmn.sonivm.musiclibrary.MusicLibraryChangeListener;
 import x.mvmn.sonivm.musiclibrary.MusicLibraryEntry;
 import x.mvmn.sonivm.musiclibrary.MusicLibraryService;
 import x.mvmn.sonivm.util.StringUtil;
 import x.mvmn.sonivm.util.TimeDateUtil;
 
 @Component
-public class MusicLibraryTableModel extends AbstractTableModel {
+public class MusicLibraryTableModel extends AbstractTableModel implements MusicLibraryChangeListener {
 	private static final long serialVersionUID = -4393495956274405244L;
 
 	private static final String[] columnNames = new String[] { "#", "N", "Title", "Artist", "Album", "Length", "Date", "Genre" };
@@ -29,6 +31,9 @@ public class MusicLibraryTableModel extends AbstractTableModel {
 
 //	private volatile List<Integer> searchMatchedRows = Collections.emptyList();
 	
+	// Search state
+	private String searchText = "";
+
 	// Filter state
 	private String artistFilter = "";
 	private String albumFilter = "";
@@ -58,7 +63,10 @@ public class MusicLibraryTableModel extends AbstractTableModel {
 
 	@Override
 	public String getValueAt(int row, int column) {
-		MusicLibraryEntry entry = musicLibraryService.getEntryByIndex(row);
+		MusicLibraryEntry entry = getFilteredEntry(row);
+		if (entry == null) {
+			return "";
+		}
 		switch (column) {
 			default:
 			case 0:
@@ -81,12 +89,38 @@ public class MusicLibraryTableModel extends AbstractTableModel {
 	}
 
 	public MusicLibraryEntry getEntry(int row) {
-		return musicLibraryService.getEntryByIndex(row);
+		return getFilteredEntry(row);
+	}
+
+	private MusicLibraryEntry getFilteredEntry(int row) {
+		Predicate<MusicLibraryEntry> combinedFilter = getCombinedFilter();
+		List<MusicLibraryEntry> entries = musicLibraryService.getEntries();
+		int count = 0;
+		for (MusicLibraryEntry entry : entries) {
+			if (combinedFilter.test(entry)) {
+				if (count == row) {
+					return entry;
+				}
+				count++;
+			}
+		}
+		return null;
+	}
+
+	private Predicate<MusicLibraryEntry> getCombinedFilter() {
+		Predicate<MusicLibraryEntry> filter = getFilterPredicate();
+		if (!searchText.isEmpty()) {
+			Predicate<MusicLibraryEntry> searchPred = searchPredicate(searchText, false);
+			filter = filter.and(searchPred);
+		}
+		return filter;
 	}
 
 	@Override
 	public int getRowCount() {
-		return musicLibraryService.getSize();
+		Predicate<MusicLibraryEntry> combinedFilter = getCombinedFilter();
+		List<MusicLibraryEntry> entries = musicLibraryService.getEntries();
+		return (int) entries.stream().filter(combinedFilter).count();
 	}
 
 	public long getLibraryLength() {
@@ -116,6 +150,19 @@ public class MusicLibraryTableModel extends AbstractTableModel {
 	
 	public String getYearFilter() {
 		return yearFilter;
+	}
+
+	public void setSearchText(String text) {
+		this.searchText = text != null ? text : "";
+	}
+
+	public String getSearchText() {
+		return searchText;
+	}
+
+	@Override
+	public void onMusicLibraryUpdate() {
+		SwingUtilities.invokeLater(() -> fireTableDataChanged());
 	}
 
 	private Predicate<MusicLibraryEntry> searchPredicate(String searchText, boolean searchFullPhrase) {

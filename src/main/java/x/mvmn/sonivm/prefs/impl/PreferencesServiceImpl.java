@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.awt.Point;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -62,6 +63,8 @@ public class PreferencesServiceImpl implements PreferencesService {
 	private static final String KEY_SUPPORTED_FILE_EXTENSIONS = "supportedfileextensions";
 	private static final String DEFAULT_SUPPORTED_FILE_EXTENSIONS = Stream.of("cue", "flac", "ogg", "mp3", "m4a", "wav")
 			.collect(Collectors.joining(STRING_LIST_VALUES_SEPARATOR));
+
+	private static final String KEY_MUSICLIBRARY_FOLDERS = "musiclibraryfolders";
 
 	private static final String KEY_MAIN_WINDOW_STATE = "mainwindowstate";
 	private static final String KEY_EQ_WINDOW_STATE = "eqwindowstate";
@@ -460,5 +463,36 @@ public class PreferencesServiceImpl implements PreferencesService {
 	@Override
 	public boolean areNotificationsEnabled() {
 		return Boolean.valueOf(prefs.get(KEY_NOTIFICATIONS_ENABLED, Boolean.TRUE.toString()));
+	}
+
+	@Override
+	public List<String> getMusicLibraryFolders() {
+		return getStringListProperty(KEY_MUSICLIBRARY_FOLDERS, null);
+	}
+
+	@Override
+	public void setMusicLibraryFolders(List<String> folders) {
+		setStringListProperty(KEY_MUSICLIBRARY_FOLDERS, folders);
+	}
+
+	@Override
+	public void addMusicLibraryFolder(String folderPath) {
+		List<String> folders = getMusicLibraryFolders();
+		if (folders == null) {
+			folders = new ArrayList<>();
+		}
+		if (!folders.contains(folderPath)) {
+			folders.add(folderPath);
+			setMusicLibraryFolders(folders);
+		}
+	}
+
+	@Override
+	public void removeMusicLibraryFolder(int index) {
+		List<String> folders = getMusicLibraryFolders();
+		if (folders != null && index >= 0 && index < folders.size()) {
+			folders.remove(index);
+			setMusicLibraryFolders(folders);
+		}
 	}
 }

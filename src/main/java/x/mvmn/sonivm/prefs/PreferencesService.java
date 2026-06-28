@@ -4,6 +4,7 @@ import java.awt.Dimension;
 import java.awt.Point;
 import java.security.GeneralSecurityException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 import x.mvmn.sonivm.impl.RepeatMode;
@@ -123,4 +124,12 @@ public interface PreferencesService {
 	void setNotificationsEnabled(boolean enabled);
 
 	boolean areNotificationsEnabled();
+
+	List<String> getMusicLibraryFolders();
+
+	void setMusicLibraryFolders(List<String> folders);
+
+	void addMusicLibraryFolder(String folderPath);
+
+	void removeMusicLibraryFolder(int index);
 }

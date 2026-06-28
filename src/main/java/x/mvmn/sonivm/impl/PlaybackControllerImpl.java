@@ -26,6 +26,8 @@ import x.mvmn.sonivm.audio.PlaybackState;
 import x.mvmn.sonivm.eq.SonivmEqualizerService;
 import x.mvmn.sonivm.eq.model.EqualizerState;
 import x.mvmn.sonivm.lastfm.LastFMScrobblingService;
+import x.mvmn.sonivm.musiclibrary.MusicLibraryPersistenceService;
+import x.mvmn.sonivm.musiclibrary.MusicLibraryService;
 import x.mvmn.sonivm.playqueue.PlaybackQueueEntry;
 import x.mvmn.sonivm.playqueue.PlaybackQueueEntryCompareBiPredicate;
 import x.mvmn.sonivm.playqueue.PlaybackQueueFileImportService;
@@ -61,6 +63,12 @@ public class PlaybackControllerImpl implements PlaybackController {
 
 	@Autowired
 	private SonivmEqualizerService equalizerService;
+
+	@Autowired
+	private MusicLibraryService musicLibraryService;
+
+	@Autowired
+	private MusicLibraryPersistenceService musicLibraryPersistenceService;
 
 	// State
 	private volatile AudioFileInfo currentAudioFileInfo;

@@ -16,6 +16,7 @@ import x.mvmn.sonivm.PlaybackController;
 import x.mvmn.sonivm.Sonivm;
 import x.mvmn.sonivm.WinAmpSkinsService;
 import x.mvmn.sonivm.eq.EqualizerPresetService;
+import x.mvmn.sonivm.musiclibrary.MusicLibraryService;
 import x.mvmn.sonivm.eq.SonivmEqualizerService;
 import x.mvmn.sonivm.lastfm.LastFMScrobblingService;
 import x.mvmn.sonivm.playqueue.PlaybackQueuePersistenceService;
@@ -46,7 +47,7 @@ public class SonivmConfig {
 			BufferedImage sonivmIcon, SonivmTrayIconPopupMenu trayIconPopupMenu, LastFMScrobblingService lastFMScrobblingService,
 			PlaybackQueueService playbackQueueService, PlaybackQueuePersistenceService playbackQueuePersistenceService,
 			WinAmpSkinsService winAmpSkinsService, PlaybackQueueTableModel playQueueTableModel,
-			MusicLibraryTableModel musicLibraryTableModel) {
+			MusicLibraryTableModel musicLibraryTableModel, MusicLibraryService musicLibraryService) {
 		initLookAndFeel(preferencesService);
 		SwingUtil.runOnEDT(() -> SwingUtil.setTaskbarIcon(sonivmIcon), true);
 
@@ -56,7 +57,7 @@ public class SonivmConfig {
 		eqWindow.setIconImage(sonivmIcon);
 
 		return new SonivmUI(mainWindow, eqWindow, sonivmIcon, trayIconPopupMenu, preferencesService, sonivmController,
-				lastFMScrobblingService, playbackQueueService, winAmpSkinsService, eqService, eqPresetService, playQueueTableModel, musicLibraryTableModel);
+				lastFMScrobblingService, playbackQueueService, winAmpSkinsService, eqService, eqPresetService, playQueueTableModel, musicLibraryTableModel, musicLibraryService);
 	}
 
 	@Bean

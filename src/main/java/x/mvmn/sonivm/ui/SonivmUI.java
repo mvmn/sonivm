@@ -64,6 +64,8 @@ import x.mvmn.sonivm.PlaybackController;
 import x.mvmn.sonivm.PlaybackListener;
 import x.mvmn.sonivm.WinAmpSkinsService;
 import x.mvmn.sonivm.audio.AudioFileInfo;
+import x.mvmn.sonivm.musiclibrary.MusicLibraryEntry;
+import x.mvmn.sonivm.musiclibrary.MusicLibraryService;
 import x.mvmn.sonivm.audio.PlaybackState;
 import x.mvmn.sonivm.eq.EqualizerPresetService;
 import x.mvmn.sonivm.eq.SonivmEqualizerService;
@@ -111,6 +113,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	protected final SonivmEqualizerService eqService;
 	protected final EqualizerPresetService eqPresetService;
 	protected final MusicLibraryTableModel musicLibraryTableModel;
+	protected final MusicLibraryService musicLibraryService;
 
 	protected final RetroUIFactory retroUIFactory = new RetroUIFactory(); // TODO: inject
 
@@ -139,7 +142,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 			SonivmEqualizerService eqService,
 			EqualizerPresetService eqPresetService,
 			PlaybackQueueTableModel playQueueTableModel,
-			MusicLibraryTableModel musicLibraryTableModel) {
+			MusicLibraryTableModel musicLibraryTableModel,
+			MusicLibraryService musicLibraryService) {
 		super();
 		this.mainWindow = mainWindow;
 		this.eqWindow = eqWindow;
@@ -155,6 +159,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 		this.playQueueTableModel = playQueueTableModel;
 		this.retroUIPlayQueueTableModel = new RetroUIPlayQueueTableModel(this, playQueueTableModel);
 		this.musicLibraryTableModel = musicLibraryTableModel;
+		this.musicLibraryService = musicLibraryService;
 	}
 
 	@PostConstruct
@@ -168,6 +173,8 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 
 		mainWindow.setMusicLibraryTab(new MusicLibraryTab(musicLibraryTableModel, this));
 
+		musicLibraryService.addChangeListener(musicLibraryTableModel);
+		musicLibraryService.reSync();
 		playbackController.restorePlaybackState();
 		SwingUtil.runOnEDT(() -> {
 			mainWindow.setShuffleMode(playbackController.getShuffleMode());
@@ -1337,6 +1344,54 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 	
 	@Override
 	public void onQueueRename(int index) {
-		playbackController.onQueueRename(index);	
+		playbackController.onQueueRename(index);
+	}
+
+	@Override
+	public void onLibrarySearch(String text) {
+		SwingUtil.runOnEDT(() -> {
+			musicLibraryTableModel.setSearchText(text);
+			musicLibraryTableModel.fireTableDataChanged();
+		}, false);
+	}
+
+	@Override
+	public void onLibraryFilterChange() {
+		SwingUtil.runOnEDT(() -> musicLibraryTableModel.fireTableDataChanged(), false);
+	}
+
+	@Override
+	public void onLibraryTrackDoubleClick(int selectedRow) {
+		MusicLibraryEntry entry = musicLibraryTableModel.getEntry(selectedRow);
+		if (entry != null && entry.getTargetFileFullPath() != null) {
+			playbackController.onDropFilesToQueue(-1, List.of(new File(entry.getTargetFileFullPath())), null);
+			SwingUtil.runOnEDT(() -> playbackController.onPlay(), false);
+		}
+	}
+
+	@Override
+	public void onLibraryRescan() {
+		musicLibraryService.reSync();
+	}
+
+	@Override
+	public void onLibraryAddFolder() {
+		JFileChooser folderChooser = new JFileChooser();
+		folderChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		folderChooser.setDialogTitle("Select Music Folder");
+		if (folderChooser.showOpenDialog(mainWindow) == JFileChooser.APPROVE_OPTION) {
+			String folderPath = folderChooser.getSelectedFile().getAbsolutePath();
+			preferencesService.addMusicLibraryFolder(folderPath);
+			musicLibraryService.reSync();
+		}
+	}
+
+	@Override
+	public void onLibraryRemoveFolder(int index) {
+		List<String> folders = preferencesService.getMusicLibraryFolders();
+		if (index >= 0 && index < folders.size()) {
+			preferencesService.removeMusicLibraryFolder(index);
+			musicLibraryService.reSync();
+		}
 	}
 }
