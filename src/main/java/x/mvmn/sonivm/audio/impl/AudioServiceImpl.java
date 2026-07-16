@@ -24,6 +24,10 @@ import javax.sound.sampled.Mixer;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
+import org.apache.commons.pool2.BasePooledObjectFactory;
+import org.apache.commons.pool2.PooledObject;
+import org.apache.commons.pool2.impl.DefaultPooledObject;
+import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.springframework.stereotype.Service;
 
 import com.tagtraum.ffsampledsp.FFAudioFileReader;
@@ -76,6 +80,21 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private List<AudioServiceEventListener> listeners = new CopyOnWriteArrayList<>();
 	private ConcurrentLinkedQueue<AudioDataBuffer> audioDataQueue = new ConcurrentLinkedQueue<>();
 
+	private final GenericObjectPool<AudioDataBuffer> dataBuffersPool = new GenericObjectPool<AudioDataBuffer>(
+			new BasePooledObjectFactory<AudioDataBuffer>() {
+
+				@Override
+				public AudioDataBuffer create() throws Exception {
+					return AudioDataBuffer.builder().buffer(new byte[playbackBuffer != null ? playbackBuffer.length : 0]).build();
+				}
+
+				@Override
+				public PooledObject<AudioDataBuffer> wrap(AudioDataBuffer obj) {
+					return new DefaultPooledObject<AudioDataBuffer>(obj);
+				}
+
+			});
+
 	@PostConstruct
 	public void startPlaybackThread() {
 		Thread controlThread = new Thread(this);
@@ -100,10 +119,11 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						Thread.sleep(1000);
 					} else {
 						sourceDl.write(buffer.getBuffer(), 0, buffer.getAmount());
+						dataBuffersPool.returnObject(buffer);
 					}
 				} else {
 					Thread.yield();
-					Thread.sleep(200);					
+					Thread.sleep(200);
 				}
 			}
 		} catch (InterruptedException interruptException) {
@@ -116,8 +136,8 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	@Data
 	@Builder
 	private static class AudioDataBuffer {
-		private final byte[] buffer;
-		private final int amount;
+		private byte[] buffer;
+		private int amount;
 	}
 
 	@Override
@@ -158,7 +178,14 @@ public class AudioServiceImpl implements AudioService, Runnable {
 									LOGGER.finest("Writing bytes to source data line: " + readBytes);
 								}
 								// currentSourceDataLine.write(buffer, 0, readBytes);
-								audioDataQueue.add(AudioDataBuffer.builder().buffer(buffer.clone()).amount(readBytes).build());
+								AudioDataBuffer bufferObj = dataBuffersPool.borrowObject();
+								if (bufferObj.buffer.length != buffer.length) {
+									bufferObj.buffer = new byte[buffer.length];
+								}
+								System.arraycopy(buffer, 0, bufferObj.buffer, 0, readBytes);
+								bufferObj.amount = readBytes;
+								// audioDataQueue.add(AudioDataBuffer.builder().buffer(buffer.clone()).amount(readBytes).build());
+								audioDataQueue.add(bufferObj);
 								updatePlayPosition();
 							}
 						} else {
@@ -392,7 +419,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private void doSeek(long seekPositionMillisec) throws UnsupportedOperationException, IOException {
 		this.currentFFAudioInputStream.seek(seekPositionMillisec, TimeUnit.MILLISECONDS);
 		this.audioDataQueue.clear();
-//		this.currentSourceDataLine.flush();
+		// this.currentSourceDataLine.flush();
 		this.playbackStartPositionMillisec = seekPositionMillisec;
 		this.startingDataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
 	}
