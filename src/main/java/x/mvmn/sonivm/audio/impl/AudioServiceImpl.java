@@ -142,8 +142,8 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 	@Override
 	public void run() {
-		try {
-			while (!this.shutdownRequested || taskQueue.size() > 0) {
+		while (!this.shutdownRequested || taskQueue.size() > 0) {
+			try {
 				AudioServiceTask task = taskQueue.poll();
 				if (task != null) {
 					try {
@@ -198,10 +198,13 @@ public class AudioServiceImpl implements AudioService, Runnable {
 						handlePlaybackException(t);
 					}
 				}
+			} catch (InterruptedException interruptException) {
+				Thread.interrupted();
+				this.shutdownRequested = true;
+				break;
+			} catch (Exception e) {
+				handlePlaybackException(e);
 			}
-		} catch (InterruptedException interruptException) {
-			Thread.interrupted();
-			this.shutdownRequested = true;
 		}
 		LOGGER.info("Playback control thread shutting down. Shutdown requested flag state: " + shutdownRequested);
 		if (PlaybackState.STOPPED != this.state) {
@@ -212,6 +215,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 			}
 		}
 		playbackEventListenerExecutor.shutdown();
+		LOGGER.info("Playback shutdown complete.");
 	}
 
 	private void updatePlayPosition() {

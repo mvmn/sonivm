@@ -556,6 +556,7 @@ public class SonivmMainWindow extends JFrame {
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				if (e.getClickCount() == 2) {
+					tabsPlaylists.setSelectedIndex(playbackQueueTableModel.getCurrentPlayingQueue());
 					int nowPlayingQueuePos = playbackQueueTableModel.getCurrentQueuePosition();
 					if (nowPlayingQueuePos > -1) {
 						scrollToTrack(nowPlayingQueuePos);
@@ -852,7 +853,7 @@ public class SonivmMainWindow extends JFrame {
 		this.lblNowPlayingTrack.setText(trackInfoText);
 		this.lblNowPlayingTrack.setToolTipText(fileInfo);
 
-		int idx = this.playbackQueueTableModel.getCurrentPlayedQueue();
+		int idx = this.playbackQueueTableModel.getCurrentPlayingQueue();
 		// this.tabsPlaylists.setSelectedIndex(idx); // redundant?
 		if (trackInfo == null) {
 			idx = -1;

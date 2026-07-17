@@ -201,7 +201,7 @@ public class PlaybackQueueTableModel extends AbstractTableModel {
 		playQueueService.copyRowsToOtherQueue(queue, fromIndex, toIndex);
 	}
 
-	public int getCurrentPlayedQueue() {
+	public int getCurrentPlayingQueue() {
 		return playQueueService.getCurrentPlayQueue();
 	}
 
