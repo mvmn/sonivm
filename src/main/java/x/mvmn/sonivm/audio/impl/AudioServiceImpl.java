@@ -27,6 +27,8 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
+import org.apache.commons.pool2.impl.EvictionConfig;
+import org.apache.commons.pool2.impl.EvictionPolicy;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.springframework.stereotype.Service;
 
@@ -94,6 +96,19 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				}
 
 			});
+	{
+		dataBuffersPool.setBlockWhenExhausted(false);
+		dataBuffersPool.setMaxIdle(256);
+		dataBuffersPool.setMaxTotal(1024);
+		dataBuffersPool.setMaxWaitMillis(0L);
+		dataBuffersPool.setLifo(false);
+		dataBuffersPool.setEvictionPolicy(new EvictionPolicy<AudioServiceImpl.AudioDataBuffer>() {
+			@Override
+			public boolean evict(EvictionConfig config, PooledObject<AudioDataBuffer> underTest, int idleCount) {
+				return false;
+			}
+		});
+	}
 
 	@PostConstruct
 	public void startPlaybackThread() {
