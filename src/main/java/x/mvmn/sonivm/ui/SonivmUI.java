@@ -367,7 +367,7 @@ public class SonivmUI implements SonivmUIController, Consumer<Tuple2<Boolean, St
 				// isSelected, hasFocus, row, column);
 				String text = value != null ? value.toString() : "";
 
-				boolean isHighlighted = row == playbackController.getTrackQueuePosition();
+				boolean isHighlighted = row == playQueueTableModel.getIndexOfHighlightedRow();
 				renderJLabel.setFont(isHighlighted ? tblPlayQueue.getFont().deriveFont(Font.BOLD) : tblPlayQueue.getFont());
 
 				int originalColumnIndex = table.convertColumnIndexToModel(column);

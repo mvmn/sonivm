@@ -72,6 +72,7 @@ public class RetroUIPlaylistWindow {
 
 	public void scrollToTrack(int rowNumber) {
 		if (rowNumber > -1) {
+			this.tabsPlaylists.setSelectedIndex(((RetroUIPlayQueueTableModel)playlistTable.getModel()).getCurrentPlayingQueue());
 			this.playlistTable.scrollRectToVisible(new Rectangle(playlistTable.getCellRect(rowNumber, 0, true)));
 		}
 	}

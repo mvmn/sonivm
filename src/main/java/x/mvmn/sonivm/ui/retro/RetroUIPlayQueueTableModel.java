@@ -85,4 +85,8 @@ public class RetroUIPlayQueueTableModel extends AbstractTableModel {
 	public boolean isCellEditable(int row, int column) {
 		return false;
 	}
+	
+	public int getCurrentPlayingQueue() {
+		return playQueueTableModel.getCurrentPlayingQueue();
+	}
 }
