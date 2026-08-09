@@ -140,17 +140,20 @@ public class PlaybackControllerImpl implements PlaybackController {
 	}
 
 	private void doNextTrack(boolean userRequested) {
+		LOGGER.log(Level.FINE, "Switching to next track");
 		int trackCount = playbackQueueService.getPlayQueueSize();
 		int currentTrackQueuePos = playbackQueueService.getCurrentQueuePosition();
 		ShuffleMode shuffleState = this.shuffleMode;
 		RepeatMode repeatState = this.repeatMode;
 
 		if (!userRequested && RepeatMode.TRACK == repeatState) {
+			LOGGER.log(Level.FINER, "Repeating current track");
 			repeatCurrentTrack();
 			return;
 		}
 
 		if (currentTrackQueuePos < 0) {
+			LOGGER.log(Level.FINER, "Playing from queue start");
 			tryPlayFromStartOfQueue();
 			return;
 		}
@@ -388,8 +391,10 @@ public class PlaybackControllerImpl implements PlaybackController {
 					if (currentTrackInfo != null && currentTrackInfo.isCueSheetTrack()) {
 						if (playbackPositionFromEvent >= currentTrackInfo.getCueSheetTrackFinishTimeMillis()) {
 							// End of cue sheet track
-							// Skip if we have already switched to next track - and these are just training events from previous track
-							if (currentTrackInfo == playbackQueueService.getCurrentEntry()) {
+							// Skip if next track is not a next cue track but a different file
+							PlaybackQueueEntry nextEntry = playbackQueueService.getEntryByIndex(playbackQueueService.getCurrentPlayQueue(),
+									playbackQueueService.getCurrentQueuePosition() + 1);
+							if (nextEntry != null && currentTrackInfo.getTargetFileFullPath().equals(nextEntry.getTargetFileFullPath())) {
 								if (LOGGER.isLoggable(Level.FINE)) {
 									LOGGER.fine("End of cue sheet track: " + currentTrackInfo.getTitle());
 								}
