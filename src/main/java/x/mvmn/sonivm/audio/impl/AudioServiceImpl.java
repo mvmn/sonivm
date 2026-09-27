@@ -51,6 +51,7 @@ import x.mvmn.sonivm.util.AudioFileUtil;
 public class AudioServiceImpl implements AudioService, Runnable {
 
 	private static final Logger LOGGER = Logger.getLogger(AudioServiceImpl.class.getCanonicalName());
+	private static final int MAX_READAHEAD_BUFFERS = 20;
 
 	private final Queue<AudioServiceTask> taskQueue = new ConcurrentLinkedQueue<>();
 	private final ExecutorService playbackEventListenerExecutor = Executors.newFixedThreadPool(1);
@@ -113,7 +114,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	@PostConstruct
 	public void startPlaybackThread() {
 		Thread controlThread = new Thread(this);
-		controlThread.setPriority(Thread.MAX_PRIORITY);
+		// controlThread.setPriority(Thread.MAX_PRIORITY);
 		controlThread.setDaemon(true);
 		controlThread.start();
 		Thread playbackThread = new Thread(() -> doPlay());
@@ -126,19 +127,18 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		try {
 			while (!this.shutdownRequested) {
 				SourceDataLine sourceDl = currentSourceDataLine;
-				if (sourceDl != null && PlaybackState.PAUSED != this.state) {
+				if (sourceDl != null && PlaybackState.PLAYING == this.state) {
 					updatePlayPosition();
 					AudioDataBuffer buffer = audioDataQueue.poll();
 					if (buffer == null) {
 						Thread.yield();
-						Thread.sleep(1000);
 					} else {
 						sourceDl.write(buffer.getBuffer(), 0, buffer.getAmount());
 						dataBuffersPool.returnObject(buffer);
 					}
 				} else {
 					Thread.yield();
-					Thread.sleep(200);
+					Thread.sleep(100);
 				}
 			}
 		} catch (InterruptedException interruptException) {
@@ -171,10 +171,10 @@ public class AudioServiceImpl implements AudioService, Runnable {
 				} else {
 					try {
 						if (PlaybackState.PLAYING == state) {
-							if (audioDataQueue.size() >= 5) {
+							if (audioDataQueue.size() >= MAX_READAHEAD_BUFFERS) {
 								updatePlayPosition();
 								Thread.yield();
-								Thread.sleep(100);
+								Thread.sleep(20);
 								continue;
 							}
 							int readBytes = -1;
