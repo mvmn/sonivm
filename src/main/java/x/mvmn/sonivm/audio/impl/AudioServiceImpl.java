@@ -46,6 +46,7 @@ import x.mvmn.sonivm.audio.AudioServiceEventListener;
 import x.mvmn.sonivm.audio.PlaybackState;
 import x.mvmn.sonivm.audio.impl.AudioServiceTask.Type;
 import x.mvmn.sonivm.util.AudioFileUtil;
+import x.mvmn.sonivm.util.StackTraceUtil;
 
 @Service
 public class AudioServiceImpl implements AudioService, Runnable {
@@ -56,7 +57,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 	private final Queue<AudioServiceTask> taskQueue = new ConcurrentLinkedQueue<>();
 	private final ExecutorService playbackEventListenerExecutor = Executors.newFixedThreadPool(1);
 
-	private volatile boolean force16BitPCMConversion = true;
+	private volatile boolean FORCE_16BIT_PCM_CONVERSION = true;
 	private volatile boolean useEqualizer = false;
 
 	private volatile boolean shutdownRequested = false;
@@ -133,8 +134,11 @@ public class AudioServiceImpl implements AudioService, Runnable {
 					if (buffer == null) {
 						Thread.yield();
 					} else {
-						sourceDl.write(buffer.getBuffer(), 0, buffer.getAmount());
-						dataBuffersPool.returnObject(buffer);
+						try {
+							sourceDl.write(buffer.getBuffer(), 0, buffer.getAmount());
+						} finally {
+							dataBuffersPool.returnObject(buffer);
+						}
 					}
 				} else {
 					Thread.yield();
@@ -300,7 +304,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 						AudioFormat targetAudioFormat = new AudioFormat(44100, 16, 2, true, false);
 						AudioInputStream normalizedStream;
-						if (force16BitPCMConversion) {
+						if (FORCE_16BIT_PCM_CONVERSION) {
 							normalizedStream = AudioSystem.getAudioInputStream(targetAudioFormat, ffAudioInputStream);
 						} else {
 							normalizedStream = AudioSystem.getAudioInputStream(AudioFormat.Encoding.PCM_SIGNED, ffAudioInputStream);
@@ -437,7 +441,13 @@ public class AudioServiceImpl implements AudioService, Runnable {
 
 	private void doSeek(long seekPositionMillisec) throws UnsupportedOperationException, IOException {
 		this.currentFFAudioInputStream.seek(seekPositionMillisec, TimeUnit.MILLISECONDS);
-		this.audioDataQueue.clear();
+		// Clear queue but return all objects in queue back to pool
+		this.audioDataQueue.removeIf(b -> {
+			try {
+				dataBuffersPool.returnObject(b);
+			} catch (Exception e) {}
+			return true;
+		});
 		// this.currentSourceDataLine.flush();
 		this.playbackStartPositionMillisec = seekPositionMillisec;
 		this.startingDataLineMillisecondsPosition = currentSourceDataLine.getMicrosecondPosition() / 1000;
@@ -462,7 +472,14 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		this.currentNormalizedStream.close();
 		this.currentFFAudioInputStream.close();
 		this.playbackBuffer = null;
-		this.audioDataQueue.clear();
+		// Clear queue but return all objects in queue back to pool
+		this.audioDataQueue.removeIf(b -> {
+			try {
+				dataBuffersPool.returnObject(b);
+			} catch (Exception e) {}
+
+			return true;
+		});
 		this.previousDataLineMillisecondsPosition = 0L;
 		this.state = PlaybackState.STOPPED;
 		executeListenerActions(AudioServiceEvent.builder().type(AudioServiceEvent.Type.STOP).build());
@@ -591,7 +608,7 @@ public class AudioServiceImpl implements AudioService, Runnable {
 		executeListenerActions(AudioServiceEvent.builder()
 				.type(AudioServiceEvent.Type.ERROR)
 				.errorType(t instanceof UnsupportedAudioFileException ? ErrorType.FILE_FORMAT_ERROR : ErrorType.PLAYBACK_ERROR)
-				.error(t.getClass().getSimpleName() + " " + t.getMessage())
+				.error(StackTraceUtil.toString(t))
 				.build());
 	}
 
